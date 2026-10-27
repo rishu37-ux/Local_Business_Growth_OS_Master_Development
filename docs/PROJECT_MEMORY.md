@@ -1,11 +1,12 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 4 complete (exit criterion met in automated tests; see PHASE4_PLAN.md §Exit) → Phase 5 next**
+Last updated: 2026-10-27 · Current phase: **Phase 5 in progress — increment 5.1 (tax, allocation, numbering engines) done; see PHASE5_PLAN.md**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–3 are complete. Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015). Increment 4.6 (web screens for catalogue, tax rates, suppliers, purchases, stock, scans/review, approvals; `member` pseudo-permission; Phase 4 exit browser test) is implemented and tested (TR-0016).
+- **Phases 0–4 are complete** (Phase 4 exit: TR-0016, CI #21 green). Phase 5 plan: `PHASE5_PLAN.md`; increment 5.1 (pure tax engine with 100 % branch coverage, allocation, number formats, metric definitions) done (TR-0017).
+- Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015). Increment 4.6 (web screens for catalogue, tax rates, suppliers, purchases, stock, scans/review, approvals; `member` pseudo-permission; Phase 4 exit browser test) is implemented and tested (TR-0016).
 - Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
   - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
@@ -33,7 +34,8 @@ Branch: `claude/quirky-dirac-vm3o46`
 | `COST_MODEL.md` | Indicative hosting costs (third-party prices; vendor sites blocked here), scenarios for 1/10/100 shops |
 | `BACKLOG.md` | Ordered Phase 3–5 backlog with SRS references and definition of done |
 | `PHASE3_PLAN.md` | Phase 3 increments, acceptance criteria and exit status/deferrals |
-| `PHASE4_PLAN.md` | Phase 4 increments 4.1–4.6 and acceptance criteria |
+| `PHASE4_PLAN.md` | Phase 4 increments 4.1–4.6, acceptance criteria, exit status/deferrals |
+| `PHASE5_PLAN.md` | Phase 5 increments 5.1–5.8 and acceptance criteria |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
 | `SECURITY_THREAT_MODEL.md` | Assets, boundaries, threats T1–T31, per-workflow data flows, mitigation status |
@@ -70,8 +72,7 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-1. Confirm CI is green on the Phase 4 exit commit and record it in TEST_REPORT (TR-0016).
-2. Start **Phase 5** (POS, invoices/print, payments, customer ledger, core reports): write `docs/PHASE5_PLAN.md` with acceptance criteria from BACKLOG P-01…P-09, beginning with the tax engine (P-01) and invoice numbering (P-02).
+Phase 5, increment **5.2** (PHASE5_PLAN.md §5.2): customers (mobile lookup, inline create, GSTIN/state), invoice series with configurable format and FY rollover, number allocation under lock with a concurrency test, re-authentication (fresh session) for tax-setting changes. Then 5.3 selling and issuing.
 
 Carry the Phase 3 and Phase 4 deferrals listed in `PHASE3_PLAN.md` §Exit and `PHASE4_PLAN.md` §Exit.
 

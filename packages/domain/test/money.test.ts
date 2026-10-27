@@ -123,3 +123,17 @@ describe('tax-rate versions (FR-TAX-2 AC1)', () => {
     expect(periodsOverlap(v('2025-01-01', null), v('2030-01-01', '2030-01-02'))).toBe(true);
   });
 });
+
+describe('money edge paths', () => {
+  it('accepts numeric inputs and handles empty or unknown stock in averages', () => {
+    expect(rateToBasisPoints(18)).toBe(1800);
+    expect(quantityToMilli(2)).toBe(2000);
+    // Stock on hand but no recorded average: the incoming cost becomes the average.
+    expect(
+      weightedAverageCost({ onHandMilli: 5000, currentAvgPaise: null, addedMilli: 1000, addedUnitPaise: 700 }),
+    ).toBe(700);
+    // Nothing on hand and nothing added keeps the (absent) average at 0.
+    expect(weightedAverageCost({ onHandMilli: 0, currentAvgPaise: null, addedMilli: 0, addedUnitPaise: 700 })).toBe(0);
+    expect(() => divRoundHalfUp(-1n, 2n)).toThrow(RangeError);
+  });
+});

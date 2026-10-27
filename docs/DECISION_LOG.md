@@ -245,3 +245,15 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Permission-aware screens:** the overview returns the member's usable permissions (role grants filtered by the business mode), and the web app shows only the screens and forms they can use. This is a convenience; every route still enforces its own permission.
 - **Wide tables** scroll inside a focusable, labelled region on small screens; selects and fieldsets are constrained to the page width.
 - **Scanner input:** scanner fields are ordinary text inputs submitted with Enter (USB/Bluetooth scanners type like keyboards). Camera scanning uses the browser's `BarcodeDetector` when it exists and is hidden otherwise; no third-party barcode library is added.
+
+---
+## Phase 5 decisions (2026-10-27)
+
+### D-038 · 2026-10-27 · Accepted (tax rules need professional verification)
+**Decision (engines, increment 5.1):**
+- **Invoice discount apportioning:** in proportion to each line's value *after its own line discount*; shares are floored and the leftover paise go to the last lines with room. A line never receives more discount than its value.
+- **Inclusive prices with cess:** taxable = round_half_up(net × 10000 / (10000 + GST bp + cess bp)); the tax is the rest of the net amount; GST = round_half_up(taxable × rate), capped at that tax, and cess takes the remainder. (D-013 did not cover cess; this is an assumption for review.)
+- **Round-off:** to the nearest rupee, half up (+50 paise rounds up), shown separately; range −49…+50 paise.
+- **Rate 0** covers nil-rated, exempt and zero-rated lines alike in the engine; their labelling on documents is a template matter for review.
+- **Number formats:** `{PREFIX}`, `{FY}` ("26-27"), `{FYLONG}` ("2026-27"), `{SEQ:n}` (n = 1–8). Default `{PREFIX}{FY}/{SEQ:4}`, e.g. `EX26-27/0042`. A format is refused when its longest possible rendering exceeds 16 characters; a sequence that outgrows its digits stops with SERIES_EXHAUSTED instead of producing a longer number.
+- **Coverage gate:** the domain package's test script enforces ≥ 95 % branch/line/function/statement coverage on the money modules (FR-TAX-1 AC5).

@@ -417,4 +417,24 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 1. **Staff could not open their business at all:** the overview route required `business.settings.view`, which the Inventory and Billing roles do not have, so the business page failed for them (the Phase 3 test only checked that staff reached the URL). The overview now uses a `member` pseudo-permission (any active member, 404 for others, still unavailable before setup; D-037). The Phase 3 lifecycle test that asserted the old 403 was changed to assert 200 for the overview and 403 for the audit log, which Billing does not hold.
 2. **axe `scrollable-region-focusable` at 360 px:** wide tables scroll inside a container that keyboard users could not reach. The container is now a focusable, labelled region.
 
+**CI:** [run #21](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40513254399) on commit `8a5f7d9` **passed** (Node 22 and 24). Runs #14, #17–#20 for increments 4.1–4.5 also passed.
+
 **Not covered yet:** Firefox/WebKit and real phones (NFR-16), including camera capture through the file picker and `BarcodeDetector`; real USB/Bluetooth scanners (emulated by typed input); keyboard-only and screen-reader passes of the new screens (NFR-1 manual checks).
+
+---
+
+## TR-0017 · 2026-10-27 · Phase 5 increment 5.1 — tax, allocation and numbering engines
+
+**Environment:** cloud dev container; Node v22.22.0; Vitest 5.0.5 with @vitest/coverage-v8 5.0.5; fast-check 4.10.2. Pure functions only (no database).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-TAX-1 AC1–3, D-013 | `tax-engine.test.ts` worked examples: inclusive ₹118 → ₹100 + 9 + 9; exclusive; IGST; odd-paisa split (90/91); inclusive rounding (₹9.99 → 847 + 76 + 76); zero-rated; cess exclusive/inclusive incl. an odd split; line discounts (amount, percent); invoice discount apportioned 33/33/34 and 2:1; round-off +50/−49/0; multi-rate; fractional quantities; 120-line invoice | **Pass** |
+| 2 | FR-TAX-1 AC4 | Bill of Supply: no tax amounts, net amount = total | **Pass** |
+| 3 | FR-TAX-1 AC3 | Properties (400 runs): Σ lines = totals for every component; each line total = taxable + taxes; CGST ≤ SGST ≤ CGST + 1; IGST xor CGST/SGST; inclusive lines keep their net amount; nothing negative; round-off within −49…+50 and total a whole rupee; apportioned shares sum exactly and never exceed a line's value. Validation: no lines, zero/fractional quantity, rates > 100 %, negative price, discounts above the value | **Pass** |
+| 4 | FR-TAX-1 AC5 | `pnpm -F @lbgos/domain test` runs with coverage thresholds of 95 % (branches, lines, functions, statements) over tax-engine, allocation, money, numbering and purchase. First measurement: branches 89.9 % → **the run failed**; unreachable fallbacks were removed by restructuring and edge tests added. Final: **tax-engine 100 % branches**, all five files 99.3 % branches / 100 % lines | **Pass** (threshold enforced) |
+| 5 | FR-LED-2 AC1 | Allocation: FIFO (date, then numeric-aware number), exact, partial, spill-over with remainder as advance, explicit selection order, unknown invoice refused, advances from several payments applied oldest first, refund sources and over-refund refused, payment status (incl. credit notes), invalid amounts refused | **Pass** |
+| 6 | FR-LED-2 AC2 | Property: never over-allocates an invoice or a payment; allocated = min(funds, amount due) | **Pass** |
+| 7 | FR-POS-4 AC3 | Number formats: tokens render; default fits a 6-character prefix in 16 characters; formats that could exceed 16 characters, contain other characters, lack or repeat `{SEQ:n}`, or use unknown tokens are refused at configuration time; an outgrown sequence is "exhausted" rather than longer; property: any accepted format renders ≤ 16 allowed characters | **Pass** |
+| 8 | FR-RPT-2, FR-LED-3 | Metric definitions present; operating profit labelled an estimate; no sales metric labelled profit or cash | **Pass** |
+| 9 | — | Negative controls: (a) remainder paise not distributed in apportioning → 4 tax tests fail; (b) allocation ignoring the amount due → 4 allocation tests fail. Restored; 114/114 pass | **Detected** both |

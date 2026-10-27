@@ -63,3 +63,10 @@ describe('purchase arithmetic (FR-INV-8 AC2, D-013, D-033)', () => {
     expect(() => unitCostFromLine(100, 0)).toThrow();
   });
 });
+
+describe('purchase edge paths', () => {
+  it('splitAmount rejects fractional or negative amounts', () => {
+    expect(() => splitAmount(1.5, 2)).toThrow(RangeError);
+    expect(() => splitAmount(-1, 2)).toThrow(RangeError);
+  });
+});

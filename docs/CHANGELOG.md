@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] — Phase 5 (in progress)
+
+### Added
+- Phase 5 plan (`docs/PHASE5_PLAN.md`).
+- `@lbgos/domain`: sale tax engine (D-013/D-038), payment allocation (D-014), invoice number formats, metric definitions; coverage gate ≥ 95 % on money modules.
+
 ## [0.4.0] — 2026-10-27 — Phase 4 (inventory, purchases, stock ledger, OCR review)
 
 ### Added

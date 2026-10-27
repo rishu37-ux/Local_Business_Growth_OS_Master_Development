@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (end of Phase 4) · 100 requirements
+Last updated: 2026-10-27 (Phase 5, increment 5.1) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -42,9 +42,9 @@ Last updated: 2026-10-27 (end of Phase 4) · 100 requirements
 | FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
 | FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
 | FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T24; TR-0005 (migrated DB) |
-| FR-POS-4 | POS | Invoice numbering | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T14–T14e; spike TR-0003 (concurrent gapless numbering); TR-0005 (migrated DB) |
+| FR-POS-4 | POS | Invoice numbering | 5 | In progress (AC3 format validation implemented + tested; series, FY rollover and concurrency in 5.2) | `packages/domain/src/numbering.ts` | TR-0017 #7 |
 | FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
-| FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T15–T15c; TR-0005 (migrated DB) |
+| FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (pure engine implemented + tested: AC2–AC5 incl. ≥95 % branch coverage measured — 100 % for the engine; AC1 snapshots stored per line when invoices are issued in 5.3) | `packages/domain/src/tax-engine.ts` | TR-0017 #1–4 |
 | FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | In progress (AC1 and AC3 implemented + tested; AC2 audited and permission-gated, re-authentication pending — D-030) | migration 0007, `catalogue/tax-rates.ts`, `@lbgos/domain` tax-rates | TR-0011 #6–7 |
 | FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T16–T16g; TR-0005 (migrated DB) |
 | FR-TAX-4 | Tax | E-invoice / signature only where applicable | 5 | Specified | — | — |
@@ -54,12 +54,12 @@ Last updated: 2026-10-27 (end of Phase 4) · 100 requirements
 | FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
 | FR-LED-1 | Ledger | Customer ledger | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T18–T18d; TR-0005 (migrated DB) |
-| FR-LED-2 | Ledger | Deterministic allocation | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T17–T17c; spike TR-0003 (allocation locking, D-020); TR-0005 (migrated DB) |
+| FR-LED-2 | Ledger | Deterministic allocation | 5 | In progress (pure module implemented + tested: AC1 cases, AC2 property; DB use with locks in 5.4) | `packages/domain/src/allocation.ts` | TR-0017 #5–6 |
 | FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
 | FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
 | FR-RPT-1 | Reports | Report set | 5–6 | Specified | — | — |
-| FR-RPT-2 | Reports | Definitions shown | 5–6 | Specified | — | — |
+| FR-RPT-2 | Reports | Definitions shown | 5 | In progress (definitions module from SRS §7; shown in reports in 5.7) | `packages/domain/src/metrics.ts` | TR-0017 #8 |
 | FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Specified | — | — |
 | FR-RPT-4 | Reports | Export | 5–6 | Specified | — | — |
 | FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |

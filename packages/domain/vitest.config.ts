@@ -1,3 +1,14 @@
 import { defineConfig } from 'vitest/config';
 
-export default defineConfig({ test: { include: ['test/**/*.test.ts'] } });
+// FR-TAX-1 AC5: the tax engine (and the other money modules) must keep ≥95 %
+// branch coverage; `pnpm test` fails below the threshold.
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      include: ['src/tax-engine.ts', 'src/allocation.ts', 'src/money.ts', 'src/numbering.ts', 'src/purchase.ts'],
+      reporter: ['text'],
+      thresholds: { branches: 95, lines: 95, functions: 95, statements: 95 },
+    },
+  },
+});

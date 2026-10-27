@@ -60,7 +60,7 @@ Not in Phase 4 (by design): POS sales, customer returns/credit notes (Phase 5); 
 
 ## Exit status (2026-10-27)
 
-**Exit criterion met in automated tests** (CI result on the pushed commit is recorded in TEST_REPORT once observed): the browser test (TR-0016) runs a synthetic shop through tax rate → phone model and variant → supplier → purchase with scanner-typed IMEIs → posting; a duplicate IMEI is refused; a scanned supplier invoice is reviewed with every flagged field confirmed and becomes a draft that is posted; a staff adjustment request changes nothing until the owner approves it; stock reconciles with the ledger. Cross-tenant tests cover every new route (TR-0011…TR-0015).
+**Exit criterion met**, and CI run #21 on the exit commit is green (TR-0016): the browser test (TR-0016) runs a synthetic shop through tax rate → phone model and variant → supplier → purchase with scanner-typed IMEIs → posting; a duplicate IMEI is refused; a scanned supplier invoice is reviewed with every flagged field confirmed and becomes a draft that is posted; a staff adjustment request changes nothing until the owner approves it; stock reconciles with the ledger. Cross-tenant tests cover every new route (TR-0011…TR-0015).
 
 | Increment | Evidence |
 |---|---|

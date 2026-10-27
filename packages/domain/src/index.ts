@@ -94,3 +94,34 @@ export {
   type ProductLabelExtraction,
   type SupplierInvoiceExtraction,
 } from './ocr-parse.ts';
+export {
+  apportion,
+  computeSale,
+  discountAmount,
+  TaxEngineError,
+  type Discount,
+  type SaleInput,
+  type SaleLineInput,
+  type SaleLineResult,
+  type SaleResult,
+} from './tax-engine.ts';
+export {
+  allocate,
+  AllocationError,
+  fifoOrder,
+  paymentStatus,
+  refundSources,
+  type Allocation,
+  type OpenInvoice,
+  type PaymentFunds,
+  type PaymentStatus,
+} from './allocation.ts';
+export {
+  DEFAULT_FORMAT,
+  formatProblem,
+  MAX_NUMBER_LENGTH,
+  NumberingError,
+  renderInvoiceNumber,
+  type FormatProblem,
+} from './numbering.ts';
+export { METRICS, type MetricKey } from './metrics.ts';

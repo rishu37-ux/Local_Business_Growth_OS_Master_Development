@@ -1,13 +1,11 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (end of Phase 4)
+Last updated: 2026-10-27 (Phase 5, after increment 5.1)
 
 ## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
 
-1. Confirm CI green on the Phase 4 exit commit; record in TEST_REPORT.
-2. `docs/PHASE5_PLAN.md`: acceptance criteria per increment (BACKLOG P-01…P-09).
-3. P-01 tax engine in `@lbgos/domain` (D-013), ≥95 % branch coverage, property tests.
-4. P-02 invoice numbering service (D-012, D-020) with the concurrency test from the spike.
+1. ~~CI green on the Phase 4 exit (#21)~~ · ~~`PHASE5_PLAN.md`~~ · ~~5.1 engines (P-01, allocation, formats)~~ (done, TR-0017).
+2. 5.2 / P-02 invoice numbering service (D-012, D-020) with the concurrency test from the spike.
 5. P-03/P-04 POS UI and atomic invoice issue (stock SALE movements, units SOLD, ledger, COGS snapshot), IMEI double-sale race test.
 6. P-05…P-09 allocation, cancellation/credit notes (returns into inspection), print/PDF, statements and reports, exports.
 
