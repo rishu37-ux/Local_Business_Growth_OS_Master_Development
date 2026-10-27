@@ -413,6 +413,16 @@ describe('approval requests (WORKFLOWS §11, FR-INV-4 AC4)', () => {
 });
 
 describe('permissions and tenancy', () => {
+  it('every staff member can open the business overview, which lists their usable permissions', async () => {
+    const view = await get(h, shop.base, inventory.session);
+    expect(view.statusCode).toBe(200);
+    const permissions = view.json<{ access: { permissions: string[] } }>().access.permissions;
+    expect(permissions).toEqual(expect.arrayContaining(['inventory.adjust.request', 'ocr.scan']));
+    expect(permissions).not.toContain('inventory.adjust.approve');
+    expect((await get(h, shop.base, billing)).statusCode).toBe(200);
+    expect((await get(h, shop.base, other.owner)).statusCode).toBe(404);
+  });
+
   it('Billing staff can view stock but cannot adjust or decide', async () => {
     expect((await get(h, `${shop.base}/stock`, billing)).statusCode).toBe(200);
     expect(

@@ -1,6 +1,7 @@
 // Applicant and business-owner endpoints for the lifecycle (BR-T1…T4, FR-ONB-1, FR-ONB-3, FR-AUD-1).
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
+import { permittedInMode } from '@lbgos/domain';
 import { z } from 'zod';
 import { withTenant } from '@lbgos/db';
 import {
@@ -11,7 +12,7 @@ import {
   submitApplication,
   updateApplication,
 } from '@lbgos/modules/tenancy';
-import { AUTHENTICATED } from '../auth-plugin.ts';
+import { AUTHENTICATED, MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
 
 const application = z.strictObject({
@@ -95,14 +96,20 @@ export function registerTenancyRoutes(app: FastifyInstance, s: AppServices): voi
 
   app.get(
     '/api/businesses/:businessId',
-    { config: { permission: 'business.settings.view' }, schema: { params: businessParams } },
+    // Every active member needs the overview; it holds no settings beyond name and status.
+    { config: { permission: MEMBER }, schema: { params: businessParams } },
     async (request) => {
       const c = ctx(request);
       return withTenant(s.appDb, c, async (trx) => {
         const { rows } = await sql`
           select id, legal_name, display_name, category, status, state_code, timezone, fy_start_month, currency
             from lbg.businesses where id = ${c.businessId}`.execute(trx);
-        return { business: rows[0], access: { mode: request.access?.mode, roles: request.access?.roles } };
+        const access = request.access;
+        // For showing the right screens only; every route still checks permissions itself.
+        const permissions = access
+          ? [...access.permissions.keys()].filter((k) => permittedInMode(k, access.mode)).sort()
+          : [];
+        return { business: rows[0], access: { mode: access?.mode, roles: access?.roles, permissions } };
       });
     },
   );

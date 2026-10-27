@@ -215,7 +215,9 @@ describe('staff and roles (FR-RBAC-1 R1, R2, R4; FR-AUTH-1 AC2/AC5; FR-AUTH-5 AC
 
   it('Billing staff are refused routes their role does not grant', async () => {
     expect((await get(h, `/api/businesses/${businessId}/members`, staff.cookies)).statusCode).toBe(403);
-    expect((await get(h, `/api/businesses/${businessId}`, staff.cookies)).statusCode).toBe(403);
+    expect((await get(h, `/api/businesses/${businessId}/audit`, staff.cookies)).statusCode).toBe(403);
+    // The overview (name, status, own permissions) is for every member (D-037).
+    expect((await get(h, `/api/businesses/${businessId}`, staff.cookies)).statusCode).toBe(200);
   });
 
   it('the owner lists members with their roles', async () => {

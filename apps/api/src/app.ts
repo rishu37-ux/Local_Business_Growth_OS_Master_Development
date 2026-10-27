@@ -6,7 +6,7 @@ import helmet from '@fastify/helmet';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import { createAuthGate } from './auth-gate.ts';
 import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
-import { AUTHENTICATED, registerAuth } from './auth-plugin.ts';
+import { AUTHENTICATED, MEMBER, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
 import { registerCatalogueRoutes } from './routes/catalogue.ts';
 import { registerInventoryRoutes } from './routes/inventory.ts';
@@ -109,6 +109,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     if (typeof permission !== 'string') throw new Error(`${where} must declare config.permission or config.public`);
     // FR-RBAC-1 AC2: only catalogue permissions, each on the right kind of URL.
     if (permission === AUTHENTICATED) return;
+    if (permission === MEMBER) {
+      if (!route.url.includes(':businessId')) throw new Error(`${where} uses ${MEMBER} without :businessId`);
+      return;
+    }
     if (isBusinessPermission(permission)) {
       if (!route.url.includes(':businessId'))
         throw new Error(`${where} uses business permission ${permission} without :businessId`);

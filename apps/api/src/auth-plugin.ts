@@ -23,6 +23,13 @@ declare module 'fastify' {
 /** Pseudo-permission: any signed-in user (e.g. "who am I"). */
 export const AUTHENTICATED = 'authenticated';
 
+/**
+ * Pseudo-permission: any active member of the business in the URL, once it is
+ * set up or live (e.g. the business overview every staff member needs).
+ */
+export const MEMBER = 'member';
+const MEMBER_MODES = new Set(['SETUP', 'FULL', 'READ_ONLY']);
+
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 // Client-supplied forwarding headers are never passed to Better Auth; it sees
@@ -88,6 +95,26 @@ export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, p
 
     const permission = config.permission;
     if (permission === AUTHENTICATED) return;
+
+    if (permission === MEMBER && gate) {
+      const businessId = (request.params as { businessId?: unknown }).businessId;
+      const access =
+        typeof businessId === 'string' && isUuid(businessId)
+          ? await gate.businessAccess(businessId, principal.userId)
+          : null;
+      if (!access) return deny(reply, request, 404, 'NOT_FOUND', 'Not found.');
+      if (!MEMBER_MODES.has(access.mode)) {
+        return deny(
+          reply,
+          request,
+          403,
+          'BUSINESS_NOT_AVAILABLE',
+          'This action is not available for this business right now.',
+        );
+      }
+      request.access = access;
+      return;
+    }
 
     if (permission !== undefined && isPlatformPermission(permission)) {
       // Platform admins hold every platform permission; MFA was enforced above.

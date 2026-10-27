@@ -19,6 +19,8 @@ export const SECRET = 'test-only-secret-0123456789abcdef0123456789';
 
 export interface Harness {
   readonly app: FastifyInstance;
+  /** Public origin of this harness (sent as Origin by the request helpers). */
+  readonly origin: string;
   readonly emails: CapturingEmailSender;
   readonly mail: CapturingMailer;
   readonly logs: LogCapture;
@@ -84,6 +86,7 @@ export async function startHarness(
   await app.ready();
   return {
     app,
+    origin: new URL(baseURL).origin,
     emails,
     mail,
     logs,
@@ -140,7 +143,7 @@ export async function post(
     url,
     payload,
     remoteAddress: ip,
-    headers: { origin: ORIGIN, ...(Object.keys(cookies).length ? { cookie: cookieHeader(cookies) } : {}) },
+    headers: { origin: h.origin, ...(Object.keys(cookies).length ? { cookie: cookieHeader(cookies) } : {}) },
   });
 }
 
@@ -231,6 +234,6 @@ export async function put(h: Harness, url: string, payload: object, cookies: Rec
     url,
     payload,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }

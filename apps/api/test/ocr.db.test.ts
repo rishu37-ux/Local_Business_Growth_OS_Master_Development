@@ -6,7 +6,7 @@ import path from 'node:path';
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { HEIC, pdf, png } from '../../../packages/domain/test/fixtures/files.ts';
-import { cookieHeader, freshIp, ORIGIN, startHarness, type Harness } from './auth-harness.ts';
+import { cookieHeader, freshIp, startHarness, type Harness } from './auth-harness.ts';
 import {
   activeShop,
   errorCode,
@@ -61,7 +61,7 @@ function upload(bytes: Buffer, type: string, who: Session = shop.owner, s: Shop 
     url: `${s.base}/scans?type=${type}&name=${encodeURIComponent(name)}`,
     payload: bytes,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(who), 'content-type': 'application/octet-stream' },
+    headers: { origin: h.origin, cookie: cookieHeader(who), 'content-type': 'application/octet-stream' },
   });
 }
 const scan = async (id: string, who: Session = shop.owner) =>

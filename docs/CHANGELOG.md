@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phase 4 (in progress)
+## [0.4.0] — 2026-10-27 — Phase 4 (inventory, purchases, stock ledger, OCR review)
 
 ### Added
 - Phase 4 plan (`docs/PHASE4_PLAN.md`).
@@ -10,6 +10,11 @@
 - Migration 0009, `@lbgos/modules/approvals` and inventory adjustments: stock overview/units/movements/reconciliation APIs, adjustments, write-offs, corrections, approval requests (payload hash, expiry, R3).
 - Migration 0010: inspection records; inspection queue/outcomes, low/slow/dead stock and reorder-suggestion reports, code lookup API.
 - Migration 0011 and `@lbgos/modules/ocr`: scan uploads (magic bytes, limits), private storage adapter, OCR jobs in isolated worker threads with retries, mock OCR adapter (fixture text), deterministic field parsing, review with confirmations → draft purchase, structuring hook with strict schema.
+- Web screens: catalogue, tax rates, suppliers, purchases (IMEI entry, post, reverse), stock (scanner field, camera where supported, levels, reports, inspections, adjustments), scans and review, approvals; Phase 4 exit browser test.
+
+### Fixed
+- Staff without `business.settings.view` could not open their business overview (`member` pseudo-permission, D-037).
+- Wide tables were not keyboard-scrollable on small screens.
 
 ## [0.3.0] — 2026-10-27 — Phase 3 (foundation)
 

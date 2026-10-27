@@ -3,7 +3,7 @@
 // default roles. Synthetic data only.
 import { luhnCheckDigit } from '@lbgos/domain';
 import { sql } from 'kysely';
-import { cookieHeader, enrolMfa, freshIp, get, newUser, ORIGIN, post, put, type Harness } from './auth-harness.ts';
+import { cookieHeader, enrolMfa, freshIp, get, newUser, post, put, type Harness } from './auth-harness.ts';
 
 export const SHOP_PW = 'Shop-Fixture-2026';
 export type Session = Record<string, string>;
@@ -12,6 +12,9 @@ export interface Shop {
   readonly businessId: string;
   readonly owner: Session;
   readonly ownerId: string;
+  readonly ownerEmail: string;
+  /** TOTP secret of the owner (for signing in through the browser). */
+  readonly ownerSecret: string;
   readonly base: string;
 }
 
@@ -51,7 +54,8 @@ export async function activeShop(
   const businessId = created.json<{ businessId: string }>().businessId;
   const approved = await post(h, `/api/platform/businesses/${businessId}/approve`, {}, admin);
   if (approved.statusCode >= 300) throw new Error(`approve failed: ${approved.statusCode} ${approved.body}`);
-  const owner = (await enrolMfa(h, o.cookies, SHOP_PW)).session;
+  const mfa = await enrolMfa(h, o.cookies, SHOP_PW);
+  const owner = mfa.session;
   const base = `/api/businesses/${businessId}`;
   const steps = [
     await put(
@@ -71,7 +75,7 @@ export async function activeShop(
     await post(h, `${base}/activate`, {}, owner),
   ];
   for (const r of steps) if (r.statusCode >= 300) throw new Error(`setup failed: ${r.statusCode} ${r.body}`);
-  return { businessId, owner, ownerId: o.id, base };
+  return { businessId, owner, ownerId: o.id, ownerEmail: o.email, ownerSecret: mfa.secret, base };
 }
 
 /** A verified user who joined `shop` with the default role `roleName` (accepted invitation). */
@@ -100,7 +104,7 @@ export async function patch(h: Harness, url: string, payload: object, cookies: S
     url,
     payload,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }
 
@@ -109,7 +113,7 @@ export async function del(h: Harness, url: string, cookies: Session = {}) {
     method: 'DELETE',
     url,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }
 

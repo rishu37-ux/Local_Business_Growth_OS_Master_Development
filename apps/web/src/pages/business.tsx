@@ -9,8 +9,19 @@ import { Alert, Button, errorText, Field, NativeSelect, Page } from '../ui.tsx';
 
 interface BusinessView {
   business: { legal_name: string; display_name: string | null; status: string };
-  access: { mode: string; roles: string[] };
+  access: { mode: string; roles: string[]; permissions: string[] };
 }
+
+// Screens shown when the member holds the permission (the API checks again).
+const SCREENS: readonly (readonly [string, string, string])[] = [
+  ['catalogue', 'Catalogue', 'catalogue.view'],
+  ['stock', 'Stock', 'inventory.view'],
+  ['purchases', 'Purchases', 'purchases.view'],
+  ['scans', 'Scans', 'ocr.scan'],
+  ['suppliers', 'Suppliers', 'suppliers.view'],
+  ['approvals', 'Approvals', 'approvals.decide'],
+  ['members', 'Staff and invitations', 'users.view'],
+];
 interface Application {
   legal_name: string;
   status: string;
@@ -69,9 +80,17 @@ export function BusinessPage({ me }: { me: Me }) {
         {view.data.access.roles.join(', ') || 'none'}
       </p>
       <nav aria-label="Business" className="mb-4">
-        <Link className="text-blue-800 underline" to={`/b/${businessId}/members`}>
-          Staff and invitations
-        </Link>
+        <ul className="flex flex-wrap gap-x-4 gap-y-2">
+          {SCREENS.filter(([, , permission]) => view.data.access.permissions.includes(permission)).map(
+            ([path, label]) => (
+              <li key={path}>
+                <Link className="text-blue-800 underline" to={`/b/${businessId}/${path}`}>
+                  {label}
+                </Link>
+              </li>
+            ),
+          )}
+        </ul>
       </nav>
       {view.data.access.mode === 'SETUP' ? <SetupWizard businessId={businessId} me={me} /> : null}
     </Page>

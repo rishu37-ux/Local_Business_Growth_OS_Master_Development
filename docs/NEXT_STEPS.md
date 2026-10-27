@@ -1,19 +1,23 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 4, after increment 4.5)
+Last updated: 2026-10-27 (end of Phase 4)
 
-## Phase 4 — Inventory, suppliers/purchases, stock ledger, OCR review (in progress)
+## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
 
-1. ~~`docs/PHASE4_PLAN.md`~~ (done) · ~~4.1 catalogue + tax rates~~ (done, TR-0011).
-2. ~~4.2 / I-03 suppliers and purchases~~ (done, TR-0012).
-3. ~~4.3 / I-04 stock ledger, reconciliation, adjustments, approvals~~ (done, TR-0013).
-4. ~~4.4 / I-05…I-07 inspection, stock reports, lookup API~~ (done, TR-0014; web scanner field in 4.6).
-5. ~~4.5 / I-08, I-09 uploads, OCR jobs (mock adapter), review API, injection corpus~~ (done, TR-0015).
-6. 4.6 Web screens and the Phase 4 exit browser test.
+1. Confirm CI green on the Phase 4 exit commit; record in TEST_REPORT.
+2. `docs/PHASE5_PLAN.md`: acceptance criteria per increment (BACKLOG P-01…P-09).
+3. P-01 tax engine in `@lbgos/domain` (D-013), ≥95 % branch coverage, property tests.
+4. P-02 invoice numbering service (D-012, D-020) with the concurrency test from the spike.
+5. P-03/P-04 POS UI and atomic invoice issue (stock SALE movements, units SOLD, ledger, COGS snapshot), IMEI double-sale race test.
+6. P-05…P-09 allocation, cancellation/credit notes (returns into inspection), print/PDF, statements and reports, exports.
+
+## Phase 4 (complete)
+
+All increments 4.1–4.6 done; see `PHASE4_PLAN.md` §Exit for evidence and deferrals.
 
 ## Carried from Phase 3
 
-See `PHASE3_PLAN.md` §Exit (deferred list).
+See `PHASE3_PLAN.md` §Exit and `PHASE4_PLAN.md` §Exit (deferred lists).
 
 ## Inputs requested from the user
 

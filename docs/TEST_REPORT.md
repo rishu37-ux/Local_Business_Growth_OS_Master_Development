@@ -394,3 +394,27 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 **Defect found and fixed during the increment:** discarding a FAILED scan violated a CHECK that allowed an error code only on FAILED jobs; the constraint now keeps the code on DISCARDED jobs (history) and still requires it on FAILED ones.
 
 **Not covered / limitations:** no real OCR engine (Q4), so recognition accuracy is untested; no malware scanner; the worker thread limits memory and time but is not an OS sandbox (same process, network not blocked at OS level); camera capture and the review screen arrive in 4.6; image regions as evidence are not available from the mock.
+
+---
+
+## TR-0016 · 2026-10-27 · Phase 4 increment 4.6 — web screens and Phase 4 exit test
+
+**Environment:** cloud dev container; Vite 8 production build of `apps/web`; Playwright 1.63.0 with the preinstalled Chromium; @axe-core/playwright 4.14.0; API on 127.0.0.1:4318 against migrations 0001–0011; OCR through the mock adapter, processed by the harness exactly as the server's job loop would. Synthetic shop, staff and files.
+
+| # | Requirement / AC | Check (`apps/api/test/inventory-browser.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-TAX-2, FR-INV-1/2, FR-INV-8 AC1 | Owner (signed in with password + TOTP) adds a tax rate, a serialized phone model with a variant (cost price visible to the owner) and a supplier with GSTIN through the UI | **Pass** |
+| 2 | FR-INV-8, FR-INV-5 AC2 | New purchase in the UI: IMEIs typed character by character with Enter between scans (keyboard-wedge behaviour); draft shows "No problems found" and the computed total ₹35,400.00; posting adds the stock | **Pass** |
+| 3 | FR-INV-3 AC3 | A second purchase with an IMEI already in stock shows the blocking check; posting is refused; the draft is discarded | **Pass** |
+| 4 | FR-OCR-1…4 | Supplier-invoice PDF uploaded from the scan screen; after processing, the review screen shows each field with confidence and source; **Create stays disabled until all 10 flagged fields are confirmed**; supplier and product are pre-selected from the GSTIN and description matches; the IMEI is pre-filled; Create opens a DRAFT purchase, which the owner posts | **Pass** |
+| 5 | FR-INV-4 AC4, WORKFLOWS §11 | Inventory staff request a −1 adjustment ("sent for approval"); stock unchanged (5); the owner approves on the Approvals screen; stock becomes 4 | **Pass** |
+| 6 | FR-INV-9 AC1–2, FR-INV-4 AC3 | Stock screen: IMEI typed into the scanner field + Enter finds the unit ("matched by imei, unit in stock"); the camera button is shown only if `BarcodeDetector` exists (absent in headless Chromium, so none is shown and nothing errors); "Stock levels match the stock ledger"; phone stock 3 (2 purchased + 1 from the scan) | **Pass** |
+| 7 | NFR-1, NFR-17 | axe (WCAG 2.0/2.1/2.2 A/AA) on 8 new screens (tax rates, catalogue, suppliers, purchase editor, scans, scan review, stock, approvals) × 3 widths = 24 audits: **0 serious/critical**; no horizontal overflow; no CSP violation or page error | **Pass** |
+| 8 | — | `inventory.db.test.ts`: Inventory and Billing staff can open the business overview (it lists their usable permissions, without `inventory.adjust.approve` for Inventory); a non-member gets 404 | **Pass** |
+| 9 | — | `pnpm check`: lint, format, typecheck, build; domain 78; API unit 37; DB schema checks + 54; auth drift ok; API DB 160 (incl. both browser tests). API DB suite with shuffled file order (seeds 1, 2): 160/160 each | **Pass**, exit 0 |
+
+**Defects found by the browser test and fixed:**
+1. **Staff could not open their business at all:** the overview route required `business.settings.view`, which the Inventory and Billing roles do not have, so the business page failed for them (the Phase 3 test only checked that staff reached the URL). The overview now uses a `member` pseudo-permission (any active member, 404 for others, still unavailable before setup; D-037). The Phase 3 lifecycle test that asserted the old 403 was changed to assert 200 for the overview and 403 for the audit log, which Billing does not hold.
+2. **axe `scrollable-region-focusable` at 360 px:** wide tables scroll inside a container that keyboard users could not reach. The container is now a focusable, labelled region.
+
+**Not covered yet:** Firefox/WebKit and real phones (NFR-16), including camera capture through the file picker and `BarcodeDetector`; real USB/Bluetooth scanners (emulated by typed input); keyboard-only and screen-reader passes of the new screens (NFR-1 manual checks).
