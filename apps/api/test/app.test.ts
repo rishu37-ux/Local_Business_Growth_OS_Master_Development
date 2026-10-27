@@ -178,7 +178,20 @@ describe('client IP and proxies', () => {
   });
 });
 
-describe('route declarations (3.4 AC6)', () => {
+describe('route declarations (3.4 AC6, FR-RBAC-1 AC2)', () => {
+  it('refuses unknown permission keys, business permissions without :businessId, and platform permissions elsewhere', () => {
+    ({ app } = testApp());
+    expect(() =>
+      app?.get('/api/businesses/:businessId/x', { config: { permission: 'catalogue.destroy' } }, () => 'x'),
+    ).toThrow(/unknown permission/);
+    expect(() => app?.get('/api/catalogue', { config: { permission: 'catalogue.view' } }, () => 'x')).toThrow(
+      /without :businessId/,
+    );
+    expect(() => app?.get('/api/usage', { config: { permission: 'platform.usage.view' } }, () => 'x')).toThrow(
+      /outside \/api\/platform/,
+    );
+  });
+
   it('refuses to register a route without permission or public declaration', () => {
     ({ app } = testApp());
     expect(() => app?.get('/undeclared', () => 'x')).toThrow(/must declare config.permission or config.public/);
@@ -186,6 +199,11 @@ describe('route declarations (3.4 AC6)', () => {
 
   it('accepts a route declaring a permission', () => {
     ({ app } = testApp());
-    expect(() => app?.get('/declared', { config: { permission: 'catalogue.view' } }, () => 'x')).not.toThrow();
+    expect(() =>
+      app?.get('/api/businesses/:businessId/declared', { config: { permission: 'catalogue.view' } }, () => 'x'),
+    ).not.toThrow();
+    expect(() =>
+      app?.get('/api/platform/declared', { config: { permission: 'platform.usage.view' } }, () => 'x'),
+    ).not.toThrow();
   });
 });

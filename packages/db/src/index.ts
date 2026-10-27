@@ -4,6 +4,7 @@ export {
   createDb,
   isUuid,
   withoutTenant,
+  withUser,
   withTenant,
   type AppRole,
   type Db,

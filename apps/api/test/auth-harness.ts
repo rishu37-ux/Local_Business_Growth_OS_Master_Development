@@ -7,7 +7,6 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
-import { createAuthGate } from '../src/auth-gate.ts';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
 import { LogCapture, okReadiness } from './helpers.ts';
@@ -52,13 +51,13 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    auth: createAuthGate({ auth, appDb, platformDb }),
+    services: { appDb, platformDb, auth },
     logStream: logs,
   });
   // Test-only routes used to probe the session hook.
   app.get('/test/protected', { config: { permission: AUTHENTICATED } }, () => ({ ok: true }));
   app.post('/test/protected', { config: { permission: AUTHENTICATED } }, () => ({ ok: true }));
-  app.get('/test/needs-permission', { config: { permission: 'catalogue.view' } }, () => ({ ok: true }));
+  app.get('/test/:businessId/needs-permission', { config: { permission: 'catalogue.view' } }, () => ({ ok: true }));
   await app.ready();
   return {
     app,
@@ -172,4 +171,33 @@ export function secretFromTotpUri(uri: string): string {
   const secret = new URL(uri).searchParams.get('secret');
   if (!secret) throw new Error('no secret in TOTP URI');
   return secret;
+}
+
+/** Enrols TOTP for a signed-in user; returns the rotated session cookie (FR-AUTH-1 AC2). */
+export async function enrolMfa(h: Harness, cookies: Record<string, string>, password: string) {
+  const enable = await post(h, '/api/auth/two-factor/enable', { password }, cookies);
+  if (enable.statusCode !== 200) throw new Error(`enable 2FA failed: ${enable.statusCode} ${enable.body}`);
+  const { totpURI } = enable.json<{ totpURI: string }>();
+  const secret = secretFromTotpUri(totpURI);
+  const verify = await post(h, '/api/auth/two-factor/verify-totp', { code: totp(secret) }, cookies);
+  if (verify.statusCode !== 200) throw new Error(`verify 2FA failed: ${verify.statusCode} ${verify.body}`);
+  return { secret, session: { [SESSION_COOKIE]: cookiesFrom(verify)[SESSION_COOKIE] ?? '' } };
+}
+
+/** Verified, signed-in user; returns email, user ID and session cookies. */
+export async function newUser(h: Harness, email: string, password: string) {
+  await createVerifiedUser(h, email, password);
+  const { res, cookies } = await signIn(h, email, password);
+  if (res.statusCode !== 200) throw new Error(`sign-in failed: ${res.statusCode}`);
+  return { email, id: await userId(h, email), cookies };
+}
+
+export async function put(h: Harness, url: string, payload: object, cookies: Record<string, string> = {}) {
+  return h.app.inject({
+    method: 'PUT',
+    url,
+    payload,
+    remoteAddress: freshIp(),
+    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+  });
 }

@@ -179,3 +179,32 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 - The drift check initially failed on a clean schema: the compiler prints `;` when nothing is pending.
 
 **Deferred, with reasons:** FR-AUTH-1 AC5 owner-revokes-staff endpoint and AC2 rotation on privilege change (need RBAC, 3.6); FR-AUTH-3 AC3 owner toggle "require MFA for staff" (needs business settings, 3.6/3.7); FR-AUTH-3 passkeys (should-have); FR-AUTH-2 AC4 online breached-password check (needs network access; the plugin exists); FR-AUTH-5 MFA recovery (AC1 needs RBAC, AC2 is an operational process to document before pilot). Production email provider not configured (Q6), so production start is refused by design.
+
+---
+
+## TR-0008 · 2026-10-27 · Phase 3 increment 3.6 — RBAC, business lifecycle, audit
+
+**Environment:** as TR-0007, plus migration 0005. Synthetic data only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-RBAC-1, ROLES_PERMISSIONS §3–4 | Domain tests: unique well-formed keys (match the DB check regex), business/platform sets disjoint; Owner is the only system role and holds all business permissions without limits; only Owner has roles/users/tax/integrations/subscription/support management; Billing lacks cost/refunds/cancel and has a 2%/₹500 discount limit; Accountant view/export only; merging (unlimited beats limited, max limit) is order-independent and never invents grants (property test) | **Pass** (domain 35/35 total) |
+| 2 | WORKFLOWS §1, D-009, D-010 | Domain tests: REJECTED terminal; only CHANGES_REQUESTED → PENDING_APPROVAL; access mode for every status; suspended owner READ_ONLY / staff NONE; EXPIRED read-only, PAST_DUE read-only only after 7 grace days; SETUP blocks selling/payments/refunds/marketing.send; READ_ONLY allows views/exports/subscription only | **Pass** |
+| 3 | Domain/DB parity | `packages/db/test/transitions.db.test.ts`: all 30 ordered status pairs, domain `canTransition` == DB trigger | **Pass — 30/30**; negative control (one transition removed from the domain table) **detected** exactly that pair |
+| 4 | FR-RBAC-1 AC2 | Registration refuses unknown keys, business permissions without `:businessId`, platform permissions outside `/api/platform/` | **Pass** |
+| 5 | BR-T1, FR-ONB-1 | `apps/api/test/lifecycle.db.test.ts`: application → PENDING_APPROVAL with applicant as member; second open application 409; invalid state code / extra `status` field 400; pending applicant can read the application but gets 403 `BUSINESS_NOT_AVAILABLE` for business data; non-member 404 | **Pass** |
+| 6 | BR-T2, BR-T3 | Review queue only for platform admins (non-admin 403; admin without MFA 403 `MFA_ENROLMENT_REQUIRED`); request-changes with a 6-char reason 422, with a proper reason 204; applicant edits + resubmits; history shows PENDING → CHANGES_REQUESTED → PENDING with the reason; approving twice 409 | **Pass** |
+| 7 | Approval provisioning | Approval creates exactly the 5 default roles; Owner role has all catalogue permissions; applicant becomes Owner | **Pass** |
+| 8 | D-011, FR-ONB-2 AC3 | New owner without MFA → 403 `MFA_ENROLMENT_REQUIRED`; after enrolment mode SETUP; owner activates → ACTIVE/FULL; second activation 409 | **Pass** |
+| 9 | FR-RBAC-1 rules | Billing staff refused `users.view`/`business.settings.view` routes; owner lists members with roles; role change applies and **revokes the member's sessions**; self role change 403; R2: delegated "People admin" cannot assign Owner/Manager (403 `GRANT_EXCEEDS_OWN`); R1: removing the last owner's roles 409 `LAST_OWNER` | **Pass** |
+| 10 | FR-AUTH-5 AC1, FR-AUTH-1 AC5 | Staff cannot reset an owner's MFA (403); owner resets staff MFA (`twoFactorEnabled` false); R4 deactivation revokes sessions and the ex-member gets 404 | **Pass** |
+| 11 | BR-T4, D-009 | Suspension needs a reason (422 without); owner READ_ONLY (view 200, state change 403 `TENANT_READ_ONLY`); reinstatement restores ACTIVE/FULL | **Pass** |
+| 12 | FR-AUD-1 | Business audit log contains request_changes, resubmit, approve, activate, member.roles.set, member.mfa.reset, member.deactivate, suspend, reinstate | **Pass** |
+| 13 | BR-T3 AC2 (CLOSED) | Rejected applicant can read status and reason; edit 403; can submit a new application | **Pass** |
+| 14 | — | Negative controls (`lifecycle.db.test.ts`): (a) role-permission check off; (b) mode gate off; (c) R2 off; (d) R1 off; (e) inactive memberships allowed | **Detected** all (1–5 failures each); restored → 24/24 |
+| 15 | — | `pnpm check`: domain 35, eslint rules 11, API unit 26, DB 81 SQL checks + 54, auth drift check, API DB 56 (auth 32 + lifecycle 24) | **Pass** |
+| 16 | CI | Run [#3](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40472344510) (increment 3.5) | **success** |
+
+**Issues found and fixed:** a rejected applicant originally had no access at all, so could not read the rejection reason; the new CLOSED mode fixes that. Lint: `Promise.reject` with a non-Error value; unnecessary type assertions.
+
+**Not done in 3.6 (moved to 3.7):** staff invitations (staff membership is seeded directly in tests); in-app/email notifications for decisions (FR-ONB-3 AC1); admin-created businesses with owner invitation (FR-ONB-1 AC2); approval requests and R3 (no self-approval) — need the approvals module; FR-SUP-1 support access.

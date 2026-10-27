@@ -6,23 +6,23 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 3, increment 3.5) · 100 requirements
+Last updated: 2026-10-27 (Phase 3, increment 3.6) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
-| BR-T1 | Tenancy | Pending application | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T23, T23a; TR-0005 (migrated DB) |
-| BR-T2 | Tenancy | Approval history | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T02, T02b; TR-0005 (migrated DB) |
-| BR-T3 | Tenancy | Reasons required | 3 | Specified | — | — |
-| BR-T4 | Tenancy | Suspension and read-only modes | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T03; TR-0005 (migrated DB) |
-| FR-AUTH-1 | Auth | Sessions | 3 | Implemented + tested (AC1–4, AC6; AC5 user part; AC2 privilege-change rotation pending 3.6) | `packages/modules/src/auth/`, `apps/api/src/auth-*.ts` | TR-0007 #1–6 |
+| BR-T1 | Tenancy | Pending application | 3 | Implemented + tested | migration 0005, `packages/modules/src/tenancy/`, `apps/api/src/routes/tenancy.ts` | TR-0008 #5 |
+| BR-T2 | Tenancy | Approval history | 3 | Implemented + tested | `tenancy/platform.ts`, migration 0001 trigger | TR-0008 #3, #6 |
+| BR-T3 | Tenancy | Reasons required | 3 | Implemented + tested (AC1; AC2 visible in app — email/in-app notification pending 3.7) | `tenancy/platform.ts` | TR-0008 #6, #11, #13 |
+| BR-T4 | Tenancy | Suspension and read-only modes | 3 | Implemented + tested (AC1, AC2, AC4; AC3 job pausing when jobs exist) | `@lbgos/domain` business-status, `apps/api/src/auth-plugin.ts` | TR-0008 #2, #11 |
+| FR-AUTH-1 | Auth | Sessions | 3 | Implemented + tested (AC1–6; AC2 privilege-change rotation via session revocation) | `packages/modules/src/auth/`, `apps/api/src/auth-*.ts`, `routes/members.ts` | TR-0007 #1–6, TR-0008 #9–10 |
 | FR-AUTH-2 | Auth | Password reset and verification | 3 | Implemented + tested (AC1–3, AC5; AC4 local list only — online breached check deferred) | `packages/modules/src/auth/` | TR-0007 #7–11 |
 | FR-AUTH-3 | Auth | MFA | 3 | Implemented + tested (AC1, AC2, AC4, AC5 encrypted not hashed — D-025; AC3 pending) | `packages/modules/src/auth/options.ts`, `apps/api/src/auth-plugin.ts` | TR-0007 #12–14 |
 | FR-AUTH-4 | Auth | Rate limiting | 3 | Implemented + tested (fixed window, not progressive — D-026) | `packages/modules/src/auth/options.ts` | TR-0007 #15–16 |
-| FR-AUTH-5 | Auth | MFA recovery | 3 | Not started (needs RBAC; AC2 operational process) | — | — |
-| FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Specified | — | — |
+| FR-AUTH-5 | Auth | MFA recovery | 3 | In progress (AC1 owner resets staff MFA done; AC2 platform process to document) | `routes/members.ts` | TR-0008 #10 |
+| FR-ONB-1 | Onboarding | Registration and admin creation | 3 | In progress (AC1, AC3 done; AC2 admin-created + invite pending 3.7) | `routes/tenancy.ts` | TR-0008 #5 |
 | FR-ONB-2 | Onboarding | Setup wizard | 3 | Specified | — | — |
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Specified | — | — |
-| FR-RBAC-1 | RBAC | Roles and permissions | 3 | In progress (AC2 route declaration enforced; checks pending 3.6) | `apps/api/src/app.ts` | TR-0006 #10 |
+| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 pending approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts` | TR-0008 #1, #4, #9 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T07, T08; TR-0005 (migrated DB) |
 | FR-INV-2 | Inventory | Phone attributes | 4 | Specified | — | — |
@@ -89,12 +89,12 @@ Last updated: 2026-10-27 (Phase 3, increment 3.5) · 100 requirements
 | FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | Specified | — | — |
 | FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Specified | — | — |
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
-| FR-AUD-1 | Audit | Audit log | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T25–T25d; TR-0005 (migrated DB) |
+| FR-AUD-1 | Audit | Audit log | 3 | In progress (append-only store + lifecycle/member/auth events; more actions as modules arrive) | `packages/modules/src/audit/` | TR-0005, TR-0007 #16, TR-0008 #12 |
 | FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |
 | NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | Specified | — | — |
 | NFR-2 | Non-functional | Modular monolith | 3–9 | In progress | Monorepo + `tooling/eslint/module-boundaries.js` | TR-0004 #4–5 |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | In progress (TS strict; API validation pending) | `tsconfig.base.json` | TR-0004 #2 |
-| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T04–T08, T19–T22, T26, T26b; spike TR-0003 (withTenant under concurrency); TR-0005 (migrated DB) |
+| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | In progress (DB layer + service-layer membership/permission gate; per-endpoint cross-tenant tests for routes so far) | migrations, `apps/api/src/auth-plugin.ts` | TR-0005, TR-0008 #5, #9–10 |
 | NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
 | NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
 | NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |

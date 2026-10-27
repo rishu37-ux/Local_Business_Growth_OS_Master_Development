@@ -25,6 +25,8 @@ export interface AuthService {
   getSession(headers: Headers, idleSecondsFor: (userId: string) => Promise<number>): Promise<AuthSession | null>;
   /** Signs a user out everywhere (deactivation, MFA reset, role changes). */
   revokeAllSessions(userId: string): Promise<number>;
+  /** Removes a user's MFA enrolment and signs them out (FR-AUTH-5 AC1). */
+  resetMfa(userId: string): Promise<void>;
 }
 
 /** Activity writes are throttled to one per minute per session. */
@@ -75,6 +77,14 @@ export function createAuthService(settings: AuthSettings): AuthService {
     async revokeAllSessions(userId) {
       const result = await sql`delete from auth."session" where "userId" = ${userId}`.execute(db);
       return Number(result.numAffectedRows ?? 0);
+    },
+
+    async resetMfa(userId) {
+      await db.transaction().execute(async (trx) => {
+        await sql`delete from auth."twoFactor" where "userId" = ${userId}`.execute(trx);
+        await sql`update auth."user" set "twoFactorEnabled" = false where id = ${userId}`.execute(trx);
+        await sql`delete from auth."session" where "userId" = ${userId}`.execute(trx);
+      });
     },
   };
 }

@@ -50,6 +50,9 @@ importers:
       '@lbgos/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@lbgos/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@lbgos/modules':
         specifier: workspace:*
         version: link:../../packages/modules
@@ -97,6 +100,9 @@ importers:
       '@lbgos/db':
         specifier: workspace:*
         version: link:../db
+      '@lbgos/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@node-rs/argon2':
         specifier: 2.2.2
         version: 2.2.2

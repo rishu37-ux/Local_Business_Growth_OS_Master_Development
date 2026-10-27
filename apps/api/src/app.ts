@@ -4,9 +4,14 @@ import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import helmet from '@fastify/helmet';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
-import type { AuthGate } from './auth-gate.ts';
-import { registerAuth } from './auth-plugin.ts';
+import { createAuthGate } from './auth-gate.ts';
+import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
+import { AUTHENTICATED, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
+import { registerMemberRoutes } from './routes/members.ts';
+import { registerPlatformRoutes } from './routes/platform.ts';
+import { registerTenancyRoutes } from './routes/tenancy.ts';
+import type { AppServices } from './services.ts';
 import { errorBody, INTERNAL, mapDatabaseError } from './errors.ts';
 import { zodValidatorCompiler } from './validation.ts';
 
@@ -30,8 +35,8 @@ export interface Readiness {
 export interface AppDeps {
   readonly config: Config;
   readonly readiness: Readiness;
-  /** Session resolution and /api/auth/*; without it every non-public route answers 401. */
-  readonly auth?: AuthGate;
+  /** Databases and auth. Without them every non-public route answers 401 and no business routes exist. */
+  readonly services?: AppServices;
   /** Test hook: where log lines go (default stdout). */
   readonly logStream?: Writable;
 }
@@ -86,11 +91,24 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.setValidatorCompiler(zodValidatorCompiler);
 
   app.addHook('onRoute', (route) => {
+    const where = `route ${String(route.method)} ${route.url}`;
     const config = route.config as { permission?: unknown; public?: unknown } | undefined;
-    const declared = config?.public === true || typeof config?.permission === 'string';
-    if (!declared) {
-      throw new Error(`route ${String(route.method)} ${route.url} must declare config.permission or config.public`);
+    if (config?.public === true) return;
+    const permission = config?.permission;
+    if (typeof permission !== 'string') throw new Error(`${where} must declare config.permission or config.public`);
+    // FR-RBAC-1 AC2: only catalogue permissions, each on the right kind of URL.
+    if (permission === AUTHENTICATED) return;
+    if (isBusinessPermission(permission)) {
+      if (!route.url.includes(':businessId'))
+        throw new Error(`${where} uses business permission ${permission} without :businessId`);
+      return;
     }
+    if (isPlatformPermission(permission)) {
+      if (!route.url.startsWith('/api/platform/'))
+        throw new Error(`${where} uses platform permission ${permission} outside /api/platform/`);
+      return;
+    }
+    throw new Error(`${where} declares unknown permission ${permission}`);
   });
 
   // NFR-17 security headers. The SPA is served from the same origin (ADR-05),
@@ -148,7 +166,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Not found.', requestId: request.id } }),
   );
 
-  registerAuth(app, deps.auth, new URL(deps.config.PUBLIC_BASE_URL).origin);
+  const services = deps.services;
+  registerAuth(app, services ? createAuthGate(services) : undefined, new URL(deps.config.PUBLIC_BASE_URL).origin);
+  if (services) {
+    registerTenancyRoutes(app, services);
+    registerMemberRoutes(app, services);
+    registerPlatformRoutes(app, services);
+  }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));
 

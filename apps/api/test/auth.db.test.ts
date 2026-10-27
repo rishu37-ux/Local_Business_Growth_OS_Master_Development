@@ -404,10 +404,10 @@ describe('session hook (increment 3.5)', () => {
     expect((await post(h, '/test/protected', {}, cookies)).statusCode).toBe(200);
   });
 
-  it('fails closed for business permissions until RBAC exists', async () => {
+  it('business permissions: non-members get 404 (business IDs cannot be probed)', async () => {
     const { cookies } = await signedIn('perm');
-    const res = await get(h, '/test/needs-permission', cookies);
-    expect(res.statusCode).toBe(403);
+    expect((await get(h, '/test/00000000-0000-0000-0000-00000000dead/needs-permission', cookies)).statusCode).toBe(404);
+    expect((await get(h, '/test/not-a-uuid/needs-permission', cookies)).statusCode).toBe(404);
   });
 
   it('creates the lbg.users profile for every new identity', async () => {

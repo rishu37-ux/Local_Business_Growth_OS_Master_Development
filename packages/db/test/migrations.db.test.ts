@@ -30,6 +30,7 @@ describe('migrations', () => {
       '0002_auth_schema',
       '0003_auth_tables',
       '0004_user_profiles',
+      '0005_lifecycle',
     ]);
   });
 });

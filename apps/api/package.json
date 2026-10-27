@@ -12,6 +12,7 @@
   "dependencies": {
     "@fastify/helmet": "13.2.0",
     "@lbgos/db": "workspace:*",
+    "@lbgos/domain": "workspace:*",
     "@lbgos/modules": "workspace:*",
     "fastify": "5.12.7",
     "kysely": "0.29.7",

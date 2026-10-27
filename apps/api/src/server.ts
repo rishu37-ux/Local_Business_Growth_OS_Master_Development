@@ -3,7 +3,6 @@ import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
 import { buildApp } from './app.ts';
-import { createAuthGate } from './auth-gate.ts';
 import { ConfigError, loadConfig, type Config } from './config.ts';
 
 function fail(message: string): never {
@@ -41,7 +40,7 @@ const auth = createAuthService({
 
 const app = buildApp({
   config,
-  auth: createAuthGate({ auth, appDb, platformDb }),
+  services: { appDb, platformDb, auth },
   readiness: {
     database: async () => {
       await sql`select 1`.execute(appDb);

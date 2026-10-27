@@ -1,13 +1,18 @@
 // Session enforcement for every non-public route, plus the bridge that serves
 // Better Auth's endpoints under /api/auth/* (increment 3.5).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { isUuid } from '@lbgos/db';
+import { isBusinessPermission, isPlatformPermission, permittedInMode } from '@lbgos/domain';
 import { CLIENT_IP_HEADER } from '@lbgos/modules/auth';
+import type { BusinessAccess } from '@lbgos/modules/tenancy';
 import type { AuthGate, Principal } from './auth-gate.ts';
 
 declare module 'fastify' {
   interface FastifyRequest {
     /** Set by the session hook on every non-public route. */
     principal?: Principal;
+    /** Set on business-scoped routes after the permission check. */
+    access?: BusinessAccess;
   }
   interface FastifyContextConfig {
     /** Route stays reachable for a user who must enrol MFA but has not yet (D-011). */
@@ -81,12 +86,37 @@ export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, p
     }
     request.principal = principal;
 
-    // Business permissions are checked by RBAC (increment 3.6). Until then any
-    // permission other than AUTHENTICATED is refused: fail closed.
-    if (config.permission !== AUTHENTICATED) {
-      return deny(reply, request, 403, 'FORBIDDEN', 'You do not have access to this resource.');
+    const permission = config.permission;
+    if (permission === AUTHENTICATED) return;
+
+    if (permission !== undefined && isPlatformPermission(permission)) {
+      // Platform admins hold every platform permission; MFA was enforced above.
+      if (!principal.platformAdmin)
+        return deny(reply, request, 403, 'FORBIDDEN', 'You do not have access to this resource.');
+      return;
     }
-    return;
+
+    if (permission !== undefined && isBusinessPermission(permission) && gate) {
+      const businessId = (request.params as { businessId?: unknown }).businessId;
+      // Non-members get 404, so business IDs cannot be probed.
+      const access =
+        typeof businessId === 'string' && isUuid(businessId)
+          ? await gate.businessAccess(businessId, principal.userId)
+          : null;
+      if (!access) return deny(reply, request, 404, 'NOT_FOUND', 'Not found.');
+      if (!permittedInMode(permission, access.mode)) {
+        const code = access.mode === 'READ_ONLY' ? 'TENANT_READ_ONLY' : 'BUSINESS_NOT_AVAILABLE';
+        return deny(reply, request, 403, code, 'This action is not available for this business right now.');
+      }
+      if (!access.permissions.has(permission)) {
+        return deny(reply, request, 403, 'FORBIDDEN', 'You do not have access to this resource.');
+      }
+      request.access = access;
+      return;
+    }
+
+    // Unknown permission keys cannot be registered (app.ts), so this is unreachable: fail closed anyway.
+    return deny(reply, request, 403, 'FORBIDDEN', 'You do not have access to this resource.');
   });
 
   if (!gate) return;

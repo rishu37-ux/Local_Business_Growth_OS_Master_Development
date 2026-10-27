@@ -154,3 +154,23 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 
 ### D-028 · 2026-10-27 · Accepted
 **Decision:** Better Auth's tables are created only by reviewed migrations (`0003`), generated with `packages/modules/scripts/generate-auth-schema.ts`. A drift check (`scripts/check-auth-schema.sh`, part of `pnpm test:db`) fails if the configured Better Auth version or plugins need schema changes that no migration provides.
+
+### D-029 · 2026-10-27 · Accepted
+**Decision (RBAC and lifecycle details, increment 3.6):**
+- Effective permissions are read fresh on every request (no cache, satisfying R5's ≤60 s).
+- When several roles grant the same permission, the most permissive limits win (unlimited beats any limit; otherwise the highest value).
+- Business-scoped routes are identified by their permission key and must carry `:businessId`. Platform permissions are allowed only under `/api/platform/`. Unknown keys fail at route registration.
+- Non-members of a business get **404**, not 403, so business IDs cannot be probed.
+- Access modes come from business + subscription status (`@lbgos/domain`):
+  - NONE (suspended staff);
+  - **CLOSED** (rejected; the applicant can read the application and reason, BR-T3 AC2);
+  - APPLICATION (pending; implicit `application.view`/`application.edit`);
+  - SETUP (no selling/payments/refunds/outgoing marketing);
+  - FULL;
+  - READ_ONLY (views, exports, paying the subscription).
+- A PAST_DUE grace period is counted from `current_period_end` (no separate past-due timestamp yet).
+- Changing a member's roles **revokes all their sessions** (they sign in again with a new session: FR-AUTH-1 AC2 "rotation on privilege change").
+- Members cannot change their own roles or deactivate themselves.
+- Owners' MFA cannot be reset and their sessions cannot be revoked by staff (FR-AUTH-5 AC2: platform process).
+- Reinstatement returns a suspended business to the status it had before suspension.
+- Status changes the tenant role is not granted run through narrow SECURITY DEFINER functions (migration 0005). The platform role provisions default roles via `lbg.provision_business` without any grant on tenant tables.

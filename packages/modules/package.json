@@ -4,7 +4,9 @@
   "type": "module",
   "description": "Business modules of the modular monolith; each module is imported only via its index.ts.",
   "exports": {
-    "./auth": "./src/auth/index.ts"
+    "./audit": "./src/audit/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
@@ -12,6 +14,7 @@
   },
   "dependencies": {
     "@lbgos/db": "workspace:*",
+    "@lbgos/domain": "workspace:*",
     "@node-rs/argon2": "2.2.2",
     "better-auth": "1.7.14",
     "kysely": "0.29.7",

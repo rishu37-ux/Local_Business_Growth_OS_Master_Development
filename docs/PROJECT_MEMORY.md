@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton) and 3.5 (auth, MFA, lockout) done; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton), 3.5 (auth, MFA, lockout) and 3.6 (RBAC, lifecycle, audit) done; 3.7 remaining; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,14 +60,7 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.6** (F-09…F-11):
-- Permission catalogue in `@lbgos/domain`.
-- RBAC in the session hook: resolve the membership for the requested business, effective permissions, and the business/subscription status gate.
-- Route enumeration test.
-- Business lifecycle endpoints: application submit/review, approve/reject/request-changes with reasons, suspend/reinstate.
-- Default role templates on approval.
-- Audit service.
-- Owner endpoints to revoke staff sessions and reset staff MFA (FR-AUTH-1 AC5, FR-AUTH-5 AC1).
-- Session rotation on privilege change.
-
-Deferred items from 3.5 are listed at the end of TR-0007.
+Phase 3 increment **3.7** (F-12…F-14):
+- **Backend:** staff invitations (token, 72 h expiry, accept flow); setup wizard backend (tax profile, invoice series, preferences, progress); notifications for lifecycle decisions (in-app + email adapter); admin-created businesses with owner invitation; plans/subscriptions admin endpoints with pilot seed plans.
+- **Web:** React + Vite SPA shell with auth screens, business switcher and wizard, served same-origin; Playwright + axe at 360/768/1280 px.
+- Then the Phase 3 exit test: register → approve → setup with owner MFA → invite limited staff.

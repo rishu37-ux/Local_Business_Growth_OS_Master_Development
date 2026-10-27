@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import type { Db } from '@lbgos/db';
 import type { AuthService } from '@lbgos/modules/auth';
+import { loadBusinessAccess, type BusinessAccess } from '@lbgos/modules/tenancy';
 
 export interface Principal {
   readonly userId: string;
@@ -19,12 +20,18 @@ export interface AuthGate {
   /** Better Auth's Fetch handler for /api/auth/*. */
   handler(request: Request): Promise<Response>;
   resolve(headers: Headers): Promise<Principal | null>;
+  /** The user's access in one business, or null if not an active member. */
+  businessAccess(businessId: string, userId: string): Promise<BusinessAccess | null>;
 }
 
 /** FR-AUTH-1 AC3 idle timeouts. */
 export const IDLE_SECONDS = { platformAdmin: 30 * 60, businessUser: 12 * 60 * 60 } as const;
 
-export function createAuthGate(deps: { auth: AuthService; appDb: Db; platformDb: Db }): AuthGate {
+export function createAuthGate(deps: {
+  readonly auth: AuthService;
+  readonly appDb: Db;
+  readonly platformDb: Db;
+}): AuthGate {
   const isPlatformAdmin = async (userId: string) => {
     const { rows } = await sql<{ ok: boolean }>`
       select exists (select 1 from lbg.platform_admins where user_id = ${userId}) as ok`.execute(deps.platformDb);
@@ -53,5 +60,7 @@ export function createAuthGate(deps: { auth: AuthService; appDb: Db; platformDb:
         platformAdmin,
       };
     },
+
+    businessAccess: (businessId, userId) => loadBusinessAccess(deps.appDb, businessId, userId),
   };
 }

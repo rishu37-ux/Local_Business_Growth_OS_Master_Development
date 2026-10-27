@@ -95,7 +95,7 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | Mitigation area | Status | Evidence |
 |---|---|---|
 | T1 tenant isolation (DB layer: RLS, forced RLS, composite FKs, fail-closed context) | Designed; **prototyped and tested in schema draft** | TR-0002: T04–T08, T11, T20–T22, T25c, T26 |
-| T1 tenant isolation (service layer, per-endpoint cross-tenant tests) | Specified (NFR-4) | — |
+| T1 tenant isolation (service layer, per-endpoint cross-tenant tests) | **Implemented + tested for existing routes** (membership + permission gate, 404 for non-members) | TR-0008 #5, #10 |
 | T26 tenant context per transaction (`withTenant`) | **Prototyped and tested in spike** | TR-0003: 200 concurrent requests, no leakage after commit/rollback, negative control detects session-level leak |
 | T15 allocation/numbering races | Prototyped and tested in spike (D-020) | TR-0003 |
 | T8 platform admin cannot read tenant business data (DB role separation) | Designed; prototyped and tested | TR-0002: T19a–d, T29 |
@@ -109,7 +109,10 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | T4 CSRF | **Implemented + tested** (SameSite=Lax + Origin check on state-changing API requests; Better Auth's own origin check) | TR-0007 #17 |
 | T23 account enumeration | **Implemented + tested** (uniform sign-in failures, reset responses, lockout responses, duplicate sign-up) | TR-0007 #7, #9, #15 |
 | T32 auth credential exposure to tenant code | **Implemented + tested** (schema `auth` + role separation; no credential columns in `lbg`) | TR-0005 T30*, TR-0007 #19 |
-| All other threats (T5–T7, T9–T13, T16–T17, T19–T22, T27, T29–T31) | Specified in SRS / ADR; not implemented | — |
+| T7 privilege escalation within tenant | **Implemented + tested** (deny-by-default permissions, R1/R2, no self role change, session revocation on role change) | TR-0008 #9 |
+| T8 platform admin over-access | DB layer tested (TR-0002/5); API: platform routes only with platform permission + MFA; provisioning via definer function without tenant grants | TR-0008 #6–7 |
+| T24 unapproved/suspended tenant access | **Implemented + tested** (access modes) | TR-0008 #2, #5, #11, #13 |
+| All other threats (T5, T6, T9–T13, T16–T17, T19–T22, T27, T29–T31) | Specified in SRS / ADR; not implemented | — |
 
 ## 7. Known limitations and statements
 

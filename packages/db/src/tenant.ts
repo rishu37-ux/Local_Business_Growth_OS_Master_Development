@@ -55,6 +55,19 @@ export async function withTenant<T>(db: Db, ctx: TenantContext, work: (trx: Trx)
   });
 }
 
+/**
+ * Work for a signed-in user before a business is chosen (e.g. submitting an
+ * application or listing their businesses): sets app.user_id only, so tenant
+ * tables stay invisible.
+ */
+export async function withUser<T>(db: Db, userId: string, work: (trx: Trx) => Promise<T>): Promise<T> {
+  if (!isUuid(userId)) throw new Error('invalid user context');
+  return db.transaction().execute(async (trx) => {
+    await sql`select set_config('app.user_id', ${userId}, true)`.execute(trx);
+    return work(trx);
+  });
+}
+
 /** Platform-admin or pre-tenant work: one transaction, no tenant context. */
 export async function withoutTenant<T>(db: Db, work: (trx: Trx) => Promise<T>): Promise<T> {
   return db.transaction().execute(work);
