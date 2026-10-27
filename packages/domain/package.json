@@ -1,0 +1,16 @@
+{
+  "name": "@lbgos/domain",
+  "private": true,
+  "type": "module",
+  "description": "Pure business logic with no I/O (IMEI, tax, allocation, numbering, permissions).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "fast-check": "4.10.2"
+  }
+}

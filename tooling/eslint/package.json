@@ -1,0 +1,11 @@
+{
+  "name": "@lbgos/eslint-rules",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "vitest run"
+  }
+}

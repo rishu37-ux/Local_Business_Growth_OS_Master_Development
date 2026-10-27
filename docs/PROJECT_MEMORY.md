@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 2 complete → Phase 3 (foundation code) next**
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increment 3.1 (monorepo scaffold) done; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,4 +60,4 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Start Phase 3 with backlog item **F-01**: scaffold the pnpm monorepo per ADR-03 (TS 6 strict, ESLint flat config with module-boundary rule, Prettier, Vitest), then **F-02** CI and **F-03** migrations (port the schema draft, keep the 67 checks as DB tests). Define acceptance criteria from `BACKLOG.md` before coding.
+Phase 3 increment **3.2** (F-03/F-04): create `packages/db` with SQL migrations ported from the schema draft (plus the `auth` schema and `lbgos_auth` role), a Kysely Migrator runner, `withTenant()` and pools from the spike; run the 67 schema checks and the spike tests against the migrated DB. Then 3.3 CI.

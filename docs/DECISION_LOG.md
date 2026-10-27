@@ -126,3 +126,15 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 **Decision:** Host the pilot on DigitalOcean BLR1 (managed PostgreSQL, App Platform, Spaces) behind Cloudflare.
 **Rationale:** India region, lowest operational complexity, indicative cost ≈ US$45–90/month (third-party pricing, unverified — `COST_MODEL.md`); portable design.
 **Alternatives:** AWS Mumbai (more capable incl. KMS/WAF; higher cost and complexity); serverless Postgres + separate container host.
+
+---
+## Phase 3 decisions (2026-10-27)
+
+### D-023 · 2026-10-27 · Accepted
+**Decision:** Server-side TypeScript (API, worker, packages) runs directly on Node's built-in type stripping, with no build step. `tsc` is used only for typechecking (`noEmit`). Code is restricted to erasable syntax (`erasableSyntaxOnly`, `verbatimModuleSyntax`; no enums, namespaces or parameter properties), and relative imports use explicit `.ts` extensions. Workspace packages export `./src/index.ts`. The web app is still built by Vite.
+**Rationale:** verified on Node 22.22 (`process.features.typescript === 'strip'`), including for imports through pnpm-symlinked workspace packages. Removes a build step and source-map mismatch.
+**Alternatives:** tsc/tsup/esbuild build to `dist/` (kept as a fallback if a dependency needs non-erasable syntax).
+
+### D-024 · 2026-10-27 · Accepted
+**Decision:** Phase 3 proceeds on the default auth choice (D-019, self-hosted Better Auth) without waiting for Q3, isolated in `modules/auth`.
+**Rationale:** the prompt says to make a documented choice and continue unless a decision is genuinely blocking; the wrapper keeps a later switch local to one module.

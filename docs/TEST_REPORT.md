@@ -66,3 +66,21 @@ What the 12 spike tests cover: tenant isolation with 200 concurrent requests on 
 - A later run failed with `permission denied for table payments`: `SELECT … FOR UPDATE` requires UPDATE privilege, which append-only `payments` deliberately lacks. Replaced with `pg_advisory_xact_lock` (D-020).
 
 **Not run:** any application tests (no application yet); pooler (PgBouncer) behaviour; load or performance tests.
+
+---
+
+## TR-0004 · 2026-10-27 · Phase 3 increment 3.1 — monorepo scaffold
+
+**Environment:** cloud dev container; Node v22.22.0; pnpm 10.28.0; TypeScript 6.0.3; ESLint 10.13.0 + typescript-eslint 8.72.1 (strictTypeChecked); Vitest 5.0.5; fast-check 4.10.2.
+
+| # | AC | Check | Result |
+|---|---|---|---|
+| 1 | AC1 | Removed all `node_modules`, then `pnpm install --frozen-lockfile` | **Pass** |
+| 2 | AC2 | `pnpm check` (lint + format check + typecheck + tests) | **Pass**, exit 0 |
+| 3 | AC3 | Node type stripping through a pnpm-style symlinked workspace package (scratch experiment) | **Pass** — `process.features.typescript = 'strip'`, import ran |
+| 4 | AC4 | Module-boundary rule tests (ESLint RuleTester under Vitest) | **Pass** — 11/11 (6 valid, 5 invalid cases) |
+| 5 | AC4 | Negative control through the real config: temporary `packages/modules` with `rbac` importing `tenancy/internal/repo.ts` and `tenancy/index.ts` | **Detected** — exactly the internal import flagged (exit 1); temporary files deleted |
+| 6 | AC5 | `@lbgos/domain` IMEI tests: 4 valid + 6 invalid vectors (shared JSON file), property tests (exactly one valid check digit per 14-digit body; every single-digit substitution detected) | **Pass** — 12/12 |
+| 7 | — | `pnpm audit` and `pnpm audit --prod` | **No known vulnerabilities** |
+
+A lint finding on the first run (`no-misused-spread` on a string spread in a test) was fixed before commit. The DB/IMEI parity part of AC5 is covered in increment 3.2.
