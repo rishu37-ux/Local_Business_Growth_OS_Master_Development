@@ -1,6 +1,6 @@
 # Logical Data Model
 
-Version 1.0 (Phase 1) — 2026-10-27
+Version 1.1 (Phase 2 update) — 2026-10-27
 Status: **Specified. Core tables exist as a design-level SQL draft that has been tested against PostgreSQL 16 (TR-0002).** This is not a production migration; Phase 3 turns it into versioned migrations.
 
 - Draft DDL: `docs/data-model/schema_draft.sql`
@@ -81,8 +81,8 @@ Status: **Specified. Core tables exist as a design-level SQL draft that has been
 ## 5. Known limitations of the draft (to resolve in Phase 3–5)
 
 1. Negative-stock prevention and unit-status ↔ movement consistency are enforced in application code (with row locks), not yet by DB triggers.
-2. The allocation-bounds trigger is a backstop; concurrent allocations must lock the invoice and payment rows (`SELECT … FOR UPDATE`) to be race-free. A concurrency test is required in Phase 5.
-3. Gapless numbering depends on the application incrementing `invoice_series.next_number` in the issuing transaction; a concurrency test is required (FR-POS-4 AC2).
+2. The allocation-bounds trigger is only a backstop: TR-0003 showed two concurrent transactions can over-allocate without locks. Rule D-020: lock the invoice `FOR UPDATE` and the payment with `pg_advisory_xact_lock` (`FOR UPDATE` on `payments` is impossible by design — it needs UPDATE privilege). Verified in the spike; must be re-tested in the Phase 5 implementation.
+3. Gapless numbering depends on the application incrementing `invoice_series.next_number` in the issuing transaction. The spike (TR-0003) verified it with 30 concurrent issuers and 6 rollbacks; the Phase 5 implementation must keep that test.
 4. `customers.mobile_e164` uniqueness assumes one customer per mobile per business; shared family numbers may need a relaxation later.
 5. Indexes for reporting queries, and partitioning for `audit_events`/`stock_movements`, are not designed yet.
 6. Superuser/DB-owner access bypasses RLS by design; protection there relies on operational controls (T14/T18 residual risk).

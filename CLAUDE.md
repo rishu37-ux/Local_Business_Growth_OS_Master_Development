@@ -7,3 +7,5 @@ Before changing anything in a new session:
 2. Run `git status` and `git diff` and inspect any uncommitted work.
 
 After every meaningful step, update the project-memory documents in `docs/` as described in prompt §13, and commit them with the code. Record only tests that were actually executed (`docs/TEST_REPORT.md`). Never store secrets, credentials or real customer data in the repository.
+
+Checks to run before committing: `scripts/check-docs.sh`, `scripts/test-schema-draft.sh`, and `npm test` in `spikes/tenant-context` (until the spike is replaced by Phase 3 code).

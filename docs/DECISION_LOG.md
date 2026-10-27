@@ -15,23 +15,23 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 **Rationale:** Required by prompt §13; the cloud session container is ephemeral, so only committed files survive.
 **Alternatives:** AI-platform personal memory (rejected — not durable or reviewable).
 
-### D-003 · 2026-10-27 · Proposed
+### D-003 · 2026-10-27 · Accepted (confirmed in Phase 2 — see `ARCHITECTURE_DECISION_RECORD.md`)
 **Decision:** Modular monolith in TypeScript: React + TypeScript + Tailwind frontend, TypeScript API backend, PostgreSQL database, background job queue.
 **Rationale:** Recommended by the prompt; one deployable unit is simpler and cheaper for a pilot; module boundaries keep later extraction possible.
 **Alternatives:** Microservices (rejected for now — premature); non-TS backend (rejected — one language across stack reduces cost).
-**To decide in Phase 2:** specific frameworks (e.g., Fastify/NestJS/Hono; Vite SPA vs Next.js), ORM/query builder, queue technology (e.g., Postgres-backed queue vs Redis), monorepo tooling.
+**Resolved in Phase 2:** Fastify 5 + Zod 4 API; React 19 + Vite 8 SPA; Kysely + node-postgres; SQL migrations via Kysely Migrator; graphile-worker; pnpm workspaces (ADR-01…08).
 
-### D-004 · 2026-10-27 · Proposed
+### D-004 · 2026-10-27 · Accepted (confirmed in Phase 2 — see `ARCHITECTURE_DECISION_RECORD.md`)
 **Decision:** Enforce tenant isolation in two layers — service-layer scoping and PostgreSQL Row-Level Security keyed on `business_id` via a per-transaction setting.
 **Rationale:** Prompt requires DB-level enforcement where supported; PostgreSQL 16 supports RLS and was verified runnable in this environment.
 **Alternatives:** Schema-per-tenant / database-per-tenant (higher operational cost, harder migrations for many small shops; may revisit for large tenants).
 
-### D-005 · 2026-10-27 · Proposed
+### D-005 · 2026-10-27 · Accepted (confirmed in Phase 2 — see `ARCHITECTURE_DECISION_RECORD.md`)
 **Decision:** Money stored as integer paise (or `NUMERIC`), never floating point; ledgers append-only with reversal entries.
 **Rationale:** Financial accuracy and auditability requirements (prompt §2, §4, §5).
 **Alternatives:** Float (rejected — rounding errors).
 
-### D-006 · 2026-10-27 · Proposed
+### D-006 · 2026-10-27 · Accepted (confirmed in Phase 2 — see `ARCHITECTURE_DECISION_RECORD.md`)
 **Decision:** Defaults: INR, `Asia/Kolkata`, financial year April–March, all configurable per business.
 **Rationale:** Pilot is an Indian mobile shop; prompt references GST and DLT.
 **Alternatives:** None — values remain configurable.
@@ -98,3 +98,31 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 **Decision:** Cost of goods sold and stock valuation: serialized units use their **actual purchase cost**; non-serialized items use **moving weighted average cost**, recomputed on each purchase posting and snapshotted on each sale movement.
 **Rationale:** Phones are individually costed and often bought at different prices; accessories are fungible. Snapshotting makes historical margins reproducible.
 **Alternatives:** FIFO layers for non-serialized items (more complex; may revisit if accountant requires).
+
+---
+## Phase 2 decisions (2026-10-27)
+
+### D-018 · 2026-10-27 · Accepted
+**Decision:** Pin TypeScript 6.0.x; do not adopt TypeScript 7.0 yet.
+**Rationale:** `typescript-eslint@8.72.1` (latest) declares peer `typescript >=4.8.4 <6.1.0` (checked on npm, 2026-10-27); TS 7 would leave linting unsupported.
+**Alternatives:** TS 7 without type-aware linting (rejected — loses checks such as floating-promise detection). Revisit when typescript-eslint supports TS 7.
+
+### D-019 · 2026-10-27 · Accepted (conditional on Q3)
+**Decision:** Self-hosted Better Auth 1.7 behind `modules/auth`; its tables live in schema `auth`, reachable only via role `lbgos_auth`; password hashing overridden to Argon2id (`@node-rs/argon2`); telemetry explicitly disabled; tenancy/RBAC stay in our own tables (organization plugin not used).
+**Rationale:** data stays in our DB and region, no per-user fees, supports TOTP and passkeys; credential tables are unreachable from the tenant request role. Better Auth defaults to scrypt (seen in its published source), so the override is required for NFR-13.
+**Alternatives:** managed identity (Clerk/Auth0/Cognito/Supabase Auth) — still possible if the user prefers (Q3); Auth.js (weaker built-in MFA support); hand-built auth (more risk).
+
+### D-020 · 2026-10-27 · Accepted
+**Decision:** Locking rules: invoice numbers are allocated by `UPDATE invoice_series … RETURNING` inside the issuing transaction; payment allocation locks the invoice row `FOR UPDATE` and the payment with `pg_advisory_xact_lock` (keyed on payment ID).
+**Rationale:** spike TR-0003 showed that (a) the update-lock pattern is gapless under concurrency with rollbacks, (b) the bounds trigger alone allows over-allocation by two concurrent transactions, and (c) `FOR UPDATE` requires UPDATE privilege, which append-only `payments` must not have.
+**Alternatives:** SERIALIZABLE isolation with retries (heavier, more retry logic); granting UPDATE on payments (rejected — weakens append-only).
+
+### D-021 · 2026-10-27 · Accepted
+**Decision:** No Redis/Valkey in the pilot. PostgreSQL serves as database, job queue (graphile-worker) and rate-limit store.
+**Rationale:** one stateful service to secure, back up and pay for (COST_MODEL §5).
+**Alternatives:** Redis for queue and rate limits (revisit if load requires).
+
+### D-022 · 2026-10-27 · Proposed (needs Q2)
+**Decision:** Host the pilot on DigitalOcean BLR1 (managed PostgreSQL, App Platform, Spaces) behind Cloudflare.
+**Rationale:** India region, lowest operational complexity, indicative cost ≈ US$45–90/month (third-party pricing, unverified — `COST_MODEL.md`); portable design.
+**Alternatives:** AWS Mumbai (more capable incl. KMS/WAF; higher cost and complexity); serverless Postgres + separate container host.

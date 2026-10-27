@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "Design prototype onl
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 1) · 100 requirements
+Last updated: 2026-10-27 (Phase 2) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -42,7 +42,7 @@ Last updated: 2026-10-27 (Phase 1) · 100 requirements
 | FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
 | FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
 | FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T24 |
-| FR-POS-4 | POS | Invoice numbering | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T14–T14e |
+| FR-POS-4 | POS | Invoice numbering | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T14–T14e; spike TR-0003 (concurrent gapless numbering) |
 | FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
 | FR-TAX-1 | Tax | Deterministic tax calculation | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T15–T15c |
 | FR-TAX-2 | Tax | Configurable, versioned rates | 5 | Specified | — | — |
@@ -54,7 +54,7 @@ Last updated: 2026-10-27 (Phase 1) · 100 requirements
 | FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
 | FR-LED-1 | Ledger | Customer ledger | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T18–T18d |
-| FR-LED-2 | Ledger | Deterministic allocation | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T17–T17c |
+| FR-LED-2 | Ledger | Deterministic allocation | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T17–T17c; spike TR-0003 (allocation locking, D-020) |
 | FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
 | FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
@@ -94,7 +94,7 @@ Last updated: 2026-10-27 (Phase 1) · 100 requirements
 | NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | Specified | — | — |
 | NFR-2 | Non-functional | Modular monolith | 3–9 | Specified | — | — |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | Specified | — | — |
-| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T04–T08, T19–T22, T26, T26b |
+| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T04–T08, T19–T22, T26, T26b; spike TR-0003 (withTenant under concurrency) |
 | NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
 | NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
 | NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |

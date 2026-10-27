@@ -44,3 +44,25 @@ Result line for #8 is recorded after execution: **Pass — 9/9 documents present
 
 **Not run:** application unit/integration/API tests, concurrency tests (gapless numbering, allocation races), performance, accessibility, browser, print and security tests — no application exists yet.
 **Known gaps in the draft** are listed in `DATA_MODEL.md` §5.
+
+---
+
+## TR-0003 · 2026-10-27 · Phase 2 tenant-context spike and harness refactor
+
+**Environment:** ephemeral cloud dev container; Node v22.22.0; PostgreSQL 16.15 throwaway cluster via `scripts/with-throwaway-pg.sh` (schema draft applied; roles `lbgos_app`/`lbgos_platform` with LOGIN on a private Unix socket only); spike dependencies pinned: kysely 0.29.7, pg 8.23.1, tsx 4.23.15, typescript 6.0.3. `npm audit`: 0 vulnerabilities. Synthetic data only. **Spike code, not application code.**
+
+| # | Check | Command | Result |
+|---|---|---|---|
+| 1 | Schema draft suite after moving to the shared harness | `scripts/test-schema-draft.sh` | **Pass** — 67/67, exit 0 |
+| 2 | Harness propagates failures | Temporary `t.ok(false)` appended to the test file | **Detected** — exit 3; file restored (no diff) |
+| 3 | Spike typecheck | `cd spikes/tenant-context && npx tsc -p tsconfig.json` | **Pass** |
+| 4 | Spike tests (12) | `cd spikes/tenant-context && npm test` | **Pass — 12/12** on the final run, and 3/3 consecutive re-runs of the full suite |
+| 5 | Negative control: advisory lock removed from `allocatePayment()` | temporary edit + `npm test` | **Detected** — 11 pass / 1 fail (payment-split test); file restored; re-run passes |
+
+What the 12 spike tests cover: tenant isolation with 200 concurrent requests on a 3-connection pool; no context left on pooled connections after commit and after rollback (20 probes); a negative control showing that a session-level `set_config` does leak (so the probe can detect leakage); rollback of all writes on failure; malformed context rejected before reaching the DB; cross-tenant write rejected (42501); platform pool denied tenant tables (42501); gapless invoice numbers under 30 concurrent issuers with 6 forced rollbacks (exactly `A/0001`–`A/0024`, counter = 25); allocation with locks rejects concurrent over-allocation (LB005); characterization test that **without** locks two transactions over-allocate (1,600 on a 1,000 invoice); helper bounds check; one payment split across two invoices concurrently, where exactly one allocation is rejected.
+
+**Defects found during the spike:**
+- The first run failed: parameterised queries cannot contain multiple statements (42601). The test seeding was split into single statements; this is also a useful safety property of the driver.
+- A later run failed with `permission denied for table payments`: `SELECT … FOR UPDATE` requires UPDATE privilege, which append-only `payments` deliberately lacks. Replaced with `pg_advisory_xact_lock` (D-020).
+
+**Not run:** any application tests (no application yet); pooler (PgBouncer) behaviour; load or performance tests.

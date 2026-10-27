@@ -1,6 +1,6 @@
 # Security Threat Model
 
-Version: 0.2 (Phase 1 refinement) — 2026-10-27
+Version: 0.3 (Phase 2 update) — 2026-10-27
 Method: asset/trust-boundary analysis with STRIDE per boundary; verification against an OWASP ASVS-aligned checklist (to be created in Phase 3).
 
 **Status: design only — no application exists.** Some database-level controls have been prototyped in the schema draft and tested (TR-0002); that is evidence for the design, not for a deployed system. Each mitigation's status is tracked in §6.
@@ -64,7 +64,7 @@ Threat actors: unauthenticated internet attacker; malicious or compromised tenan
 | T9 | TB5 | **Malicious uploads** (polyglot files, zip bombs, malformed PDFs, huge images) | Allow-list MIME by magic bytes; size and page limits; decompression limits; processing in isolated worker with resource limits; malware scan where practical; files never served from app origin; random storage keys | Zero-day in image/PDF parsers |
 | T10 | TB5/TB9 | **Prompt injection** via OCR text, supplier invoices, customer messages, websites | Untrusted content passed as delimited data; model has no direct write tools; all model output validated against schemas; consequential actions require human approval; deterministic code for money/stock/tax | Model may produce misleading drafts — human review required |
 | T11 | TB6 | **SSRF** via custom integration endpoints or media URLs | Outbound HTTP through one guarded client: https-only, allow-listed hosts for prebuilt adapters, resolve-then-connect with block of private, loopback, link-local (169.254.0.0/16 incl. cloud metadata), CGNAT, IPv6 ULA/link-local; no redirects to blocked ranges; egress firewall in hosting | DNS edge cases — test explicitly |
-| T12 | TB7 | Integration secret leakage (logs, UI, frontend bundle, errors) | Envelope encryption or managed secret store; secrets write-only in UI (masked); log redaction; never returned by API; CI secret scanning | Compromised server process can read decrypted secrets in memory |
+| T12 | TB7 | Integration secret leakage (logs, UI, frontend bundle, errors) | Envelope encryption (AES-256-GCM, per-secret data key, versioned KEK — ADR-13); dedicated DB role; secrets write-only in UI (masked); log redaction; never returned by API; CI secret scanning | Compromised server process can read decrypted secrets in memory; without a managed KMS (likely on DigitalOcean) the KEK is a platform secret — host compromise exposes it |
 | T13 | TB8 | Webhook spoofing / replay | Verify provider signatures; timestamp/replay window; idempotency keys | Provider-side compromise |
 | T14 | AS3 | **Financial record tampering** or silent edits | Append-only ledgers; corrections as reversal entries; DB permissions prevent UPDATE/DELETE on ledger tables for app role; audit events; invoice number uniqueness constraint | DB superuser/insider — mitigated by backups and audit |
 | T15 | AS3 | Arithmetic/tax errors (floating point, rounding, model-computed numbers) | Integer paise / NUMERIC; deterministic tax engine with unit tests; no LLM arithmetic | Incorrect tax configuration — professional review required |
@@ -77,8 +77,9 @@ Threat actors: unauthenticated internet attacker; malicious or compromised tenan
 | T22 | AS2 | PII in logs/agent traces | Structured logging with redaction; agent audit stores references, not raw PII | Developer error — review |
 | T23 | TB2 | Account enumeration via registration/reset | Uniform responses and timing | Low |
 | T24 | Lifecycle | Unapproved/suspended tenants accessing data | Business status checked in authorization middleware on every request; tenant cannot change its own status (column grants, T03) | Low |
+| T32 | TB3 | **Auth credential exposure to tenant code paths** (session/MFA/password tables readable by request role) | Auth tables in schema `auth`, accessible only by role `lbgos_auth` used by the auth module (D-019) | Bugs in the auth module itself — auth test suite + pen test |
 | T25 | TB3 | **search_path hijacking** in SECURITY DEFINER / trigger functions (an object in a caller-controlled schema shadows a table) | Every function pins `search_path`; `public` has no CREATE for app roles; definer functions minimal and reviewed | Found as a real defect in the schema draft (TR-0002) and fixed; add a lint/check in CI |
-| T26 | TB3 | **Tenant context leakage across pooled connections** (setting from request A still set for request B) | Context set only with transaction-local `set_config(..., true)` inside each transaction; middleware test that a fresh transaction has no context | Pooler configuration error — test in Phase 3 |
+| T26 | TB3 | **Tenant context leakage across pooled connections** (setting from request A still set for request B) | Context set only with transaction-local `set_config(..., true)` inside each transaction via `withTenant()` (ADR-07); handlers never get raw connections; leakage test with negative control | Pooler misconfiguration (must be transaction mode) — retest when a pooler is added |
 | T27 | TB2 | Approval abuse: self-approval of refunds/discounts/adjustments; approving a payload different from what was shown | Approval stores payload hash; edits invalidate approval; R3 no self-approval when another approver exists; audit | Sole-owner shops must self-approve (audited) |
 | T28 | TB2 | Cross-tenant inference via uniqueness errors (e.g. "IMEI already exists" revealing another shop's stock) | IMEI uniqueness scoped per tenant (D-008); error messages never reference other tenants (T11) | Low |
 | T29 | TB5 | Fraudulent or manipulated supplier invoices (via OCR) inflating stock/costs | OCR only creates drafts; posting requires `purchases.post` and review; code recomputes totals and shows mismatches; duplicate supplier invoice check | Collusion by an authorised insider — audit and reports |
@@ -95,13 +96,15 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 |---|---|---|
 | T1 tenant isolation (DB layer: RLS, forced RLS, composite FKs, fail-closed context) | Designed; **prototyped and tested in schema draft** | TR-0002: T04–T08, T11, T20–T22, T25c, T26 |
 | T1 tenant isolation (service layer, per-endpoint cross-tenant tests) | Specified (NFR-4) | — |
+| T26 tenant context per transaction (`withTenant`) | **Prototyped and tested in spike** | TR-0003: 200 concurrent requests, no leakage after commit/rollback, negative control detects session-level leak |
+| T15 allocation/numbering races | Prototyped and tested in spike (D-020) | TR-0003 |
 | T8 platform admin cannot read tenant business data (DB role separation) | Designed; prototyped and tested | TR-0002: T19a–d, T29 |
 | T14/T18 append-only ledgers, audit and immutable issued invoices | Designed; prototyped and tested | TR-0002: T12, T12c, T16–T16g, T18–T18d, T25b |
 | T15 money/tax arithmetic invariants at DB level | Partially prototyped (total and reconciliation checks) | TR-0002: T15–T15c; tax engine unit tests pending (Phase 5) |
 | T24 tenant cannot self-approve status | Prototyped and tested | TR-0002: T02, T03, T23 |
 | T25 search_path pinning | Fixed in draft | TR-0002 (defect found and fixed) |
 | T28 per-tenant IMEI uniqueness | Prototyped and tested | TR-0002: T09–T11 |
-| All other threats (T2–T7, T9–T13, T16–T17, T19–T23, T26–T27, T29–T31) | Specified in SRS; not implemented | — |
+| All other threats (T2–T7, T9–T13, T16–T17, T19–T23, T27, T29–T32) | Specified in SRS / ADR; not implemented | — |
 
 ## 7. Known limitations and statements
 

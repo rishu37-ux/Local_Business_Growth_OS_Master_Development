@@ -1,29 +1,19 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (end of Phase 1)
+Last updated: 2026-10-27 (end of Phase 2)
 
-## Phase 2 — Architecture, cost model, deployment plan, backlog (next)
+## Phase 3 — Foundation (next) — see `BACKLOG.md` F-01…F-14
 
-1. `docs/ARCHITECTURE_DECISION_RECORD.md`: compare and choose
-   - API framework (e.g. Fastify / NestJS / Hono) and schema validation library;
-   - frontend build (Vite React SPA vs Next.js) and UI component approach (Tailwind + accessible primitives);
-   - database access (query builder vs ORM) — must support transaction-local `set_config` for RLS and raw SQL for constraints/policies;
-   - migration tool (must handle policies, triggers and functions);
-   - job queue (PostgreSQL-backed vs Redis-backed);
-   - auth approach (managed provider vs maintained library) against FR-AUTH-1…5 and D-011 — depends on Q3;
-   - monorepo layout and module-boundary enforcement (NFR-2).
-2. Tenant-context middleware design: transaction-per-request, pooler mode, tests for context leakage (threat T26).
-3. Cost model: 2–3 managed hosting options (DB with PITR, object storage, compute, queue, email); dated price assumptions; per-tenant cost at 1, 10, 100 shops. Depends on Q2 for budget.
-4. Deployment, backup and rollback plan → fill `DEPLOYMENT_RUNBOOK.md` §3–5 (design; restore test stays in Phase 9).
-5. Development backlog for Phases 3–5 with acceptance criteria references (SRS IDs).
-6. Update `DECISION_LOG.md` (D-003…D-006 → Accepted or revised), traceability, memory.
-
-## Phase 3 — Foundation (first application code)
-
-7. Monorepo scaffold; lint, typecheck, unit tests; CI running `scripts/check-docs.sh`, `scripts/test-schema-draft.sh` (or its migration successor), dependency and secret scanning.
-8. Convert schema draft into versioned migrations; keep the 67 checks as DB tests.
-9. Auth, sessions, MFA, onboarding/approval flow, RBAC middleware with route-permission enumeration test, audit log.
+1. F-01 Monorepo scaffold (ADR-03): pnpm workspaces, TS 6.0.x strict, ESLint 10 flat config + typescript-eslint 8 with the module-boundary rule, Prettier, Vitest 5.
+2. F-02 CI on GitHub Actions: lint, typecheck, unit, DB tests via the throwaway-PostgreSQL harness, `scripts/check-docs.sh`, dependency audit, secret scan, build; pinned action SHAs. Ask the owner to enable branch protection.
+3. F-03 Migrations: port `docs/data-model/schema_draft.sql` into SQL migrations (Kysely Migrator), add the `lbgos_auth` role/schema; carry over the 67 checks.
+4. F-04 `withTenant()` and the pools from the spike, with its tests.
+5. F-05…F-14 in order: app skeleton and security headers, auth (after Q3), MFA, rate limits, RBAC, business lifecycle, audit, setup wizard, web shell, plans/subscriptions.
+6. At Phase 3 exit, update traceability statuses from `Specified` to implemented/tested only where tests exist.
 
 ## Inputs requested from the user
 
-Q1–Q6 in `PHASE0_INSPECTION_REPORT.md` §5. Q2 (hosting/budget) and Q3 (auth approach) are needed for Phase 2; sensible documented defaults will be used if not provided.
+- Q2: confirm hosting (D-022) and a monthly ceiling — needed before staging.
+- Q3: confirm self-hosted auth (D-019) or name a managed provider — needed before F-06.
+- Q1, Q4, Q5, Q6 as in `PHASE0_INSPECTION_REPORT.md` §5.
+- Optional: allow vendor pricing hosts in the environment's network settings to re-verify `COST_MODEL.md`.
