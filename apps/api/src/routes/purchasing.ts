@@ -47,7 +47,7 @@ const supplierFields = {
 const supplierBody = z.strictObject(supplierFields);
 const supplierPatch = z.strictObject(supplierFields).partial();
 
-const purchaseBody = z.strictObject({
+export const purchaseBody = z.strictObject({
   supplierId: z.uuid(),
   supplierInvoiceNo: z.string().trim().min(1).max(40),
   supplierInvoiceDate: z.iso.date(),

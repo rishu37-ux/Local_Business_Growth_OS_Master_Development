@@ -2,6 +2,7 @@ export { PurchasingError, type PurchasingErrorCode } from './errors.ts';
 export { checkPurchase, type ProblemCode, type PurchaseProblem } from './problems.ts';
 export {
   createPurchaseDraft,
+  createPurchaseDraftIn,
   discardPurchase,
   getPurchase,
   listPurchases,

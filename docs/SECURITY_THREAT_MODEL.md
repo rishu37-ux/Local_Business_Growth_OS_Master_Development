@@ -1,6 +1,6 @@
 # Security Threat Model
 
-Version: 0.4 (Phase 3 update) — 2026-10-27
+Version: 0.5 (Phase 4 update) — 2026-10-27
 Method: asset/trust-boundary analysis with STRIDE per boundary; verification against an OWASP ASVS-aligned checklist (to be created in Phase 3).
 
 **Status: design only — no application exists.** Some database-level controls have been prototyped in the schema draft and tested (TR-0002); that is evidence for the design, not for a deployed system. Each mitigation's status is tracked in §6.
@@ -112,7 +112,12 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | T7 privilege escalation within tenant | **Implemented + tested** (deny-by-default permissions, R1/R2, no self role change, session revocation on role change) | TR-0008 #9 |
 | T8 platform admin over-access | DB layer tested (TR-0002/5); API: platform routes only with platform permission + MFA; provisioning via definer function without tenant grants | TR-0008 #6–7 |
 | T24 unapproved/suspended tenant access | **Implemented + tested** (access modes) | TR-0008 #2, #5, #11, #13 |
-| All other threats (T5, T6, T9–T13, T16–T17, T19–T22, T27, T29–T31) | Specified in SRS / ADR; not implemented | — |
+| T9 malicious uploads | **Implemented + tested (partly)**: magic-byte allow-list, 10 MB / 10 pages / 8000 px limits from headers (no decoding), random business-prefixed keys, private storage, authenticated download with `nosniff`, sandbox CSP and attachment for PDFs, processing in a worker thread with heap limit and timeout. **Not done:** malware scanning (none configured; status shown as NOT_CONFIGURED), OS-level sandboxing (the worker shares the process, including network access), real image/PDF decoders not yet in use | TR-0015 #1–4, #9–11 |
+| T10 prompt injection via OCR text | **Implemented + tested for the OCR path**: deterministic parser only; optional structurer output must pass a strict schema, values must appear verbatim in the document and only fill empty fields; drafts only; injection corpus (unit + end to end) produces no purchase, movement or approval | TR-0015 #12–15 |
+| T27 approval abuse | **Implemented + tested** for stock adjustments (payload hash, R3, immutable requests, expiry) | TR-0013 #9–11 |
+| T29 manipulated supplier invoices | **Implemented + tested**: OCR creates drafts only after confirmation of flagged fields; posting needs `purchases.post`; totals recomputed with mismatches shown; duplicate supplier-invoice check | TR-0012 #8, TR-0015 #6–8 |
+| T14 stock ledger tampering (application) | **Implemented + tested**: append-only movements, projection writable only by trigger, reconciliation detects tampering | TR-0013 #3 |
+| All other threats (T5, T6, T11–T13, T16–T17, T19–T22, T30–T31) | Specified in SRS / ADR; not implemented | — |
 
 ## 7. Known limitations and statements
 

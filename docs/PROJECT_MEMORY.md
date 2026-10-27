@@ -1,11 +1,11 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 4 in progress — increments 4.1–4.4 done (catalogue, purchases, stock ledger + approvals, inspection + reports + lookup); see PHASE4_PLAN.md**
+Last updated: 2026-10-27 · Current phase: **Phase 4 in progress — increments 4.1–4.5 done (catalogue, purchases, stock ledger + approvals, inspection/reports/lookup, uploads + OCR review API); 4.6 (web screens + exit test) next; see PHASE4_PLAN.md**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–3 are complete. Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014).
+- Phases 0–3 are complete. Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015).
 - Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
   - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
@@ -70,6 +70,6 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 4, increment **4.5 uploads and OCR-assisted review** (PHASE4_PLAN.md §4.5): migration for uploads/OCR jobs/extractions, storage adapter (local filesystem), magic-byte and size/page/dimension checks, job runner with status machine and retries, OCR adapter interface + mock, deterministic parser/validators, review → draft purchase, prompt-injection corpus. Then 4.6 web screens and the Phase 4 exit test.
+Phase 4, increment **4.6** (PHASE4_PLAN.md §4.6): web screens for catalogue, tax rates, suppliers, purchases (IMEI entry, post, reverse), stock (levels, units, movements, reports, inspections), adjustments/approvals, scan upload (camera/file) and review; scanner (keyboard wedge) field and camera fallback; then the Phase 4 exit browser test (axe at 3 widths, no CSP violations) and CI.
 
 Carry the Phase 3 deferrals listed in `PHASE3_PLAN.md` §Exit.

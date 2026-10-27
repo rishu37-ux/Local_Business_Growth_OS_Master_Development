@@ -73,6 +73,7 @@ spikes/           Throwaway experiments (not shipped)
 - **Why:** one fewer stateful service to operate, back up and secure; jobs can be enqueued in the same transaction as the business change (atomic "post purchase + queue OCR cleanup"); supports job keys (idempotency), retries with backoff, cron tasks and LISTEN/NOTIFY wake-ups. pg-boss is an equally valid fallback; BullMQ needs Redis.
 - **Rules:** every job payload carries `businessId` and `requestedBy`. The worker re-validates them, runs the job through `withTenant`, and re-checks that the requesting user still holds the required permission at execution time. Heavy jobs (OCR, PDF, media) go to a separate worker queue/process with resource limits (FR-OCR-6).
 - **Verify:** Phase 3 test that a job without valid tenant context fails closed.
+- **Update (D-036, Phase 4):** the first job type (OCR) uses its own job table with SKIP LOCKED claiming instead of graphile-worker; graphile-worker is reconsidered when more job types arrive.
 
 ## ADR-09 Authentication: Better Auth, self-hosted — *Conditional on Q3*
 - **Options:** managed identity (e.g. Clerk, Auth0, Amazon Cognito, Supabase Auth); self-hosted library (Better Auth, Auth.js); hand-built on primitives.

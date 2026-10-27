@@ -7,6 +7,8 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
+import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
+import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
@@ -24,6 +26,12 @@ export interface Harness {
   /** Tenant role pool (RLS applies), for probing database-level rules. */
   readonly appDb: Db;
   readonly admin: Db;
+  readonly storage: MemoryStorage;
+  readonly ocr: OcrConfig;
+  /** Processes queued OCR jobs until the queue is empty; returns their outcomes. */
+  runOcr(
+    config?: Partial<OcrConfig['isolation']>,
+  ): Promise<{ jobId: string; status: string; errorCode: string | null }[]>;
   close(): Promise<void>;
 }
 
@@ -55,10 +63,17 @@ export async function startHarness(
     db: authDb,
   });
   const logs = new LogCapture();
+  const storage = new MemoryStorage();
+  const ocr: OcrConfig = {
+    storage,
+    limits: DEFAULT_UPLOAD_LIMITS,
+    isolation: { adapterUrl: DEFAULT_ADAPTER_URL, structurerUrl: null, timeoutMs: 15_000, maxMemoryMb: 128 },
+    staleSeconds: 600,
+  };
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth, mailer: mail, baseURL },
+    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
@@ -75,6 +90,14 @@ export async function startHarness(
     authDb,
     appDb,
     admin,
+    storage,
+    ocr,
+    async runOcr(isolation = {}) {
+      const cfg = { ...ocr, isolation: { ...ocr.isolation, ...isolation } };
+      const out: { jobId: string; status: string; errorCode: string | null }[] = [];
+      for (let r = await processNextOcrJob(appDb, cfg); r; r = await processNextOcrJob(appDb, cfg)) out.push(r);
+      return out;
+    },
     async close() {
       await app.close();
       await Promise.all([authDb, appDb, platformDb, admin].map((db) => db.destroy()));

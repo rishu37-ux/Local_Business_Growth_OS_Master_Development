@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 4, increment 4.4) · 100 requirements
+Last updated: 2026-10-27 (Phase 4, increment 4.5) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -33,12 +33,12 @@ Last updated: 2026-10-27 (Phase 4, increment 4.4) · 100 requirements
 | FR-INV-7 | Inventory | Alerts and reports | 4 | Implemented + tested (AC1 low-stock list; AC2 slow/dead with configurable N/M; AC3 reorder suggestion with formula, period, label; optional notification not built; on-order counted as 0 until purchase orders exist) | `@lbgos/domain` stock-reports.ts, `modules/inventory/reports.ts` | TR-0014 #7–10 |
 | FR-INV-8 | Inventory | Suppliers and purchases | 4 | Implemented + tested (AC1–4; attachments with 4.5 uploads) | migration 0008, `packages/modules/src/purchasing/`, `apps/api/src/routes/purchasing.ts` | TR-0012 #1–10 |
 | FR-INV-9 | Inventory | Barcode/QR scanning | 4 | In progress (AC1 lookup API by barcode/SKU/IMEI tested; web wedge field and camera fallback in 4.6) | `modules/inventory/reports.ts` `lookupCode` | TR-0014 #11–12 |
-| FR-OCR-1 | OCR | Capture and upload | 4 | Specified | — | — |
-| FR-OCR-2 | OCR | Confidence and evidence | 4 | Specified | — | — |
-| FR-OCR-3 | OCR | Deterministic validation | 4 | Specified | — | — |
-| FR-OCR-4 | OCR | Review before posting | 4 | Specified | — | — |
-| FR-OCR-5 | OCR | Untrusted content | 4 | Specified | — | — |
-| FR-OCR-6 | OCR | File safety | 4 | Specified | — | — |
+| FR-OCR-1 | OCR | Capture and upload | 4 | In progress (AC1–3 API implemented + tested: upload JPEG/PNG/WebP/PDF, HEIC rejected with guidance, two scan types, job status and retry; camera capture UI in 4.6) | migration 0011, `modules/ocr/`, `routes/scans.ts` | TR-0015 #1–3, #9 |
+| FR-OCR-2 | OCR | Confidence and evidence | 4 | Implemented + tested (API: value, confidence level, source line per field; flagged fields must be confirmed before Create; image regions not available from the mock adapter) | `@lbgos/domain` ocr-parse.ts, `modules/ocr/jobs.ts` | TR-0015 #5, #7 |
+| FR-OCR-3 | OCR | Deterministic validation | 4 | Implemented + tested (IMEI Luhn/format flags, duplicates in scan and in business, money/date parsing, recomputed line amounts with mismatch flags) | `@lbgos/domain` ocr-parse.ts, `modules/ocr/jobs.ts` | TR-0015 #5–8 |
+| FR-OCR-4 | OCR | Review before posting | 4 | Implemented + tested in the API (AC1–4: nothing created before Create, missing fields stay empty, drafts only, catalogue/supplier match proposals with reasons); review screen in 4.6 | `modules/ocr/jobs.ts` | TR-0015 #6–8 |
+| FR-OCR-5 | OCR | Untrusted content | 4 | Implemented + tested (no LLM configured; AC2 strict-schema structurer hook with discard → manual entry; AC3 injection corpus unit + end to end) | `modules/ocr/structuring.ts`, `@lbgos/domain` ocr-parse.ts | TR-0015 #12–15 |
+| FR-OCR-6 | OCR | File safety | 4 | In progress (AC1, AC2, AC3 worker thread with heap limit/timeout, AC5 tested; AC4 no scanner configured — stated; OS-level sandbox and S3 storage pending) | `@lbgos/domain` file-sniff.ts, `modules/ocr/` | TR-0015 #1–4, #9–11, #16 |
 | FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
 | FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
 | FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T24; TR-0005 (migrated DB) |
@@ -95,9 +95,9 @@ Last updated: 2026-10-27 (Phase 4, increment 4.4) · 100 requirements
 | NFR-2 | Non-functional | Modular monolith | 3–9 | In progress | Monorepo + `tooling/eslint/module-boundaries.js` | TR-0004 #4–5 |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | In progress (TS strict; API validation pending) | `tsconfig.base.json` | TR-0004 #2 |
 | NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | In progress (DB layer + service-layer membership/permission gate; per-endpoint cross-tenant tests for routes so far) | migrations, `apps/api/src/auth-plugin.ts` | TR-0005, TR-0008 #5, #9–10 |
-| NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
-| NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
-| NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |
+| NFR-5 | Non-functional | Background jobs | 3–9 | In progress (OCR jobs: status, retries ≤3, SKIP LOCKED claiming, stale-job recovery, permission re-check; other job types later — D-036) | `modules/ocr/jobs.ts`, migration 0011 | TR-0015 #9–11 |
+| NFR-6 | Non-functional | Private storage | 3–9 | In progress (private local/in-memory storage, authenticated proxy downloads; signed-URL S3 storage pending hosting Q2) | `modules/ocr/storage.ts`, `routes/scans.ts` | TR-0015 #1, #4 |
+| NFR-7 | Non-functional | Swappable providers | 3–9 | In progress (OCR adapter interface; mock and test adapters swapped by configuration in tests) | `modules/ocr/isolate.ts`, `mock-adapter.ts` | TR-0015 #9–10 |
 | NFR-8 | Non-functional | Money correctness | 3–9 | In progress (integer paise/basis-point arithmetic in `@lbgos/domain` money.ts; bigint/numeric columns; lint/schema check pending) | `packages/domain/src/money.ts` | TR-0011 #1 |
 | NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
 | NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness) | `apps/api/src/app.ts` | TR-0006 #7–8, #12–13 |

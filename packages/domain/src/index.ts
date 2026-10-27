@@ -68,3 +68,29 @@ export {
   type ReorderInput,
   type ReorderSuggestion,
 } from './stock-reports.ts';
+export {
+  checkUpload,
+  DEFAULT_UPLOAD_LIMITS,
+  pdfPageCount,
+  sniffType,
+  type FileCheck,
+  type FileProblem,
+  type SniffedType,
+  type UploadLimits,
+} from './file-sniff.ts';
+export {
+  confidenceLevel,
+  HIGH_CONFIDENCE,
+  MEDIUM_CONFIDENCE,
+  parseInvoiceDate,
+  parseMoneyToPaise,
+  parseProductLabel,
+  parseSupplierInvoice,
+  type ConfidenceLevel,
+  type ExtractedField,
+  type FieldProblem,
+  type InvoiceLineExtraction,
+  type OcrLine,
+  type ProductLabelExtraction,
+  type SupplierInvoiceExtraction,
+} from './ocr-parse.ts';

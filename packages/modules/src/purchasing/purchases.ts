@@ -468,26 +468,29 @@ const translateHeaderError = (err: unknown): never => {
 };
 
 export async function createPurchaseDraft(db: Db, ctx: TenantContext, input: PurchaseDraftInput): Promise<string> {
-  return withTenant(db, ctx, async (trx) => {
-    let id: string;
-    try {
-      id =
-        (
-          await sql<{ id: string }>`
-            insert into lbg.purchases (business_id, supplier_id, supplier_invoice_no, supplier_invoice_date,
-                                       supplier_total_paise, notes, created_by)
-            values (${ctx.businessId}, ${input.supplierId}, ${input.supplierInvoiceNo.trim()},
-                    ${input.supplierInvoiceDate}::date, ${input.supplierTotalPaise ?? null}, ${input.notes ?? null},
-                    ${ctx.userId})
-            returning id`.execute(trx)
-        ).rows[0]?.id ?? '';
-    } catch (err) {
-      return translateHeaderError(err);
-    }
-    await saveDraftIn(trx, ctx, id, input);
-    await recordTenantEvent(trx, ctx, { action: 'purchase.draft.create', targetType: 'purchase', targetId: id });
-    return id;
-  });
+  return withTenant(db, ctx, (trx) => createPurchaseDraftIn(trx, ctx, input));
+}
+
+/** As createPurchaseDraft, inside the caller's tenant transaction (e.g. creating a draft from a scan). */
+export async function createPurchaseDraftIn(trx: Trx, ctx: TenantContext, input: PurchaseDraftInput): Promise<string> {
+  let id: string;
+  try {
+    id =
+      (
+        await sql<{ id: string }>`
+          insert into lbg.purchases (business_id, supplier_id, supplier_invoice_no, supplier_invoice_date,
+                                     supplier_total_paise, notes, created_by)
+          values (${ctx.businessId}, ${input.supplierId}, ${input.supplierInvoiceNo.trim()},
+                  ${input.supplierInvoiceDate}::date, ${input.supplierTotalPaise ?? null}, ${input.notes ?? null},
+                  ${ctx.userId})
+          returning id`.execute(trx)
+      ).rows[0]?.id ?? '';
+  } catch (err) {
+    return translateHeaderError(err);
+  }
+  await saveDraftIn(trx, ctx, id, input);
+  await recordTenantEvent(trx, ctx, { action: 'purchase.draft.create', targetType: 'purchase', targetId: id });
+  return id;
 }
 
 async function lockDraft(trx: Trx, ctx: TenantContext, id: string): Promise<void> {

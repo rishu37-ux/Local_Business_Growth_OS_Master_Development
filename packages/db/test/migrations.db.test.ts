@@ -36,6 +36,7 @@ describe('migrations', () => {
       '0008_purchasing_stock',
       '0009_approvals',
       '0010_inspections',
+      '0011_ocr',
     ]);
   });
 });
