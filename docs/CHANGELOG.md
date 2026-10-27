@@ -7,6 +7,7 @@
 - Migration 0007 and `@lbgos/modules/catalogue`: categories, brands, products, variants (archiving, cost visibility), versioned tax rates; catalogue API routes.
 - `@lbgos/domain` integer money arithmetic and tax-rate version helpers.
 - Migration 0008, `@lbgos/modules/purchasing` and `inventory`: suppliers, supplier ledger, purchases (draft → post → reverse) with IMEI checks, stock buckets and the `stock_levels` projection; purchasing API routes.
+- Migration 0009, `@lbgos/modules/approvals` and inventory adjustments: stock overview/units/movements/reconciliation APIs, adjustments, write-offs, corrections, approval requests (payload hash, expiry, R3).
 
 ## [0.3.0] — 2026-10-27 — Phase 3 (foundation)
 

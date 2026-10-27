@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 4, increment 4.2) · 100 requirements
+Last updated: 2026-10-27 (Phase 4, increment 4.3) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -22,13 +22,13 @@ Last updated: 2026-10-27 (Phase 4, increment 4.2) · 100 requirements
 | FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Implemented + tested (AC1–3) | `routes/tenancy.ts`, `onboarding/platform.ts` | TR-0008 #5, TR-0009 #8 |
 | FR-ONB-2 | Onboarding | Setup wizard | 3 | In progress (AC1–4 for details/tax/MFA/staff/preferences, API + web; products import and integrations steps later) | `onboarding/setup.ts`, `apps/web/src/pages/business.tsx` | TR-0009 #1, #5; TR-0010 #3 |
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Implemented + tested (backend; real email provider pending Q6) | `notifications/`, `tenancy/platform.ts` | TR-0008 #6, TR-0009 #4 |
-| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 pending approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts` | TR-0008 #1, #4, #9 |
+| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 enforced by the approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts`, `modules/approvals/` | TR-0008 #1, #4, #9; TR-0013 #11 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | Implemented + tested (AC1–3) | migration 0007, `packages/modules/src/catalogue/`, `apps/api/src/routes/catalogue.ts` | TR-0011 #2–4 |
 | FR-INV-2 | Inventory | Phone attributes | 4 | Implemented + tested (AC1–4) | migration 0007, `packages/modules/src/catalogue/` | TR-0011 #2, #5 |
 | FR-INV-3 | Inventory | Serialized units and IMEI | 4 | Implemented + tested for purchasing (AC1–5); AC6 transitions in `@lbgos/domain` units.ts, used by reversal (more with 4.3/4.4) | migrations 0001/0008, `@lbgos/domain` imei.ts/units.ts, `modules/purchasing/problems.ts` | TR-0012 #3–5 |
-| FR-INV-4 | Inventory | Stock ledger | 4 | In progress (AC1–2 DB layer; projection maintained by trigger — reconciliation and adjustments in 4.3) | migrations 0001/0008, `modules/inventory/ledger.ts` | TR-0002 T12–T13b, T28; TR-0012 #6 |
-| FR-INV-5 | Inventory | Confirmed transactions only | 4–5 | In progress (AC1–2 for purchases tested; AC3 negative-stock refusal in the DB trigger tested via reversal; AC4 serialized sale race with POS in Phase 5) | migration 0008 trigger, `modules/purchasing/purchases.ts` | TR-0012 #2, #6, #9–10 |
+| FR-INV-4 | Inventory | Stock ledger | 4 | Implemented + tested (AC1–4: append-only ledger, REVERSAL corrections, trigger-maintained projection + reconciliation, adjustments/write-offs/corrections with reasons and approval requests) | migrations 0001/0008/0009, `modules/inventory/`, `modules/approvals/`, `routes/inventory.ts` | TR-0012 #6; TR-0013 #1–12 |
+| FR-INV-5 | Inventory | Confirmed transactions only | 4–5 | In progress (AC1–2 for purchases; AC3 negative-stock refusal and allow-negative setting tested; concurrent last-item decrements tested; AC4 serialized *sale* race with POS in Phase 5) | migration 0008 trigger, `modules/purchasing/`, `modules/inventory/` | TR-0012 #2, #6, #10–11; TR-0013 #5, #8 |
 | FR-INV-6 | Inventory | Returns inspection | 4 | Specified | — | — |
 | FR-INV-7 | Inventory | Alerts and reports | 4 | Specified | — | — |
 | FR-INV-8 | Inventory | Suppliers and purchases | 4 | Implemented + tested (AC1–4; attachments with 4.5 uploads) | migration 0008, `packages/modules/src/purchasing/`, `apps/api/src/routes/purchasing.ts` | TR-0012 #1–10 |
@@ -83,7 +83,7 @@ Last updated: 2026-10-27 (Phase 4, increment 4.2) · 100 requirements
 | FR-AGT-1 | Agents | Initial agents | 8 | Specified | — | — |
 | FR-AGT-2 | Agents | Deterministic core | 8 | Specified | — | — |
 | FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Specified | — | — |
-| FR-AGT-4 | Agents | Human approval | 8 | Specified | — | — |
+| FR-AGT-4 | Agents | Human approval | 8 | In progress (generic approval requests with payload hash, expiry, R3 and idempotent execution exist for stock adjustments; agent actions in Phase 8) | `modules/approvals/` | TR-0013 #6–11 |
 | FR-AGT-5 | Agents | Reliability and budgets | 8 | Specified | — | — |
 | FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
 | FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | In progress (plans, TRIALING on approval, status gate; billing invoices/notifications later) | migration 0006, `tenancy/platform.ts` | TR-0008 #2, TR-0009 #3 |

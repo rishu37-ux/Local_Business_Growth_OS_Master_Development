@@ -315,3 +315,28 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 12 | FR-RBAC-1, NFR-4 | Inventory staff create drafts but cannot post (403); Billing cannot see purchases/suppliers (403); another tenant gets 404 on purchase, post, supplier and ledger routes | **Pass** |
 | 13 | — | Negative controls: (a) negative-stock check removed from the trigger → the insufficient-stock test fails; (b) existing-IMEI lookup disabled → the `IMEI_EXISTS` test fails (the concurrent test still passed: the IMEI primary key is the last line of defence). Both restored | **Detected** both |
 | 14 | — | `pnpm check`: domain 56, API DB 109 (incl. purchasing 16, catalogue 15, browser exit test), DB 54 + schema checks | **Pass**, exit 0 |
+
+---
+
+## TR-0013 · 2026-10-27 · Phase 4 increment 4.3 — stock ledger, adjustments, approvals
+
+**Environment:** as TR-0011, migrations 0001–0009. Shop with Owner, Manager, Inventory and Billing members; a second single-member shop.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-4 AC3 | Stock overview per variant/bucket after a posted purchase; stock value shown only with `catalogue.cost.view` (Billing sees none) | **Pass** |
+| 2 | — | Units filtered by IMEI; movement history per variant | **Pass** |
+| 3 | FR-INV-4 AC3 | Reconciliation clean; the app role cannot write `stock_levels` (42501); a planted +1 in the projection (owner role) is reported exactly (projected 6, ledger 5) | **Pass** |
+| 4 | FR-INV-4 AC4 | Reason < 10 chars rejected (400); direct ADJUSTMENT by an approver writes the movement and an `inventory.adjust` audit event | **Pass** |
+| 5 | FR-INV-5 AC3 | Decrement below zero refused (409 `INSUFFICIENT_STOCK`); allowed when the business enables negative stock; serialized variants cannot get quantity adjustments (422) | **Pass** |
+| 6 | WORKFLOWS §4 | Unit write-off IN_STOCK → WRITTEN_OFF once; a second write-off is 409 `INVALID_UNIT_TRANSITION` | **Pass** |
+| 7 | FR-INV-4 AC2 | Correction writes a REVERSAL; a second correction of the same movement is 409 `ALREADY_REVERSED`; purchase movements cannot be "corrected" (422, reverse the document instead) | **Pass** |
+| 8 | FR-INV-5 AC3 (concurrency) | Two parallel decrements of the last item → exactly one 201 and one 409; two parallel write-offs of one unit → exactly one 201 and one 409 | **Pass** |
+| 9 | WORKFLOWS §11 | Inventory staff (request only) get 202 with a payload hash; nothing changes until approval; they cannot decide (403); a wrong hash is 409 `PAYLOAD_CHANGED`; a Manager's approval executes once (EXECUTED, decider recorded, one movement referencing the request); deciding again 409; the stored request is immutable even for the owner role (LB017) | **Pass** |
+| 10 | WORKFLOWS §11 | Rejection needs a note (422 without); only the requester can cancel (403 for others); an approval whose execution no longer fits (stock changed) ends EXECUTION_FAILED with `INSUFFICIENT_STOCK` and writes no stock; expired requests are refused (409 `EXPIRED`) | **Pass** |
+| 11 | Rule R3 | Self-approval refused while another member holds the permission; a sole owner may self-approve and the audit event records `selfApproved: true` | **Pass** |
+| 12 | NFR-4 | Billing cannot adjust or list approvals (403); another tenant gets 404 on all stock/approval routes and cannot adjust our variant or unit through its own business ID (404) | **Pass** |
+| 13 | — | Negative controls: hash comparison and the R3 check disabled → the hash and R3 tests fail (plus one dependent count). Restored | **Detected** |
+| 14 | — | `pnpm check`: API DB 126 (incl. inventory 17), domain 56, DB 54 + schema checks | **Pass**, exit 0 |
+
+**Not covered yet:** opening-stock entry for serialized units (enter as a purchase from an "opening stock" supplier for now); approval notifications to approvers (in-app list only).

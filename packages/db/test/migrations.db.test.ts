@@ -34,6 +34,7 @@ describe('migrations', () => {
       '0006_onboarding',
       '0007_catalogue',
       '0008_purchasing_stock',
+      '0009_approvals',
     ]);
   });
 });
