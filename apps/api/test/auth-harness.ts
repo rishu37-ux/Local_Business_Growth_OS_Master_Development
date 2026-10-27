@@ -37,11 +37,14 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-let ipCounter = 0;
+// Test files share one database, and with it the auth rate-limit counters, so
+// each file starts at a random point of 10.0.0.0/8 instead of reusing the same
+// addresses (a fixed start made sign-up limits collide across files).
+let ipCounter = Math.floor(Math.random() * 0xffff00);
 /** A fresh client IP per call, so per-IP rate limits never couple unrelated tests. */
 export function freshIp(): string {
-  ipCounter += 1;
-  return `10.77.${Math.floor(ipCounter / 250)}.${(ipCounter % 250) + 1}`;
+  ipCounter = (ipCounter + 1) % 0xffffff;
+  return `10.${String(ipCounter >> 16)}.${String((ipCounter >> 8) & 0xff)}.${String(ipCounter & 0xff)}`;
 }
 
 export async function startHarness(

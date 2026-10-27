@@ -270,7 +270,10 @@ export function registerCatalogueRoutes(app: FastifyInstance, s: AppServices): v
 
   app.post(
     '/api/businesses/:businessId/tax-rates',
-    { config: { permission: 'tax.settings.manage' }, schema: { params: businessParams, body: taxRateBody } },
+    {
+      config: { permission: 'tax.settings.manage', freshAuth: true },
+      schema: { params: businessParams, body: taxRateBody },
+    },
     guarded(async (request, reply) => {
       const id = await createTaxRate(s.appDb, ctxOf(request), request.body as z.infer<typeof taxRateBody>, request.id);
       return reply.status(201).send({ id });
@@ -280,7 +283,7 @@ export function registerCatalogueRoutes(app: FastifyInstance, s: AppServices): v
   app.post(
     '/api/businesses/:businessId/tax-rates/:id/close',
     {
-      config: { permission: 'tax.settings.manage' },
+      config: { permission: 'tax.settings.manage', freshAuth: true },
       schema: { params: idParams, body: z.strictObject({ effectiveTo: z.iso.date() }) },
     },
     guarded(async (request, reply) => {

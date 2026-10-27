@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 5, increment 5.1) · 100 requirements
+Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -42,15 +42,15 @@ Last updated: 2026-10-27 (Phase 5, increment 5.1) · 100 requirements
 | FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
 | FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
 | FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T24; TR-0005 (migrated DB) |
-| FR-POS-4 | POS | Invoice numbering | 5 | In progress (AC3 format validation implemented + tested; series, FY rollover and concurrency in 5.2) | `packages/domain/src/numbering.ts` | TR-0017 #7 |
-| FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
+| FR-POS-4 | POS | Invoice numbering | 5 | Implemented + tested (AC1–5: series per type and FY created on first use, number taken under the series lock, FY boundary in business timezone, format validation, concurrent issuers without gaps/duplicates) | `@lbgos/domain` numbering.ts, `modules/sales/numbering.ts`, migration 0012 | TR-0017 #7; TR-0018 #6–8 |
+| FR-POS-5 | POS | Customer capture | 5 | In progress (customer lookup by mobile, inline create with name + mobile, optional GSTIN/state with place of supply implemented + tested; checkout use in 5.3) | `modules/customers/`, `@lbgos/domain` customers.ts, `routes/sales.ts` | TR-0018 #1–4 |
 | FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (pure engine implemented + tested: AC2–AC5 incl. ≥95 % branch coverage measured — 100 % for the engine; AC1 snapshots stored per line when invoices are issued in 5.3) | `packages/domain/src/tax-engine.ts` | TR-0017 #1–4 |
-| FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | In progress (AC1 and AC3 implemented + tested; AC2 audited and permission-gated, re-authentication pending — D-030) | migration 0007, `catalogue/tax-rates.ts`, `@lbgos/domain` tax-rates | TR-0011 #6–7 |
+| FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | Implemented + tested (AC1, AC3; AC2 re-authentication: tax settings need a sign-in within 10 minutes) | migration 0007, `catalogue/tax-rates.ts`, `apps/api/src/auth-plugin.ts` (`freshAuth`) | TR-0011 #6–7; TR-0018 #9 |
 | FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T16–T16g; TR-0005 (migrated DB) |
 | FR-TAX-4 | Tax | E-invoice / signature only where applicable | 5 | Specified | — | — |
 | FR-PRN-1 | Print | Print and PDF | 5 | Specified | — | — |
-| FR-CRM-1 | CRM | Customer profile | 6 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T27, T27b; TR-0005 (migrated DB) |
-| FR-CRM-2 | CRM | Data minimisation | 6 | Specified | — | — |
+| FR-CRM-1 | CRM | Customer profile | 5–6 | In progress (AC1 core fields: name, E.164 mobile unique per business, email, address, GSTIN, state, notes; consent, DOB, tags and the history view in Phase 6) | migration 0012, `modules/customers/` | TR-0018 #1–5 |
+| FR-CRM-2 | CRM | Data minimisation | 5–6 | In progress (AC1: only name and mobile required; export in Phase 6) | `modules/customers/` | TR-0018 #1 |
 | FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
 | FR-LED-1 | Ledger | Customer ledger | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T18–T18d; TR-0005 (migrated DB) |

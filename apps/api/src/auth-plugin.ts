@@ -17,6 +17,8 @@ declare module 'fastify' {
   interface FastifyContextConfig {
     /** Route stays reachable for a user who must enrol MFA but has not yet (D-011). */
     allowWithoutMfa?: boolean;
+    /** Consequential settings: the session must come from a recent sign-in (FR-TAX-2 AC2). */
+    freshAuth?: boolean;
   }
 }
 
@@ -31,6 +33,9 @@ export const MEMBER = 'member';
 const MEMBER_MODES = new Set(['SETUP', 'FULL', 'READ_ONLY']);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/** A session counts as a recent sign-in for this long (D-039). */
+export const FRESH_AUTH_SECONDS = 10 * 60;
 
 // Client-supplied forwarding headers are never passed to Better Auth; it sees
 // only the proxy-aware IP computed by Fastify (rate-limit keys, session IP).
@@ -92,6 +97,9 @@ export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, p
       return deny(reply, request, 403, 'MFA_ENROLMENT_REQUIRED', 'Set up two-step verification to continue.');
     }
     request.principal = principal;
+    if (config.freshAuth === true && Date.now() - principal.sessionCreatedAt.getTime() > FRESH_AUTH_SECONDS * 1000) {
+      return deny(reply, request, 403, 'REAUTH_REQUIRED', 'Sign in again to change these settings.');
+    }
 
     const permission = config.permission;
     if (permission === AUTHENTICATED) return;

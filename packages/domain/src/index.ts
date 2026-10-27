@@ -125,3 +125,4 @@ export {
   type FormatProblem,
 } from './numbering.ts';
 export { METRICS, type MetricKey } from './metrics.ts';
+export { normalizeMobile, placeOfSupply } from './customers.ts';

@@ -438,3 +438,25 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 7 | FR-POS-4 AC3 | Number formats: tokens render; default fits a 6-character prefix in 16 characters; formats that could exceed 16 characters, contain other characters, lack or repeat `{SEQ:n}`, or use unknown tokens are refused at configuration time; an outgrown sequence is "exhausted" rather than longer; property: any accepted format renders ≤ 16 allowed characters | **Pass** |
 | 8 | FR-RPT-2, FR-LED-3 | Metric definitions present; operating profit labelled an estimate; no sales metric labelled profit or cash | **Pass** |
 | 9 | — | Negative controls: (a) remainder paise not distributed in apportioning → 4 tax tests fail; (b) allocation ignoring the amount due → 4 allocation tests fail. Restored; 114/114 pass | **Detected** both |
+
+---
+
+## TR-0018 · 2026-10-27 · Phase 5 increment 5.2 — customers, numbering, re-authentication
+
+**Environment:** as TR-0011, migrations 0001–0012.
+
+| # | Requirement / AC | Check (`sales-setup.db.test.ts`, `customers.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-POS-5 AC1, FR-CRM-2 AC1 | Billing staff create a customer with name + mobile only; "98765 43210" stored as +919876543210 | **Pass** |
+| 2 | FR-CRM-1 AC1 | Lookup by "098765-43210" finds the same customer; creating "+91 98765 43210" again is 409 with the existing customer's ID; another business can have a customer with that mobile | **Pass** |
+| 3 | — | Search by name and by mobile digits | **Pass** |
+| 4 | FR-POS-5 AC2 | B2B GSTIN upper-cased, checksum-checked, state taken from it; invalid GSTIN and mobile refused; domain: place of supply = GSTIN state → customer state → shop state; mobile normalisation cases (10-digit, leading 0, 91, +91, foreign, invalid) | **Pass** |
+| 5 | FR-PRV-1 AC1 (part) | A correction writes `customer.update` with field names only (no personal data); Inventory staff 403; other tenants 404 | **Pass** |
+| 6 | FR-POS-4 AC3 | Numbering view shows the setup prefix and an example; a format that could exceed 16 characters is 422 `TOO_LONG`; a valid one is saved (Billing 403) | **Pass** |
+| 7 | FR-POS-4 AC4–5 | 31 March 2027 23:30 IST → FY 2026-27, 1 April 2027 00:30 IST → a new 2027-28 series starting at 1 | **Pass** |
+| 8 | FR-POS-4 AC1–2, D-020 | 30 concurrent transactions take numbers, 6 roll back: committed numbers are exactly 1–24, and the next is 25 | **Pass** |
+| 9 | FR-TAX-2 AC2 | With the owner's session aged to 1 hour: tax-rate creation, numbering and tax-profile changes are 403 `REAUTH_REQUIRED`, other routes still work; after signing in again with password + TOTP the change succeeds | **Pass** |
+| 10 | — | Negative controls: (a) fresh-session check disabled → the re-authentication test fails; (b) numbering read-then-write without the row lock → the concurrency test fails. Restored | **Detected** both |
+| 11 | — | `pnpm check`: domain 126, API DB 171 | **Pass**, exit 0 |
+
+**Test-infrastructure defect found and fixed:** the first full run failed with HTTP 429 on sign-up in `lifecycle.db.test.ts`. Each test file restarted the synthetic client-IP counter at the same value while all files share the database that stores auth rate-limit counters, so adding a test file made sign-ups from "the same IP" exceed the limit. Each file now starts at a random point of 10.0.0.0/8. (The rate limit itself behaved correctly.)

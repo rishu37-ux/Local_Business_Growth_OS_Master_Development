@@ -257,3 +257,10 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Rate 0** covers nil-rated, exempt and zero-rated lines alike in the engine; their labelling on documents is a template matter for review.
 - **Number formats:** `{PREFIX}`, `{FY}` ("26-27"), `{FYLONG}` ("2026-27"), `{SEQ:n}` (n = 1–8). Default `{PREFIX}{FY}/{SEQ:4}`, e.g. `EX26-27/0042`. A format is refused when its longest possible rendering exceeds 16 characters; a sequence that outgrows its digits stops with SERIES_EXHAUSTED instead of producing a longer number.
 - **Coverage gate:** the domain package's test script enforces ≥ 95 % branch/line/function/statement coverage on the money modules (FR-TAX-1 AC5).
+
+### D-039 · 2026-10-27 · Accepted
+**Decision (customers, numbering, re-authentication, increment 5.2):**
+- **Re-authentication** = a session created by a sign-in less than **10 minutes** ago (`freshAuth` route option; FR-TAX-2 AC2). Applied to tax rates, the tax profile and number settings. Otherwise 403 `REAUTH_REQUIRED`, and the user signs in again (password + TOTP for owners).
+- **Numbering settings** (prefix, format) live in `business_settings`. A series takes them when it is created (first document of a type in a financial year). Saving new settings also updates series that have not issued a number; a series that has issued numbers keeps its format until the next financial year, so numbers within a series never change style.
+- **Customers:** mobile numbers are normalised to E.164 (Indian 10-digit, 0-, 91- and +91-prefixed forms; other countries with +) and unique per business; a duplicate returns the existing customer's ID so checkout can reuse it. A GSTIN's first two digits set the customer's state.
+- **Cancellation window and round-off** settings are stored now (`cancel_window_days` default 0 = same business day, `round_off` default on) for use from 5.3/5.5.

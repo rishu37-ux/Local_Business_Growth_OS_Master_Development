@@ -1,11 +1,11 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 5 in progress — increment 5.1 (tax, allocation, numbering engines) done; see PHASE5_PLAN.md**
+Last updated: 2026-10-27 · Current phase: **Phase 5 in progress — increments 5.1 (engines) and 5.2 (customers, numbering, re-authentication) done; see PHASE5_PLAN.md**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- **Phases 0–4 are complete** (Phase 4 exit: TR-0016, CI #21 green). Phase 5 plan: `PHASE5_PLAN.md`; increment 5.1 (pure tax engine with 100 % branch coverage, allocation, number formats, metric definitions) done (TR-0017).
+- **Phases 0–4 are complete** (Phase 4 exit: TR-0016, CI #21 green). Phase 5 plan: `PHASE5_PLAN.md`; increment 5.1 (pure tax engine with 100 % branch coverage, allocation, number formats, metric definitions) done (TR-0017). Increment 5.2 (customers module, numbering service with FY rollover and concurrency test, `freshAuth` re-authentication for tax settings, migration 0012) done (TR-0018).
 - Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015). Increment 4.6 (web screens for catalogue, tax rates, suppliers, purchases, stock, scans/review, approvals; `member` pseudo-permission; Phase 4 exit browser test) is implemented and tested (TR-0016).
 - Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
@@ -72,7 +72,7 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 5, increment **5.2** (PHASE5_PLAN.md §5.2): customers (mobile lookup, inline create, GSTIN/state), invoice series with configurable format and FY rollover, number allocation under lock with a concurrency test, re-authentication (fresh session) for tax-setting changes. Then 5.3 selling and issuing.
+Phase 5, increment **5.3 selling and issuing** (PHASE5_PLAN.md §5.3): migration for sale drafts/discount approvals/payment fields, sales module (draft cart, discounts within limits + approval, payments, atomic issue with numbering, tax snapshot, SALE movements, units SOLD, COGS, ledger, allocations), API routes, concurrency tests (same IMEI sold twice, numbering). Then 5.4.
 
 Carry the Phase 3 and Phase 4 deferrals listed in `PHASE3_PLAN.md` §Exit and `PHASE4_PLAN.md` §Exit.
 

@@ -13,6 +13,7 @@ import { registerInventoryRoutes } from './routes/inventory.ts';
 import { registerMemberRoutes } from './routes/members.ts';
 import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPurchasingRoutes } from './routes/purchasing.ts';
+import { registerSalesRoutes } from './routes/sales.ts';
 import { registerScanRoutes } from './routes/scans.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
@@ -195,6 +196,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerPurchasingRoutes(app, services);
     registerInventoryRoutes(app, services);
     registerScanRoutes(app, services);
+    registerSalesRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));
