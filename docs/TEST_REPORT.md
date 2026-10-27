@@ -109,3 +109,33 @@ A lint finding on the first run (`no-misused-spread` on a string spread in a tes
 - Lint flagged an unnecessary `Number()` conversion in `allocateInvoiceNumber` (int4 already arrives as a JS number).
 
 The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were ported; it remains in git history (commit `e4726a9`).
+
+---
+
+## TR-0006 · 2026-10-27 · Phase 3 increments 3.3 (CI) and 3.4 (API skeleton)
+
+**Environment:** local — cloud dev container, Node v22.22.0, pnpm 10.28.0, PostgreSQL 16.15 throwaway clusters; fastify 5.12.7, @fastify/helmet 13.2.0, zod 4.6.7. CI — GitHub-hosted `ubuntu-24.04` runners (non-root), Node 22.18 and 24.
+
+### 3.3 CI
+| # | AC | Check | Result |
+|---|---|---|---|
+| 1 | AC1/AC2 | `.github/workflows/ci.yml`: actions pinned to commit SHAs (`actions/checkout` v7.0.1 `3d3c42e…`, `actions/setup-node` v7.1.0 `949feb2…`, both lightweight tags resolved with `git ls-remote`), `permissions: contents: read`, `persist-credentials: false` | Reviewed |
+| 2 | AC3 | Run [#1](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40469782161) on commit `ffc1710` | **success** on both jobs (Node 22.18, Node 24); the job log shows lint, format, typecheck, 12 + 11 unit tests, migrations, **73/73 schema checks**, **24/24 DB tests**, docs checks, `pnpm audit` (no known vulnerabilities) and secretlint all running |
+| 3 | — | Harness non-root path (never exercised in the root container): ran migrations + schema checks as a throwaway unprivileged user | **Pass**; the CI runner confirmed the same path |
+| 4 | — | secretlint negative control: planted Slack token, AWS example key, truncated fake RSA key | Slack token **detected** (exit 1). AWS's published example key and the truncated fake key were **not** flagged — a known limit of the preset; `scripts/check-docs.sh` separately screens docs for private-key headers |
+
+### 3.4 API skeleton
+| # | AC | Check | Result |
+|---|---|---|---|
+| 5 | AC1 | Config tests: defaults; invalid PORT/LOG_LEVEL/DB URL rejected by name; production requires 3 DB URLs + session secret; error text never contains planted secret values | **Pass** (4 tests) |
+| 6 | AC2 | Headers on 200 and 404: CSP (`default-src 'self'`, no `unsafe-inline`, `frame-ancestors 'none'`, `object-src 'none'`), HSTS 1 year + subdomains, nosniff, referrer policy, X-Frame-Options, `cache-control: no-store` | **Pass** |
+| 7 | AC3 | `/healthz` 200; `/readyz` 503 with no internal detail when the DB check fails; `/readyz` 200 against a real migrated DB as `lbgos_app` (DB test) | **Pass** |
+| 8 | AC4 | Request ID: well-formed upstream ID echoed, malformed (log-injection) ID replaced; JSON log line carries `reqId`; 5 planted secrets (password, apiKey, nested token, authorization, cookie) absent from logs while a non-secret field is present | **Pass** |
+| 9 | AC5 | SQLSTATE mapping for LB001–LB005, 23505, 23503, 23514, 42501 (403 + security log) with no internal text in bodies; generic 500 that keeps details in logs only; Zod validation 400 with field paths; unknown fields rejected | **Pass** (12 tests) |
+| 10 | AC6 | Registering a route without `config.permission`/`config.public` throws; a declared route registers | **Pass** |
+| 11 | — | Client IP: X-Forwarded-For ignored by default; exactly 1 or 2 trusted hops honoured | **Pass** |
+| 12 | — | Negative controls: (a) redaction paths emptied → redaction test fails; (b) route-declaration check disabled → AC6 test fails; both files restored | **Detected** both (1 failed / 22 passed each) |
+| 13 | — | Smoke test: `node apps/api/src/server.ts` (Node type stripping) against a migrated throwaway DB; `/healthz` and `/readyz` over real HTTP; SIGTERM | **Pass** — 200 `{"status":"ready"}` with `x-request-id`; clean shutdown |
+| 14 | — | `pnpm check` (all packages, unit + DB), `pnpm audit`, `pnpm secrets` | **Pass**; no known vulnerabilities |
+
+**Issues fixed during 3.4:** Fastify's types do not accept a hop count for `trustProxy`, so it became a hop-index function (now covered by test #11). Lint fixes: an unnecessary type assertion, and test functions marked `async` without `await`.

@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 3, increment 3.2) · 100 requirements
+Last updated: 2026-10-27 (Phase 3, increment 3.4) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -22,7 +22,7 @@ Last updated: 2026-10-27 (Phase 3, increment 3.2) · 100 requirements
 | FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Specified | — | — |
 | FR-ONB-2 | Onboarding | Setup wizard | 3 | Specified | — | — |
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Specified | — | — |
-| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Specified | — | — |
+| FR-RBAC-1 | RBAC | Roles and permissions | 3 | In progress (AC2 route declaration enforced; checks pending 3.6) | `apps/api/src/app.ts` | TR-0006 #10 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T07, T08; TR-0005 (migrated DB) |
 | FR-INV-2 | Inventory | Phone attributes | 4 | Specified | — | — |
@@ -90,7 +90,7 @@ Last updated: 2026-10-27 (Phase 3, increment 3.2) · 100 requirements
 | FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Specified | — | — |
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
 | FR-AUD-1 | Audit | Audit log | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T25–T25d; TR-0005 (migrated DB) |
-| FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested | `scripts/check-docs.sh` | TR-0001, TR-0002 (#doc checks) |
+| FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |
 | NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | Specified | — | — |
 | NFR-2 | Non-functional | Modular monolith | 3–9 | In progress | Monorepo + `tooling/eslint/module-boundaries.js` | TR-0004 #4–5 |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | In progress (TS strict; API validation pending) | `tsconfig.base.json` | TR-0004 #2 |
@@ -100,16 +100,16 @@ Last updated: 2026-10-27 (Phase 3, increment 3.2) · 100 requirements
 | NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |
 | NFR-8 | Non-functional | Money correctness | 3–9 | Specified | — | — |
 | NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
-| NFR-10 | Non-functional | Observability | 3–9 | Specified | — | — |
+| NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness) | `apps/api/src/app.ts` | TR-0006 #7–8, #12–13 |
 | NFR-11 | Non-functional | Backups | 3–9 | Specified | — | — |
 | NFR-12 | Non-functional | Data protection | 3–9 | Specified | — | — |
 | NFR-13 | Non-functional | Password storage | 3–9 | Specified | — | — |
 | NFR-14 | Non-functional | Performance (pilot) | 3–9 | Specified | — | — |
 | NFR-15 | Non-functional | Availability (pilot) | 3–9 | Specified | — | — |
 | NFR-16 | Non-functional | Browser support | 3–9 | Specified | — | — |
-| NFR-17 | Non-functional | Security headers | 3–9 | Specified | — | — |
+| NFR-17 | Non-functional | Security headers | 3–9 | Implemented + tested (API) | `apps/api/src/app.ts` | TR-0006 #6 |
 | NFR-18 | Non-functional | Webhook security | 3–9 | Specified | — | — |
-| NFR-19 | Non-functional | Supply chain | 3–9 | Specified | — | — |
+| NFR-19 | Non-functional | Supply chain | 3–9 | Implemented + tested (CI audit + secret scan; lockfile) | `.github/workflows/ci.yml` | TR-0006 #1–4 |
 
 ## Security threats
 

@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold) and 3.2 (migrations, tenant context) done; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub) and 3.4 (API skeleton) done; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,4 +60,4 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.3** (F-02): add `.github/workflows/ci.yml` (pinned action SHAs, `permissions: contents: read`) running `pnpm install --frozen-lockfile`, `pnpm check` (incl. DB tests via the throwaway harness, PostgreSQL installed on the runner), `scripts/check-docs.sh`, `pnpm audit` and a secret scan; push and check the run result. Then 3.4 API skeleton.
+Phase 3 increment **3.5** (F-06…F-08): add Better Auth (D-019) in `packages/modules/auth`. Generate its tables as migration `0003` in schema `auth`, use the `lbgos_auth` pool and the Argon2id override, keep telemetry off, and mount it in the API. Then TOTP MFA (mandatory for platform admin/owner) and a PostgreSQL-backed rate limiter. First write a test per FR-AUTH-1…5 AC, or record a deferral with its reason.

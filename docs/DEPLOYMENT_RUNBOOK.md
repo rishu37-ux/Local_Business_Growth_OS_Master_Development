@@ -9,7 +9,7 @@ Last updated: 2026-10-27 (Phase 2)
 | Environment | Purpose | Data | Status |
 |---|---|---|---|
 | local | Development | Synthetic only | Throwaway PostgreSQL harness exists (`scripts/with-throwaway-pg.sh`); app not yet built |
-| ci | Automated tests | Synthetic, ephemeral | Not set up (Phase 3) |
+| ci | Automated tests | Synthetic, ephemeral | **Running** — GitHub Actions `ci.yml`, first run green (TR-0006) |
 | staging | Pre-release verification, restore drills | Synthetic / anonymised only | Not set up |
 | production | Pilot and customers | Real | Not set up |
 
