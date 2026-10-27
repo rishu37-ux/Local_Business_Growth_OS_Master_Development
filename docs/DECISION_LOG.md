@@ -174,3 +174,13 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - Owners' MFA cannot be reset and their sessions cannot be revoked by staff (FR-AUTH-5 AC2: platform process).
 - Reinstatement returns a suspended business to the status it had before suspension.
 - Status changes the tenant role is not granted run through narrow SECURITY DEFINER functions (migration 0005). The platform role provisions default roles via `lbg.provision_business` without any grant on tenant tables.
+
+### D-030 · 2026-10-27 · Accepted
+**Decision (onboarding details, increment 3.7a):**
+- **Invitations:** 256-bit random tokens, emailed as a link; only SHA-256 hashes are stored; single use; 72 h expiry; revocable. Accepting requires being signed in with the invited email. Unusable invitations (not found, expired, used, revoked) all return the same 410, so a token reveals nothing.
+- **Trials:** approval (or platform creation) starts a **14-day TRIALING subscription on the Starter plan**. The trial length is a code constant for now (`TRIAL_DAYS`), to become a platform setting.
+- **Seed plans:** Starter ₹999, Growth ₹1,999, Pro ₹3,499 per month, flagged `pilot_pricing` with a "to be validated" note. Plan **limits are intentionally empty**: the user/invoice/AI/storage limits are product decisions not yet made, and are not invented here.
+- **Activation:** requires a tax profile in addition to the state code and owner MFA.
+- **Tax setup:** creates invoice series (sale document by registration type, plus credit and debit notes) for the current financial year in the business timezone. GSTIN format/checksum/state are validated; registration is not verified (no GST portal integration).
+- **Timezones:** validated by constructing an `Intl.DateTimeFormat`, because `Intl.supportedValuesOf('timeZone')` lists `Asia/Calcutta` but not `Asia/Kolkata` (found by a failing test).
+- **Re-authentication deferred:** FR-TAX-2 AC2's re-authentication for tax-setting changes is not yet enforced for the initial setup step; it is due with tax configuration in Phase 5.

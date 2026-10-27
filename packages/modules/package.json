@@ -6,6 +6,8 @@
   "exports": {
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
+    "./notifications": "./src/notifications/index.ts",
+    "./onboarding": "./src/onboarding/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

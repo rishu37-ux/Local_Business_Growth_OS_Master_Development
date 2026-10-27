@@ -208,3 +208,26 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 **Issues found and fixed:** a rejected applicant originally had no access at all, so could not read the rejection reason; the new CLOSED mode fixes that. Lint: `Promise.reject` with a non-Error value; unnecessary type assertions.
 
 **Not done in 3.6 (moved to 3.7):** staff invitations (staff membership is seeded directly in tests); in-app/email notifications for decisions (FR-ONB-3 AC1); admin-created businesses with owner invitation (FR-ONB-1 AC2); approval requests and R3 (no self-approval) — need the approvals module; FR-SUP-1 support access.
+
+---
+
+## TR-0009 · 2026-10-27 · Phase 3 increment 3.7a — onboarding backend
+
+**Environment:** as TR-0008, plus migration 0006. Synthetic data only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-ONB-2 AC4 | Domain: two widely published sample GSTINs accepted; malformed, lower-case, wrong check character, state mismatch rejected; property test: the computed check character is accepted and every other character rejected | **Pass** |
+| 2 | FR-RPT-3 / D-012 | Domain: financial year at 31 Mar 23:30 IST vs 1 Apr 00:30 IST (and the same instant in UTC); January start; century wrap; label format property test | **Pass** (domain 42/42) |
+| 3 | FR-SUB-1 AC2 | Approval creates a 14-day TRIALING Starter subscription | **Pass** |
+| 4 | FR-ONB-3 AC1, BR-T3 AC2 | Applicant gets in-app notifications (changes requested, approved) and emails including the request-changes reason; users mark only their own notifications read (other user 404) | **Pass** |
+| 5 | FR-ONB-2 AC1–AC3 | Setup reports required steps (details, tax, mfa), with MFA done for an enrolled owner; unknown timezone 422; `Asia/Kolkata` accepted; bad GSTIN checksum 422 `GSTIN_INVALID`; other-state GSTIN 422; valid profile creates TAX_INVOICE/CREDIT_NOTE/DEBIT_NOTE series for the current FY; no remaining required steps; activation 204. Lifecycle test: activation without a tax profile 409 | **Pass** |
+| 6 | Invitations | Single-use token emailed; the stored row has only the hash; another user → 403 `INVITATION_EMAIL_MISMATCH`; invitee accepts and gets exactly Billing; reuse 410; inviting an existing member 409; expired 410; revoked 410; R2: delegated people admin cannot invite into Owner (403, no email sent) | **Pass** |
+| 7 | FR-AUTH-3 AC3 | Owner enables "require MFA for staff" → staff `/api/me` shows `mfaRequired: true` and business routes return 403 `MFA_ENROLMENT_REQUIRED` | **Pass** |
+| 8 | FR-ONB-1 AC2 | Platform admin creates a business; emailed owner invitation accepted; new owner must enrol MFA, then has Owner role in SETUP mode; non-admins 403 | **Pass** |
+| 9 | FR-SUB-2 | Seed plans STARTER 99,900 / GROWTH 199,900 / PRO 349,900 paise, all `pilotPricing`; price change 204 and audited; non-admin 403 | **Pass** |
+| 10 | — | Schema checks (incl. RLS meta-check over the four new tenant tables and notifications) and migration list | **Pass** — 81 SQL checks; DB package 54 |
+| 11 | — | Negative controls on `onboarding.db.test.ts`: (a) email check removed from `accept_invitation` → 4 tests fail; (b) staff-MFA clause removed from `user_requires_mfa` → AC3 test fails; (c) invitation R2 check removed → R2 test fails; (d) expiry ignored → expiry test fails. All restored; 17/17 | **Detected** all |
+| 12 | — | `pnpm check`: eslint rules 11, domain 42, API unit 26, DB 81 + 54, auth drift ok, API DB 73 (auth 32 + lifecycle 24 + onboarding 17) | **Pass** |
+
+**Defect found and fixed:** the default timezone `Asia/Kolkata` was rejected by validation based on `Intl.supportedValuesOf` (D-030).

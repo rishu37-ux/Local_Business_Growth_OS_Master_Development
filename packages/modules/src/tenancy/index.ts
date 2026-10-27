@@ -11,4 +11,13 @@ export {
   type StatusEvent,
 } from './applications.ts';
 export { deactivateMember, listMembers, memberUser, MemberRuleError, setMemberRoles, type Member } from './members.ts';
-export { decide, LifecycleError, listApplications, reinstate, type ApplicationSummary } from './platform.ts';
+export {
+  decide,
+  DEFAULT_PLAN_CODE,
+  LifecycleError,
+  listApplications,
+  reinstate,
+  TRIAL_DAYS,
+  type ApplicationSummary,
+  type DecisionOptions,
+} from './platform.ts';

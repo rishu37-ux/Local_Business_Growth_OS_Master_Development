@@ -9,6 +9,7 @@ import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
 import { AUTHENTICATED, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
 import { registerMemberRoutes } from './routes/members.ts';
+import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
 import type { AppServices } from './services.ts';
@@ -171,6 +172,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   if (services) {
     registerTenancyRoutes(app, services);
     registerMemberRoutes(app, services);
+    registerOnboardingRoutes(app, services);
     registerPlatformRoutes(app, services);
   }
 

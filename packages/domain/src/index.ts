@@ -14,6 +14,8 @@ export {
   type SubscriptionState,
   type SubscriptionStatus,
 } from './business-status.ts';
+export { financialYear, localYearMonth } from './fiscal.ts';
+export { gstinCheckChar, gstinProblem, type GstinProblem } from './gstin.ts';
 export { isValidImei, luhnCheckDigit } from './imei.ts';
 export {
   BUSINESS_PERMISSIONS,

@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton), 3.5 (auth, MFA, lockout) and 3.6 (RBAC, lifecycle, audit) done; 3.7 remaining; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton), 3.5 (auth, MFA, lockout) 3.6 (RBAC, lifecycle, audit) and 3.7a (onboarding backend) done; 3.7b (web app + exit test) remaining; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,7 +60,8 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.7** (F-12…F-14):
-- **Backend:** staff invitations (token, 72 h expiry, accept flow); setup wizard backend (tax profile, invoice series, preferences, progress); notifications for lifecycle decisions (in-app + email adapter); admin-created businesses with owner invitation; plans/subscriptions admin endpoints with pilot seed plans.
-- **Web:** React + Vite SPA shell with auth screens, business switcher and wizard, served same-origin; Playwright + axe at 360/768/1280 px.
-- Then the Phase 3 exit test: register → approve → setup with owner MFA → invite limited staff.
+Phase 3 increment **3.7b**:
+- **Web app:** `apps/web` (React 19 + Vite 8 + React Router + TanStack Query + Tailwind 4 + React Aria Components) with screens for sign-up/verify notice, sign-in with TOTP step, MFA enrolment, my businesses, application form, platform review queue, setup wizard (details, tax, preferences, activate), members + invite, invitation accept.
+- **Serving:** built assets served same-origin by the API (`@fastify/static`, CSP-compatible: no inline scripts).
+- **Tests:** Playwright + axe at 360/768/1280 px.
+- **Exit test:** a browser-driven Phase 3 exit test (register → admin approves → owner enrols MFA → setup → activate → invite Billing staff → staff accepts).

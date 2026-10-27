@@ -6,6 +6,7 @@ import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
+import { CapturingMailer } from '@lbgos/modules/notifications';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
@@ -17,6 +18,7 @@ export const SECRET = 'test-only-secret-0123456789abcdef0123456789';
 export interface Harness {
   readonly app: FastifyInstance;
   readonly emails: CapturingEmailSender;
+  readonly mail: CapturingMailer;
   readonly logs: LogCapture;
   readonly authDb: Db;
   readonly admin: Db;
@@ -39,6 +41,7 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
     dialect: new PostgresDialect({ pool: new pg.Pool({ user: 'lbgos_owner', max: 2 }) }),
   });
   const emails = new CapturingEmailSender();
+  const mail = new CapturingMailer();
   const baseURL = options.baseURL ?? ORIGIN;
   const auth = createAuthService({
     baseURL,
@@ -51,7 +54,7 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth },
+    services: { appDb, platformDb, auth, mailer: mail, baseURL },
     logStream: logs,
   });
   // Test-only routes used to probe the session hook.
@@ -62,6 +65,7 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
   return {
     app,
     emails,
+    mail,
     logs,
     authDb,
     admin,

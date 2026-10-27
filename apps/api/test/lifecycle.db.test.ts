@@ -151,7 +151,16 @@ describe('setup and activation (FR-ONB-2 AC3, D-011)', () => {
     });
   });
 
-  it('the owner activates the business; activating again is refused', async () => {
+  it('the owner activates the business once tax is set up; activating again is refused', async () => {
+    const early = await post(h, `/api/businesses/${businessId}/activate`, {}, owner);
+    expect(early.statusCode).toBe(409); // migration 0006: tax profile required first
+    const tax = await put(
+      h,
+      `/api/businesses/${businessId}/setup/tax`,
+      { registrationType: 'UNREGISTERED', invoicePrefix: 'SM' },
+      owner,
+    );
+    expect(tax.statusCode).toBe(200);
     expect((await post(h, `/api/businesses/${businessId}/activate`, {}, owner)).statusCode).toBe(204);
     expect((await get(h, `/api/businesses/${businessId}`, owner)).json()).toMatchObject({
       business: { status: 'ACTIVE' },

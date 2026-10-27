@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 3, increment 3.6) · 100 requirements
+Last updated: 2026-10-27 (Phase 3, increment 3.7a) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -16,12 +16,12 @@ Last updated: 2026-10-27 (Phase 3, increment 3.6) · 100 requirements
 | BR-T4 | Tenancy | Suspension and read-only modes | 3 | Implemented + tested (AC1, AC2, AC4; AC3 job pausing when jobs exist) | `@lbgos/domain` business-status, `apps/api/src/auth-plugin.ts` | TR-0008 #2, #11 |
 | FR-AUTH-1 | Auth | Sessions | 3 | Implemented + tested (AC1–6; AC2 privilege-change rotation via session revocation) | `packages/modules/src/auth/`, `apps/api/src/auth-*.ts`, `routes/members.ts` | TR-0007 #1–6, TR-0008 #9–10 |
 | FR-AUTH-2 | Auth | Password reset and verification | 3 | Implemented + tested (AC1–3, AC5; AC4 local list only — online breached check deferred) | `packages/modules/src/auth/` | TR-0007 #7–11 |
-| FR-AUTH-3 | Auth | MFA | 3 | Implemented + tested (AC1, AC2, AC4, AC5 encrypted not hashed — D-025; AC3 pending) | `packages/modules/src/auth/options.ts`, `apps/api/src/auth-plugin.ts` | TR-0007 #12–14 |
+| FR-AUTH-3 | Auth | MFA | 3 | Implemented + tested (AC1–5; AC5 encrypted not hashed — D-025; passkeys not yet) | `packages/modules/src/auth/`, `apps/api/src/auth-plugin.ts`, migration 0006 | TR-0007 #12–14, TR-0009 #7 |
 | FR-AUTH-4 | Auth | Rate limiting | 3 | Implemented + tested (fixed window, not progressive — D-026) | `packages/modules/src/auth/options.ts` | TR-0007 #15–16 |
 | FR-AUTH-5 | Auth | MFA recovery | 3 | In progress (AC1 owner resets staff MFA done; AC2 platform process to document) | `routes/members.ts` | TR-0008 #10 |
-| FR-ONB-1 | Onboarding | Registration and admin creation | 3 | In progress (AC1, AC3 done; AC2 admin-created + invite pending 3.7) | `routes/tenancy.ts` | TR-0008 #5 |
-| FR-ONB-2 | Onboarding | Setup wizard | 3 | Specified | — | — |
-| FR-ONB-3 | Onboarding | Notifications and history | 3 | Specified | — | — |
+| FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Implemented + tested (AC1–3) | `routes/tenancy.ts`, `onboarding/platform.ts` | TR-0008 #5, TR-0009 #8 |
+| FR-ONB-2 | Onboarding | Setup wizard | 3 | In progress (backend AC1–4 for details/tax/MFA/staff/preferences; products import and integrations steps later; web UI in 3.7b) | `onboarding/setup.ts`, `routes/onboarding.ts` | TR-0009 #1, #5 |
+| FR-ONB-3 | Onboarding | Notifications and history | 3 | Implemented + tested (backend; real email provider pending Q6) | `notifications/`, `tenancy/platform.ts` | TR-0008 #6, TR-0009 #4 |
 | FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 pending approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts` | TR-0008 #1, #4, #9 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T07, T08; TR-0005 (migrated DB) |
@@ -86,8 +86,8 @@ Last updated: 2026-10-27 (Phase 3, increment 3.6) · 100 requirements
 | FR-AGT-4 | Agents | Human approval | 8 | Specified | — | — |
 | FR-AGT-5 | Agents | Reliability and budgets | 8 | Specified | — | — |
 | FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
-| FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | Specified | — | — |
-| FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Specified | — | — |
+| FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | In progress (plans, TRIALING on approval, status gate; billing invoices/notifications later) | migration 0006, `tenancy/platform.ts` | TR-0008 #2, TR-0009 #3 |
+| FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Implemented + tested (AC1 audited price edits; AC2 seed plans flagged pilot) | `onboarding/platform.ts`, `routes/platform.ts` | TR-0009 #9 |
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
 | FR-AUD-1 | Audit | Audit log | 3 | In progress (append-only store + lifecycle/member/auth events; more actions as modules arrive) | `packages/modules/src/audit/` | TR-0005, TR-0007 #16, TR-0008 #12 |
 | FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |

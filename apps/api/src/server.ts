@@ -2,6 +2,7 @@
 import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
+import { DevConsoleMailer } from '@lbgos/modules/notifications';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig, type Config } from './config.ts';
 
@@ -40,7 +41,7 @@ const auth = createAuthService({
 
 const app = buildApp({
   config,
-  services: { appDb, platformDb, auth },
+  services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL },
   readiness: {
     database: async () => {
       await sql`select 1`.execute(appDb);

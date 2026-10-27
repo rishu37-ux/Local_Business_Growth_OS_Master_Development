@@ -11,6 +11,7 @@ import {
 import { sql } from 'kysely';
 import { withoutTenant, type Db, type Trx } from '@lbgos/db';
 import { recordPlatformEvent } from '../audit/index.ts';
+import type { Mailer } from '../notifications/index.ts';
 
 export class LifecycleError extends Error {
   readonly code: 'REASON_REQUIRED' | 'INVALID_STATE' | 'NOT_FOUND';
@@ -100,39 +101,97 @@ function requireReason(action: PlatformAction, reason: string | undefined): stri
   return trimmed;
 }
 
+/** Trial length for newly approved businesses (FR-SUB-1 AC2); a platform setting later. */
+export const TRIAL_DAYS = 14;
+export const DEFAULT_PLAN_CODE = 'STARTER';
+
+const MESSAGES: Record<PlatformAction, { kind: string; title: string; body: (reason: string | null) => string }> = {
+  approve: {
+    kind: 'business.approved',
+    title: 'Application approved',
+    body: () => 'Your business was approved. Complete the setup to start using it.',
+  },
+  request_changes: {
+    kind: 'business.changes_requested',
+    title: 'Changes requested',
+    body: (r) => `Please update your application. Reason: ${r ?? ''}`,
+  },
+  reject: {
+    kind: 'business.rejected',
+    title: 'Application rejected',
+    body: (r) => `Your application was not approved. Reason: ${r ?? ''}`,
+  },
+  suspend: {
+    kind: 'business.suspended',
+    title: 'Business suspended',
+    body: (r) => `Your business was suspended. You can still view and export your records. Reason: ${r ?? ''}`,
+  },
+  reinstate: {
+    kind: 'business.reinstated',
+    title: 'Business reinstated',
+    body: () => 'Your business has been reinstated.',
+  },
+};
+
+async function notifyDecision(trx: Trx, businessId: string, action: PlatformAction, reason: string | null) {
+  const m = MESSAGES[action];
+  await sql`select lbg.notify_business_members(${businessId}, ${m.kind}, ${m.title}, ${m.body(reason)})`.execute(trx);
+  const people = await sql<{ email: string }>`select email from lbg.application_applicants(${businessId})`.execute(trx);
+  return { subject: m.title, text: m.body(reason), to: people.rows.map((p) => p.email) };
+}
+
+export interface DecisionOptions {
+  readonly reason?: string;
+  readonly requestId?: string;
+  /** FR-ONB-3 AC1 / BR-T3 AC2: members are emailed after the decision commits. */
+  readonly mailer?: Mailer;
+}
+
 /**
  * approve / request_changes / reject / suspend (BR-T2, BR-T3). Approval also
- * creates the default roles and makes the applicant the Owner, in the same
- * transaction.
+ * creates the default roles, makes the applicant the Owner and starts a
+ * trial subscription, in the same transaction. Members are notified in-app
+ * (same transaction) and by email (after commit).
  */
 export async function decide(
   db: Db,
   actorUserId: string,
   businessId: string,
   action: keyof typeof PLATFORM_ACTIONS,
-  reason?: string,
-  requestId?: string,
+  options: DecisionOptions = {},
 ): Promise<void> {
-  const why = requireReason(action, reason);
+  const why = requireReason(action, options.reason);
   const rule = PLATFORM_ACTIONS[action];
-  await withoutTenant(db, async (trx) => {
-    await transition(trx, actorUserId, businessId, rule.from, rule.to, action, why, requestId);
+  const mail = await withoutTenant(db, async (trx) => {
+    await transition(trx, actorUserId, businessId, rule.from, rule.to, action, why, options.requestId);
     if (action === 'approve') {
       await sql`select lbg.provision_business(${businessId}, ${JSON.stringify(DEFAULT_ROLES)}::jsonb)`.execute(trx);
+      await sql`insert into lbg.subscriptions (business_id, plan_id, status, current_period_start, current_period_end)
+                select ${businessId}, id, 'TRIALING', now(), now() + make_interval(days => ${TRIAL_DAYS})
+                  from lbg.plans where code = ${DEFAULT_PLAN_CODE}`.execute(trx);
     }
+    return notifyDecision(trx, businessId, action, why);
   });
+  await sendAll(options.mailer, mail);
+}
+
+async function sendAll(mailer: Mailer | undefined, mail: { subject: string; text: string; to: string[] }) {
+  if (!mailer) return;
+  for (const to of mail.to) await mailer.send({ to, subject: mail.subject, text: mail.text });
 }
 
 /** SUSPENDED → the status it had before suspension (WORKFLOWS.md §1). */
-export async function reinstate(db: Db, actorUserId: string, businessId: string, reason: string, requestId?: string) {
-  const why = requireReason('reinstate', reason);
-  await withoutTenant(db, async (trx) => {
+export async function reinstate(db: Db, actorUserId: string, businessId: string, options: DecisionOptions = {}) {
+  const why = requireReason('reinstate', options.reason);
+  const mail = await withoutTenant(db, async (trx) => {
     const prior = await sql<{ from_status: BusinessStatus }>`
       select from_status from lbg.business_status_events
        where business_id = ${businessId} and to_status = 'SUSPENDED' order by created_at desc, id desc limit 1`.execute(
       trx,
     );
     const back = prior.rows[0]?.from_status === 'ACTIVE' ? 'ACTIVE' : 'APPROVED_SETUP_PENDING';
-    await transition(trx, actorUserId, businessId, ['SUSPENDED'], back, 'reinstate', why, requestId);
+    await transition(trx, actorUserId, businessId, ['SUSPENDED'], back, 'reinstate', why, options.requestId);
+    return notifyDecision(trx, businessId, 'reinstate', why);
   });
+  await sendAll(options.mailer, mail);
 }
