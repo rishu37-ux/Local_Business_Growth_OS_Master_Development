@@ -1,13 +1,13 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 4, after increment 4.3)
+Last updated: 2026-10-27 (Phase 4, after increment 4.4)
 
 ## Phase 4 — Inventory, suppliers/purchases, stock ledger, OCR review (in progress)
 
 1. ~~`docs/PHASE4_PLAN.md`~~ (done) · ~~4.1 catalogue + tax rates~~ (done, TR-0011).
 2. ~~4.2 / I-03 suppliers and purchases~~ (done, TR-0012).
 3. ~~4.3 / I-04 stock ledger, reconciliation, adjustments, approvals~~ (done, TR-0013).
-4. 4.4 / I-05…I-07 Returns inspection, stock reports, barcode input.
+4. ~~4.4 / I-05…I-07 inspection, stock reports, lookup API~~ (done, TR-0014; web scanner field in 4.6).
 5. 4.5 / I-08, I-09 Upload pipeline and OCR adapter (mock first), review screen, prompt-injection corpus.
 6. 4.6 Web screens and the Phase 4 exit browser test.
 

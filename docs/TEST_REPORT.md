@@ -340,3 +340,26 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 14 | — | `pnpm check`: API DB 126 (incl. inventory 17), domain 56, DB 54 + schema checks | **Pass**, exit 0 |
 
 **Not covered yet:** opening-stock entry for serialized units (enter as a purchase from an "opening stock" supplier for now); approval notifications to approvers (in-app list only).
+
+---
+
+## TR-0014 · 2026-10-27 · Phase 4 increment 4.4 — inspection, stock reports, lookup
+
+**Environment:** as TR-0011, migrations 0001–0010. Customer returns (Phase 5) are simulated with SALE/SALE_RETURN ledger rows and unit statuses written by the owner role; report ages use back-dated synthetic movements.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-6 AC1 (state only) | Returned goods counted in INSPECTION, not AVAILABLE; units and quantities listed in the inspection queue | **Pass** |
+| 2 | FR-RBAC-1 | Billing (no `returns.inspect`) gets 403 on queue and outcomes | **Pass** |
+| 3 | FR-INV-6 AC2–3 | RESTOCK returns a unit to IN_STOCK and AVAILABLE; repeating it is 409 | **Pass** |
+| 4 | FR-INV-6 AC2–3, WORKFLOWS §4 | REPAIR → IN_REPAIR (REPAIR bucket); RESTOCK from repair refused; REPAIRED → PENDING_INSPECTION; DAMAGED → DAMAGED bucket; AVAILABLE unchanged throughout | **Pass** |
+| 5 | FR-INV-6 AC2–3 | Quantities: RESTOCK 1 (AVAILABLE +1), DAMAGED 1, RETURN_TO_SUPPLIER 1 (leaves stock); a fourth outcome with nothing left is 409 `INSUFFICIENT_STOCK`; quantity inspection of a serialized variant 422 | **Pass** |
+| 6 | FR-AUD-1, FR-INV-4 AC3 | 7 inspection records, each with its movements (2 per reclassification, 1 for return to supplier) and an `inventory.inspect` audit event; reconciliation clean | **Pass** |
+| 7 | FR-INV-7 AC1 | Low-stock list returns exactly the variant with available (5) ≤ reorder level (5) | **Pass** |
+| 8 | FR-INV-7 AC2 | Defaults N=60/M=120: never-sold stock received 130 days ago = DEAD (130 days, no last sale); last sale 70 days ago = SLOW; custom N=1/M=69 reclassifies as expected; M < N rejected (400) | **Pass** |
+| 9 | FR-INV-7 AC3 | Reorder report labelled "suggestion", shows the formula, a 30-day period and the "on order not tracked" note; 15 sold → average 0.500/day, suggestion 3.500 → 4 units | **Pass** |
+| 10 | FR-INV-7 AC3 | `@lbgos/domain` reorder tests: exact formula, never negative, missing level = 0, single rounding of lead-time demand, monotone in sales (property), input validation; age classification boundaries | **Pass** — domain 62/62 |
+| 11 | FR-INV-9 AC1 | Lookup resolves barcode, SKU (case-insensitive), IMEI 2 (with surrounding spaces trimmed) to the unit; unknown code 404 | **Pass** |
+| 12 | NFR-4 | Lookup never matches another business's barcode/IMEI; another tenant gets 404 on inspection and report routes | **Pass** |
+| 13 | — | Negative controls: DAMAGED outcome pointed at AVAILABLE → 2 inspection tests fail; reorder level dropped from the formula → reorder test fails. Restored | **Detected** both |
+| 14 | — | `pnpm check`: API DB 137 (incl. inspections/reports 11), domain 62 | **Pass**, exit 0 |

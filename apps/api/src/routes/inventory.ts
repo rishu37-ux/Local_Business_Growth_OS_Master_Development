@@ -14,12 +14,18 @@ import {
   ADJUSTMENT_ACTION,
   adjustmentExecutor,
   adjustStock,
+  agedStock,
+  inspectionQueue,
   InventoryError,
+  lookupCode,
+  recordInspection,
+  reorderReport,
   listMovements,
   listUnits,
   reconcileStock,
   stockOverview,
   type AdjustmentAction,
+  type InspectionInput,
 } from '@lbgos/modules/inventory';
 import type { AppServices } from '../services.ts';
 
@@ -39,6 +45,19 @@ const adjustmentBody = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('UNIT_WRITE_OFF'), unitId: z.uuid(), reason }),
   z.strictObject({ kind: z.literal('CORRECTION'), movementId: z.uuid(), reason }),
 ]);
+
+const outcome = z.enum(['RESTOCK', 'DAMAGED', 'REPAIR', 'RETURN_TO_SUPPLIER', 'REPAIRED']);
+const notes = z.string().trim().max(1000).optional();
+const inspectionBody = z.union([
+  z.strictObject({ unitId: z.uuid(), outcome, notes }),
+  z.strictObject({
+    variantId: z.uuid(),
+    quantity: z.string().regex(/^\d{1,9}(\.\d{1,3})?$/),
+    outcome,
+    notes,
+  }),
+]);
+const days = (fallback: number) => z.coerce.number().int().min(1).max(3650).default(fallback);
 
 const APPROVAL_STATUSES = [
   'PENDING',
@@ -249,5 +268,75 @@ export function registerInventoryRoutes(app: FastifyInstance, s: AppServices): v
       await cancelApproval(s.appDb, ctxOf(request), (request.params as { id: string }).id);
       return reply.status(204).send();
     }),
+  );
+
+  app.get(
+    '/api/businesses/:businessId/stock/inspections',
+    { config: { permission: 'returns.inspect' }, schema: { params: businessParams } },
+    async (request) => ({ queue: await inspectionQueue(s.appDb, ctxOf(request)) }),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/stock/inspections',
+    { config: { permission: 'returns.inspect' }, schema: { params: businessParams, body: inspectionBody } },
+    guarded(async (request, reply) => {
+      const result = await recordInspection(s.appDb, ctxOf(request), request.body as InspectionInput, request.id);
+      return reply.status(201).send(result);
+    }),
+  );
+
+  // FR-INV-7 AC2: N and M default to 60 and 120 days.
+  app.get(
+    '/api/businesses/:businessId/stock/reports/aged',
+    {
+      config: { permission: 'inventory.view' },
+      schema: { params: businessParams, querystring: z.strictObject({ slowDays: days(60), deadDays: days(120) }) },
+    },
+    async (request, reply) => {
+      const q = request.query as { slowDays: number; deadDays: number };
+      if (q.deadDays < q.slowDays) {
+        return reply.status(400).send({
+          error: { code: 'VALIDATION', message: 'deadDays must not be less than slowDays.', requestId: request.id },
+        });
+      }
+      return agedStock(s.appDb, ctxOf(request), q);
+    },
+  );
+
+  // FR-INV-7 AC3: 30-day sales window; lead time defaults to 7 days.
+  app.get(
+    '/api/businesses/:businessId/stock/reports/reorder',
+    {
+      config: { permission: 'inventory.view' },
+      schema: {
+        params: businessParams,
+        querystring: z.strictObject({
+          windowDays: days(30),
+          leadTimeDays: z.coerce.number().int().min(0).max(365).default(7),
+        }),
+      },
+    },
+    async (request) =>
+      reorderReport(s.appDb, ctxOf(request), request.query as { windowDays: number; leadTimeDays: number }),
+  );
+
+  // FR-INV-9 AC1: one field for scanner (keyboard wedge) or typed input.
+  app.get(
+    '/api/businesses/:businessId/lookup',
+    {
+      config: { permission: 'catalogue.view' },
+      schema: { params: businessParams, querystring: z.strictObject({ code: z.string().trim().min(1).max(64) }) },
+    },
+    async (request, reply) => {
+      const result = await lookupCode(s.appDb, ctxOf(request), (request.query as { code: string }).code, {
+        includeUnits: has(request, 'inventory.view'),
+      });
+      if (!result) {
+        return reply
+          .status(404)
+          .send({ error: { code: 'NOT_FOUND', message: 'No match for this code.', requestId: request.id } });
+      }
+      return result;
+    },
   );
 }

@@ -221,3 +221,10 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Approvals module (generic):** stores the action payload as canonical JSON with its SHA-256; the decider must send the hash they reviewed. The owning module supplies an executor per action type; execution runs in the approving transaction inside a savepoint, so a failing execution is recorded as EXECUTION_FAILED with an error code while the decision is kept. Requests expire after 72 h (lazily marked EXPIRED on read/decision). The request row is immutable apart from its state machine (trigger, LB017).
 - **R3:** a requester cannot approve their own request while any other active member holds the required permission; a sole holder may, and the audit event says so.
 - **Cancel route** uses `inventory.adjust.request` because adjustments are the only approval action so far; it will move to a general permission when other action types arrive.
+
+### D-035 · 2026-10-27 · Accepted
+**Decision (inspection and stock reports, increment 4.4):**
+- **Inspection outcomes** move stock between buckets with RECLASSIFY pairs: RESTOCK → AVAILABLE, DAMAGED → DAMAGED, REPAIR → REPAIR, REPAIRED (back from repair) → INSPECTION; RETURN_TO_SUPPLIER is a PURCHASE_RETURN out of stock. Each outcome is an append-only `inspections` row referenced by its movements. A supplier credit for goods returned is **not** recorded yet (supplier returns as documents come later).
+- **Sales for reports** = SALE movements net of SALE_RETURN. Ages are counted from the last sale, or from the first receipt (PURCHASE/OPENING/positive ADJUSTMENT) if never sold.
+- **Reorder suggestion:** lead-time demand is computed as sold × lead ÷ window with one half-up rounding (not by rounding the daily average first); "on order" is 0 until purchase orders exist, and the report says so. Defaults: 30-day window, 7-day lead time, overridable per request.
+- **Lookup order:** exact barcode, then SKU (case-insensitive), then IMEI (only for callers with `inventory.view`).

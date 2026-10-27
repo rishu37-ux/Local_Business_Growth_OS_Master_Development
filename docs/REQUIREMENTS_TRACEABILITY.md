@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 4, increment 4.3) · 100 requirements
+Last updated: 2026-10-27 (Phase 4, increment 4.4) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -29,10 +29,10 @@ Last updated: 2026-10-27 (Phase 4, increment 4.3) · 100 requirements
 | FR-INV-3 | Inventory | Serialized units and IMEI | 4 | Implemented + tested for purchasing (AC1–5); AC6 transitions in `@lbgos/domain` units.ts, used by reversal (more with 4.3/4.4) | migrations 0001/0008, `@lbgos/domain` imei.ts/units.ts, `modules/purchasing/problems.ts` | TR-0012 #3–5 |
 | FR-INV-4 | Inventory | Stock ledger | 4 | Implemented + tested (AC1–4: append-only ledger, REVERSAL corrections, trigger-maintained projection + reconciliation, adjustments/write-offs/corrections with reasons and approval requests) | migrations 0001/0008/0009, `modules/inventory/`, `modules/approvals/`, `routes/inventory.ts` | TR-0012 #6; TR-0013 #1–12 |
 | FR-INV-5 | Inventory | Confirmed transactions only | 4–5 | In progress (AC1–2 for purchases; AC3 negative-stock refusal and allow-negative setting tested; concurrent last-item decrements tested; AC4 serialized *sale* race with POS in Phase 5) | migration 0008 trigger, `modules/purchasing/`, `modules/inventory/` | TR-0012 #2, #6, #10–11; TR-0013 #5, #8 |
-| FR-INV-6 | Inventory | Returns inspection | 4 | Specified | — | — |
-| FR-INV-7 | Inventory | Alerts and reports | 4 | Specified | — | — |
+| FR-INV-6 | Inventory | Returns inspection | 4–5 | In progress (AC2–3 implemented + tested for units and quantities; AC1 — customer returns creating inspection stock — arrives with credit notes in Phase 5) | migration 0010, `modules/inventory/inspections.ts` | TR-0014 #1–6 |
+| FR-INV-7 | Inventory | Alerts and reports | 4 | Implemented + tested (AC1 low-stock list; AC2 slow/dead with configurable N/M; AC3 reorder suggestion with formula, period, label; optional notification not built; on-order counted as 0 until purchase orders exist) | `@lbgos/domain` stock-reports.ts, `modules/inventory/reports.ts` | TR-0014 #7–10 |
 | FR-INV-8 | Inventory | Suppliers and purchases | 4 | Implemented + tested (AC1–4; attachments with 4.5 uploads) | migration 0008, `packages/modules/src/purchasing/`, `apps/api/src/routes/purchasing.ts` | TR-0012 #1–10 |
-| FR-INV-9 | Inventory | Barcode/QR scanning | 4 | Specified | — | — |
+| FR-INV-9 | Inventory | Barcode/QR scanning | 4 | In progress (AC1 lookup API by barcode/SKU/IMEI tested; web wedge field and camera fallback in 4.6) | `modules/inventory/reports.ts` `lookupCode` | TR-0014 #11–12 |
 | FR-OCR-1 | OCR | Capture and upload | 4 | Specified | — | — |
 | FR-OCR-2 | OCR | Confidence and evidence | 4 | Specified | — | — |
 | FR-OCR-3 | OCR | Deterministic validation | 4 | Specified | — | — |

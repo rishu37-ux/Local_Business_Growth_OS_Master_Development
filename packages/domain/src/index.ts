@@ -60,3 +60,11 @@ export {
   UNIT_TRANSITIONS,
   type UnitStatus,
 } from './units.ts';
+export {
+  classifyAge,
+  REORDER_FORMULA,
+  reorderSuggestion,
+  type MovementAge,
+  type ReorderInput,
+  type ReorderSuggestion,
+} from './stock-reports.ts';
