@@ -72,15 +72,24 @@ export async function customerFundsIn(trx: Trx, ctx: TenantContext, customerId: 
   return rows.map((r) => ({ id: r.id, unallocatedPaise: Number(r.unallocated) })).filter((f) => f.unallocatedPaise > 0);
 }
 
-/** The customer's issued, not cancelled, sale documents with an amount outstanding. */
+/** Credit notes issued against invoice `i` (SQL fragment over alias i). */
+export const CREDITED = sql`coalesce((select sum(n.total_paise) from lbg.invoices n
+                                       where n.business_id = i.business_id and n.original_invoice_id = i.id
+                                         and n.document_type = 'CREDIT_NOTE' and n.status = 'ISSUED'), 0)`;
+export const ALLOCATED = sql`coalesce((select sum(a.amount_paise) from lbg.payment_allocations a
+                                        where a.business_id = i.business_id and a.invoice_id = i.id), 0)`;
+
+/**
+ * The customer's payable documents (issued, not cancelled invoices and debit
+ * notes) with an amount outstanding: total − allocations − credit notes.
+ */
 export async function openInvoicesIn(trx: Trx, ctx: TenantContext, customerId: string): Promise<OpenInvoice[]> {
   const { rows } = await sql<{ id: string; date: string; number: string; outstanding: string }>`
     select i.id, i.invoice_date::text as date, i.invoice_number as number,
-           i.total_paise - coalesce((select sum(a.amount_paise) from lbg.payment_allocations a
-                                      where a.business_id = i.business_id and a.invoice_id = i.id), 0) as outstanding
+           i.total_paise - ${ALLOCATED} - ${CREDITED} as outstanding
       from lbg.invoices i
      where i.business_id = ${ctx.businessId} and i.customer_id = ${customerId} and i.status = 'ISSUED'
-       and i.document_type in ('TAX_INVOICE', 'BILL_OF_SUPPLY')`.execute(trx);
+       and i.document_type in ('TAX_INVOICE', 'BILL_OF_SUPPLY', 'DEBIT_NOTE')`.execute(trx);
   return rows
     .map((r) => ({ id: r.id, date: r.date, number: r.number, outstandingPaise: Number(r.outstanding) }))
     .filter((i) => i.outstandingPaise > 0);

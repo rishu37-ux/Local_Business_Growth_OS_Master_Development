@@ -40,6 +40,7 @@ describe('migrations', () => {
       '0012_customers_series',
       '0013_sales',
       '0014_payments_ledger',
+      '0015_credit_notes',
     ]);
   });
 });

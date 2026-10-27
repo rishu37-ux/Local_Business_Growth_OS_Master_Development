@@ -3,6 +3,7 @@
 import { paymentStatus, type PaymentStatus } from '@lbgos/domain';
 import { sql } from 'kysely';
 import { withTenant, type Db, type TenantContext } from '@lbgos/db';
+import { ALLOCATED, CREDITED } from './payments.ts';
 
 export interface InvoiceSummary {
   readonly id: string;
@@ -14,7 +15,11 @@ export interface InvoiceSummary {
   readonly customerName: string | null;
   readonly totalPaise: number;
   readonly allocatedPaise: number;
+  /** Credit notes issued against this invoice. */
+  readonly creditedPaise: number;
   readonly outstandingPaise: number;
+  /** For credit and debit notes: the invoice they correct. */
+  readonly originalInvoiceId: string | null;
   /** Derived from allocations (FR-LED-2 AC2); null for cancelled documents. */
   readonly paymentStatus: PaymentStatus | null;
 }
@@ -72,14 +77,15 @@ interface SummaryRow {
   customer_id: string | null;
   customer_name: string | null;
   total_paise: string;
+  original_invoice_id: string | null;
   allocated: string;
+  credited: string;
 }
 
 const SUMMARY = sql`
   select i.id, i.document_type, i.invoice_number, i.invoice_date::text as invoice_date, i.status, i.customer_id,
-         c.name as customer_name, i.total_paise,
-         coalesce((select sum(a.amount_paise) from lbg.payment_allocations a
-                    where a.business_id = i.business_id and a.invoice_id = i.id), 0) as allocated
+         c.name as customer_name, i.total_paise, i.original_invoice_id, ${ALLOCATED} as allocated,
+         ${CREDITED} as credited
     from lbg.invoices i left join lbg.customers c on c.business_id = i.business_id and c.id = i.customer_id`;
 
 const toSummary = (r: SummaryRow): InvoiceSummary => ({
@@ -92,8 +98,14 @@ const toSummary = (r: SummaryRow): InvoiceSummary => ({
   customerName: r.customer_name,
   totalPaise: Number(r.total_paise),
   allocatedPaise: Number(r.allocated),
-  outstandingPaise: r.status === 'ISSUED' ? Number(r.total_paise) - Number(r.allocated) : 0,
-  paymentStatus: r.status === 'ISSUED' ? paymentStatus(Number(r.total_paise), Number(r.allocated)) : null,
+  creditedPaise: Number(r.credited),
+  originalInvoiceId: r.original_invoice_id,
+  ...(r.status === 'ISSUED' && r.document_type !== 'CREDIT_NOTE'
+    ? {
+        outstandingPaise: Number(r.total_paise) - Number(r.allocated) - Number(r.credited),
+        paymentStatus: paymentStatus(Number(r.total_paise), Number(r.allocated), Number(r.credited)),
+      }
+    : { outstandingPaise: 0, paymentStatus: null }),
 });
 
 export async function listInvoices(

@@ -51,3 +51,13 @@ export {
   type RecordedPayment,
   type Statement,
 } from './payments.ts';
+export {
+  cancelInvoice,
+  issueCreditNote,
+  issueDebitNote,
+  ReturnError,
+  type CancelInput,
+  type CreditNoteInput,
+  type IssuedNote,
+  type Settlement,
+} from './returns.ts';

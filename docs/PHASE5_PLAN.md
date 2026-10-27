@@ -38,6 +38,8 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC3 FR-TAX-3 AC4: debit note against an invoice increases the amount due (ledger DEBIT_NOTE).
 - AC4 Returned quantity can never exceed what was sold on that invoice net of earlier credit notes.
 
+**Status (5.5):** done — TR-0021, D-042. Not done: per-document-type number prefixes; cashier return requests (`sales.return.create`).
+
 ## Increment 5.6 — Print and PDF (P-07, FR-PRN-1, FR-TAX-4)
 - AC1 FR-PRN-1 AC1–2: HTML print templates for A4, A5, 80 mm, 58 mm from the stored invoice snapshot, with the fields listed in AC2 (business, GSTIN, number/date, customer and B2B details, HSN, quantities, rates, taxable value, tax breakdown, totals in figures and words, IMEIs, payments, terms); default size from business settings, choosable per print.
 - AC2 FR-PRN-1 AC3: PDF rendered by headless Chromium from the same HTML (ADR-12); test compares text content of PDF and print HTML.

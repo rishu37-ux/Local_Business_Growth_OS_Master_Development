@@ -511,3 +511,21 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 10 | NFR tenancy | Inventory 403; other businesses 404 (account, payments, reversal); suspended business: account readable, payment 403 `TENANT_READ_ONLY` | **Pass** |
 | 11 | — | Negative controls: (a) customer lock removed from recording a payment → test 7 fails (2 of 5 payments refused with 422 by the allocation bounds trigger — no over-allocation, but wrong behaviour); (b) advance computed without refunds → test 4 fails. Restored | **Detected** both |
 | 12 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 200 | **Pass**, exit 0 |
+
+## TR-0021 · 2026-10-27 · Phase 5 increment 5.5 — cancellation, credit and debit notes, returns
+
+**Environment:** as TR-0011, migrations 0001–0015 (throwaway PostgreSQL 16).
+
+| # | Requirement / AC | Check (`returns.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-TAX-3 AC1, D-016 | Same-day cancellation of a part-paid phone sale, goods never left: Billing 403; Manager cancels — unit back IN_STOCK (OPENING → SALE → REVERSAL, all AVAILABLE), status CANCELLED, number kept, ₹5,000 paid becomes advance (balance −5,000); cancelling again is `NOT_ISSUED` | **Pass** |
+| 2 | FR-TAX-3 AC1, FR-POS-3 AC5, FR-INV-6 AC1 | Walk-in cancellation: as advance is 422 `REFUND_REQUIRED`; with a cash refund the ₹1,000 is refunded (refund rows without a customer) and the 2 returned cables are in INSPECTION | **Pass** |
+| 3 | FR-TAX-3 AC2, D-016 | Cancelling the next business day is refused `OUTSIDE_WINDOW` (points to a credit note); a refund without `refunds.approve` is `REFUND_FORBIDDEN` | **Pass** |
+| 4 | FR-TAX-3 AC3, PHASE5 AC4 | 3 cables (₹1,500, unpaid): credit note for 1 = ₹500 (own series, `…/0001`), 1 more in INSPECTION, nothing released; credit note for the rest (`…/0002`); the two notes' taxable, CGST, SGST and totals equal the original line exactly; a further return is `RETURN_EXCEEDS_SOLD`; balance 0; the invoice can no longer be cancelled (`HAS_NOTES`); a credit note cannot itself be credited (`NOT_AN_INVOICE`) | **Pass** |
+| 5 | FR-TAX-3 AC3, FR-POS-3 AC5, FR-INV-6 | Fully paid phone + cable: Billing 403; Manager credits the phone with a UPI refund — ₹15,000 released and refunded, unit PENDING_INSPECTION, invoice credited 15,000, outstanding 0, PAID; inspection RESTOCK makes the unit IN_STOCK; crediting the cable as advance leaves ₹500 advance (balance −500) | **Pass** |
+| 6 | D-042 | A full credit note of a ₹333.33 sale rounded to ₹333.00 also takes the round-off: total ₹333.00 | **Pass** |
+| 7 | PHASE5 AC4 | Two credit notes for the last unit at once: one 201, the other `RETURN_EXCEEDS_SOLD` | **Pass** |
+| 8 | FR-TAX-3 AC4 | Debit note of ₹100 taxable on an 18 % line: ₹118 (CGST 9 + SGST 9); balance and receivable +₹118; a later payment is allocated to the debit note; a walk-in invoice is `NEEDS_CUSTOMER` | **Pass** |
+| 9 | NFR tenancy | Other businesses 404 (cancel, credit note, by their URL and ours); suspended business 403 `TENANT_READ_ONLY` | **Pass** |
+| 10 | — | Negative controls: (a) the "not more than sold" quantity check removed → test 4 fails (test 7 still passes: with no quantity given the remaining quantity is 0 and is refused separately); (b) paid money not released on a credit note → test 5 fails. Restored | **Detected** both |
+| 11 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 209; CI #25 (5.4 push, includes 5.3) green | **Pass**, exit 0 |

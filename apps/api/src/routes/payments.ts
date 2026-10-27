@@ -1,9 +1,16 @@
 // Customer payments, advances, refunds, reversals and statements (increment
-// 5.4: FR-LED-1, FR-LED-2, D-014, D-041).
+// 5.4: FR-LED-1, FR-LED-2, D-014, D-041); cancellation, credit and debit notes
+// (increment 5.5: FR-TAX-3, FR-POS-3 AC5, D-016, D-042).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   applyAdvance,
+  cancelInvoice,
+  issueCreditNote,
+  issueDebitNote,
+  ReturnError,
+  type CancelInput,
+  type CreditNoteInput,
   customerAccount,
   customerStatement,
   PaymentError,
@@ -34,7 +41,38 @@ const STATUS = {
   INVALID_PERIOD: 400,
 } as const satisfies Record<PaymentError['code'], number>;
 
+const RETURN_STATUS = {
+  NOT_FOUND: 404,
+  NOT_ISSUED: 409,
+  NOT_AN_INVOICE: 422,
+  OUTSIDE_WINDOW: 409,
+  HAS_NOTES: 409,
+  INVALID: 422,
+  RETURN_EXCEEDS_SOLD: 422,
+  REFUND_REQUIRED: 422,
+  REFUND_FORBIDDEN: 403,
+  NEEDS_CUSTOMER: 422,
+  UNIT_NOT_SOLD: 409,
+} as const satisfies Record<ReturnError['code'], number>;
+
+const settlement = {
+  settlement: z.enum(['ADVANCE', 'REFUND']),
+  refundMethod: method.optional(),
+  refundReference: reference,
+};
+
 function sendPaymentError(err: unknown, request: FastifyRequest, reply: FastifyReply) {
+  if (err instanceof ReturnError) {
+    const notFound = err.code === 'NOT_FOUND';
+    return reply.status(RETURN_STATUS[err.code]).send({
+      error: {
+        code: err.code,
+        message: notFound ? 'Not found.' : err.message,
+        requestId: request.id,
+        ...(err.lineNo === undefined ? {} : { lineNo: err.lineNo }),
+      },
+    });
+  }
   if (!(err instanceof PaymentError)) return undefined;
   const notFound = err.code === 'NOT_FOUND' || err.code === 'CUSTOMER_NOT_FOUND';
   return reply.status(STATUS[err.code]).send({
@@ -145,6 +183,93 @@ export function registerPaymentRoutes(app: FastifyInstance, s: AppServices): voi
         request.id,
       );
       return reply.status(201).send({ reversal });
+    }),
+  );
+
+  const canRefund = (request: FastifyRequest) => request.access?.permissions.has('refunds.approve') === true;
+
+  app.post(
+    '/api/businesses/:businessId/invoices/:id/cancel',
+    {
+      config: { permission: 'invoices.cancel' },
+      schema: {
+        params: idParams,
+        body: z.strictObject({ reason, goods: z.enum(['NOT_TAKEN', 'RETURNED']), ...settlement }),
+      },
+    },
+    guarded(async (request) => ({
+      cancellation: await cancelInvoice(
+        s.appDb,
+        ctxOf(request),
+        { canRefund: canRefund(request) },
+        idOf(request),
+        request.body as CancelInput,
+        { requestId: request.id },
+      ),
+    })),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/invoices/:id/credit-notes',
+    {
+      config: { permission: 'credit_notes.create' },
+      schema: {
+        params: idParams,
+        body: z.strictObject({
+          reason,
+          lines: z
+            .array(
+              z.strictObject({
+                lineNo: z.number().int().min(1),
+                quantity: z
+                  .string()
+                  .regex(/^\d{1,9}(\.\d{1,3})?$/)
+                  .optional(),
+              }),
+            )
+            .min(1)
+            .max(100),
+          ...settlement,
+        }),
+      },
+    },
+    guarded(async (request, reply) => {
+      const note = await issueCreditNote(
+        s.appDb,
+        ctxOf(request),
+        { canRefund: canRefund(request) },
+        idOf(request),
+        request.body as CreditNoteInput,
+        { requestId: request.id },
+      );
+      return reply.status(201).send({ creditNote: note });
+    }),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/invoices/:id/debit-notes',
+    {
+      config: { permission: 'credit_notes.create' },
+      schema: {
+        params: idParams,
+        body: z.strictObject({
+          reason,
+          lines: z
+            .array(z.strictObject({ lineNo: z.number().int().min(1), taxablePaise: paise.min(1) }))
+            .min(1)
+            .max(100),
+        }),
+      },
+    },
+    guarded(async (request, reply) => {
+      const note = await issueDebitNote(
+        s.appDb,
+        ctxOf(request),
+        idOf(request),
+        request.body as { reason: string; lines: { lineNo: number; taxablePaise: number }[] },
+        { requestId: request.id },
+      );
+      return reply.status(201).send({ debitNote: note });
     }),
   );
 }
