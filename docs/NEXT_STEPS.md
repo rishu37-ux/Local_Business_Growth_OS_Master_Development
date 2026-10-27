@@ -1,17 +1,17 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 5, after increment 5.3)
+Last updated: 2026-10-27 (Phase 5, after increment 5.4)
 
 ## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
 
 1. ~~CI green on the Phase 4 exit (#21)~~ · ~~`PHASE5_PLAN.md`~~ · ~~5.1 engines (P-01, allocation, formats)~~ (done, TR-0017).
 2. ~~5.2 / P-02 numbering service, customers, re-authentication~~ (done, TR-0018).
 3. ~~5.3 / P-03 API, P-04 drafts (carts), discount limits and approvals, atomic issue, IMEI race~~ (done, TR-0019, D-040).
-4. 5.4 / P-05 later payments (selected invoices or FIFO), advance refunds, payment reversal, customer statement, payment status (FR-LED-1/2/3).
+4. ~~5.4 / P-05 later payments, advance, refunds, reversal, statement, payment status~~ (done, TR-0020, D-041).
 5. 5.5 cancellation within the window, credit/debit notes, returns into inspection (FR-TAX-3, FR-POS-3 AC5, FR-INV-6 AC1).
 6. 5.6 print/PDF (A4, A5, 80 mm, 58 mm; seller address/phone settings needed for the printed header).
 7. 5.7 reports and exports; 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
-8. Check CI for the 5.1–5.3 pushes.
+8. ~~CI for 5.1 (#22) and 5.2 (#23)~~ green. CI #24 (5.3): Node 24 job passed all steps; the Node 22 job was still stuck in the Chromium download step (before any project code) when last checked — not a recorded pass. Check CI for the 5.4 push.
 
 ## Phase 4 (complete)
 

@@ -37,3 +37,17 @@ export {
   type SaleView,
 } from './sale.ts';
 export { getInvoice, listInvoices, type InvoiceDetail, type InvoiceSummary } from './invoices.ts';
+export {
+  applyAdvance,
+  customerAccount,
+  customerStatement,
+  PaymentError,
+  recordPayment,
+  refundAdvance,
+  reversePayment,
+  type CustomerAccount,
+  type PaymentInput,
+  type PaymentMethod,
+  type RecordedPayment,
+  type Statement,
+} from './payments.ts';

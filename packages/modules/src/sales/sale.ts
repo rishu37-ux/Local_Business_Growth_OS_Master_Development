@@ -9,6 +9,7 @@ import { createApprovalRequest, type ApprovalAction, type DeciderPermissions } f
 import { recordTenantEvent } from '../audit/index.ts';
 import { setUnitStatus, writeMovement } from '../inventory/index.ts';
 import { nextDocumentNumber } from './numbering.ts';
+import { customerFundsIn, isCardLike } from './payments.ts';
 import {
   discountColumns,
   normaliseLines,
@@ -457,14 +458,12 @@ export interface IssuedSale {
   readonly changePaise: number;
 }
 
-const CARD_LIKE = /\d{13,19}/;
-
 function checkPayments(payments: readonly CheckoutPayment[]): number {
   let change = 0;
   for (const p of payments) {
     if (!Number.isSafeInteger(p.amountPaise) || p.amountPaise <= 0)
       throw new SaleError('PAYMENT_INVALID', 'Each payment must be a positive amount.');
-    if (p.reference && CARD_LIKE.test(p.reference.replace(/[\s-]/g, ''))) {
+    if (isCardLike(p.reference)) {
       throw new SaleError('PAYMENT_INVALID', 'Do not enter full card numbers; record only the last 4 digits.');
     }
     if (p.tenderedPaise !== undefined && p.tenderedPaise !== null) {
@@ -475,18 +474,6 @@ function checkPayments(payments: readonly CheckoutPayment[]): number {
     }
   }
   return change;
-}
-
-/** Unallocated parts of the customer's payments, oldest first (the customer row is locked by the caller). */
-async function customerFunds(trx: Trx, ctx: TenantContext, customerId: string) {
-  const { rows } = await sql<{ id: string; unallocated: string }>`
-    select p.id, p.amount_paise - coalesce((select sum(a.amount_paise) from lbg.payment_allocations a
-                                             where a.business_id = p.business_id and a.payment_id = p.id), 0) as unallocated
-      from lbg.payments p
-     where p.business_id = ${ctx.businessId} and p.customer_id = ${customerId} and p.reverses_payment_id is null
-       and not exists (select 1 from lbg.payments r where r.business_id = p.business_id and r.reverses_payment_id = p.id)
-     order by p.received_at, p.id`.execute(trx);
-  return rows.map((r) => ({ id: r.id, unallocatedPaise: Number(r.unallocated) })).filter((f) => f.unallocatedPaise > 0);
 }
 
 const pgCode = (err: unknown) => (err as { code?: unknown }).code;
@@ -549,7 +536,7 @@ export async function issueSale(
           'OVERPAYMENT_NEEDS_CUSTOMER',
           'The payments are more than the total. Reduce them, or choose a customer to hold the rest as advance.',
         );
-      const funds = customer && useAdvance > 0 ? await customerFunds(trx, ctx, customer.id) : [];
+      const funds = customer && useAdvance > 0 ? await customerFundsIn(trx, ctx, customer.id) : [];
       if (funds.reduce((s, f) => s + f.unallocatedPaise, 0) < useAdvance)
         throw new SaleError('INSUFFICIENT_ADVANCE', 'The customer does not have that much advance.');
 

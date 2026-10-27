@@ -39,6 +39,7 @@ describe('migrations', () => {
       '0011_ocr',
       '0012_customers_series',
       '0013_sales',
+      '0014_payments_ledger',
     ]);
   });
 });

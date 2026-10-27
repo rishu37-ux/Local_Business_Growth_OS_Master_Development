@@ -7,6 +7,7 @@
 - `@lbgos/domain`: sale tax engine (D-013/D-038), payment allocation (D-014), invoice number formats, metric definitions; coverage gate ≥ 95 % on money modules.
 - Migration 0012, `@lbgos/modules/customers` and `sales` numbering: customers (E.164 mobiles, GSTIN/state), invoice series with configurable format and FY rollover, numbering API; re-authentication (`freshAuth`) for tax settings.
 - Migration 0013 and `@lbgos/modules/sales` selling: draft sales (held carts), pricing from current tax rates and place of supply, discount limits with approval requests (`sales.discount`, approver's own limit checked), minimum-price override, atomic issue (number, line snapshots with COGS, SALE movements, units SOLD, payments, allocations, advance use, customer ledger, audit), invoice list/detail; sales API routes; `discountWithinLimit` in `@lbgos/domain`.
+- Migration 0014 and payments in `@lbgos/modules/sales`: later payments (selected invoices or oldest first), applying advance, advance refunds (`payment_refunds`), payment reversals, customer account (balance, receivable, advance, open invoices) and statement with opening/closing balance; payment status on invoices; payment API routes.
 
 ### Changed
 - Approvals: executors may add an approver check (`ApprovalAction.authorize`); the action map is shared (`apps/api/src/approval-actions.ts`); any member may withdraw their own request and list it (`/approvals/mine`).

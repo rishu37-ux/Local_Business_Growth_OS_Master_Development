@@ -53,8 +53,8 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-CRM-2 | CRM | Data minimisation | 5–6 | In progress (AC1: only name and mobile required; export in Phase 6) | `modules/customers/` | TR-0018 #1 |
 | FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
-| FR-LED-1 | Ledger | Customer ledger | 5 | In progress (INVOICE/PAYMENT entries at checkout tested; statement and later payments in 5.4) | migration 0001, `modules/sales/sale.ts` | TR-0002 T18–T18d; TR-0005; TR-0019 #10–11 |
-| FR-LED-2 | Ledger | Deterministic allocation | 5 | In progress (pure module implemented + tested: AC1 cases, AC2 property; DB use with locks in 5.4) | `packages/domain/src/allocation.ts` | TR-0017 #5–6 |
+| FR-LED-1 | Ledger | Customer ledger | 5 | In progress (INVOICE, PAYMENT, REFUND, REVERSAL entries written and tested; AC2 balance = Σ entries = receivable − advance; AC3 append-only and statement with opening/closing balance for any date range (business timezone) tested — printing/export of statements in 5.6/5.7; CREDIT_NOTE/DEBIT_NOTE in 5.5; ADJUSTMENT not offered yet) | migrations 0001, 0014; `modules/sales/sale.ts`, `modules/sales/payments.ts` | TR-0002 T18–T18d; TR-0005; TR-0019 #10–11; TR-0020 #1–9 |
+| FR-LED-2 | Ledger | Deterministic allocation | 5 | Implemented + tested (pure module AC1–2; in the database: FIFO and selected invoices, advance, advance applied, refund, reversal; parallel payments never over-allocate; status derived) | `packages/domain/src/allocation.ts`, `modules/sales/payments.ts`, migration 0014 | TR-0017 #5–6; TR-0020 #1–7 |
 | FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
 | FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |

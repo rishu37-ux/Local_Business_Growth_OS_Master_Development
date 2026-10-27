@@ -30,6 +30,8 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC2 D-020: concurrent allocations to one invoice never over-allocate (locks; test with parallel requests).
 - AC3 FR-LED-1 AC2–3: balance = Σ entries; statement for any date range with opening and closing balance; entries append-only (DB test).
 
+**Status (5.4):** done — TR-0020, D-041. Statement printing/export comes with 5.6/5.7; ledger ADJUSTMENT entries are not offered.
+
 ## Increment 5.5 — Cancellation, credit and debit notes, returns (P-06, FR-TAX-3, FR-POS-3 AC5, FR-INV-6 AC1)
 - AC1 FR-TAX-3 AC1–2 / D-016: cancellation with `invoices.cancel`, reason ≥ 10 chars, within the window (default same business day); reversal movements (units back IN_STOCK if they never left, otherwise into inspection — user states which), ledger reversal, payments become customer advance; number retained; outside the window refused with a pointer to credit notes.
 - AC2 FR-TAX-3 AC3: credit note against an invoice, full or partial lines/quantities, own series, tax computed from the original line snapshots; returned goods go to INSPECTION (SALE_RETURN); ledger CREDIT_NOTE; optional refund needs `refunds.approve`.

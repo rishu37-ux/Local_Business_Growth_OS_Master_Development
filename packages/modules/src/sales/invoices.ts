@@ -1,5 +1,6 @@
 // Issued documents (read side). Line costs are shown only to holders of
 // catalogue.cost.view (ROLES_PERMISSIONS §3).
+import { paymentStatus, type PaymentStatus } from '@lbgos/domain';
 import { sql } from 'kysely';
 import { withTenant, type Db, type TenantContext } from '@lbgos/db';
 
@@ -13,6 +14,9 @@ export interface InvoiceSummary {
   readonly customerName: string | null;
   readonly totalPaise: number;
   readonly allocatedPaise: number;
+  readonly outstandingPaise: number;
+  /** Derived from allocations (FR-LED-2 AC2); null for cancelled documents. */
+  readonly paymentStatus: PaymentStatus | null;
 }
 
 export interface InvoiceDetail extends InvoiceSummary {
@@ -88,6 +92,8 @@ const toSummary = (r: SummaryRow): InvoiceSummary => ({
   customerName: r.customer_name,
   totalPaise: Number(r.total_paise),
   allocatedPaise: Number(r.allocated),
+  outstandingPaise: r.status === 'ISSUED' ? Number(r.total_paise) - Number(r.allocated) : 0,
+  paymentStatus: r.status === 'ISSUED' ? paymentStatus(Number(r.total_paise), Number(r.allocated)) : null,
 });
 
 export async function listInvoices(

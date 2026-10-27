@@ -492,3 +492,22 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 23 | — | `pnpm check`: lint, format, typecheck, build, domain 130 (coverage 100 % lines, 99.39 % branches over the money modules), API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 191 | **Pass**, exit 0 |
 
 **Defects found while testing (fixed before commit):** `invoices` had no `created_at` (needed for held carts; added in 0013); test items created without a tax rate in a GST-registered shop were correctly reported as `NO_TAX_RATE` (test fixture fixed).
+
+## TR-0020 · 2026-10-27 · Phase 5 increment 5.4 — payments, allocation, ledger
+
+**Environment:** as TR-0011, migrations 0001–0014 (throwaway PostgreSQL 16).
+
+| # | Requirement / AC | Check (`payments.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-LED-2 AC1, D-014 | Invoices of ₹1,000 and ₹2,000 (older first); ₹1,500 UPI pays the first in full and ₹500 of the second; statuses PAID / PARTIALLY_PAID in the account and the invoice list; ₹2,000 cash (₹2,500 tendered) settles the rest, ₹500 advance, ₹500 change | **Pass** |
+| 2 | FR-LED-2 AC1 | A payment for a chosen invoice pays only that one; another customer's invoice is 422 `UNKNOWN_INVOICE`; a card-like reference is 422 | **Pass** |
+| 3 | FR-LED-2 AC1 | ₹700 paid before any invoice is advance; applied to a later ₹1,000 invoice → ₹300 due | **Pass** |
+| 4 | FR-LED-2 AC1, D-041 | Advance refund: Billing 403; more than held 422 `INSUFFICIENT_ADVANCE`; Manager refunds ₹400 of ₹500 taken oldest payment first (REFUND entries ₹300 + ₹100); ₹100 advance left | **Pass** |
+| 5 | FR-LED-2 AC1, D-041 | Reversal of a ₹1,200 payment: Billing 403; Manager reverses — allocations reversed (₹2,000 due again), REVERSAL ledger entry +₹1,200 linked to the PAYMENT entry; a second reversal is `ALREADY_REVERSED`; reversing the reversal is `NOT_REVERSIBLE` | **Pass** |
+| 6 | DB backstop | A payment with refunds cannot be reversed (`REFUNDED`); a direct refund insert beyond the advance is refused (LB019); refunds and ledger entries cannot be updated (LB001) | **Pass** |
+| 7 | FR-LED-2 AC2, D-020 | 5 parallel ₹600 payments (two users) to one ₹2,000 invoice: all succeed, allocations total exactly ₹2,000, ₹1,000 advance | **Pass** |
+| 8 | FR-LED-1 AC3 | Statement 1–30 April 2026 (IST): opening ₹3,000 includes a payment at 31 March 23:30 IST, excludes one at 1 April 00:15 IST; entries with running balance; an entry at 1 May 00:01 IST excluded; closing ₹2,500; end before start is 400 | **Pass** |
+| 9 | FR-LED-1 AC2 | In every account check, ledger balance = receivables − advance | **Pass** |
+| 10 | NFR tenancy | Inventory 403; other businesses 404 (account, payments, reversal); suspended business: account readable, payment 403 `TENANT_READ_ONLY` | **Pass** |
+| 11 | — | Negative controls: (a) customer lock removed from recording a payment → test 7 fails (2 of 5 payments refused with 422 by the allocation bounds trigger — no over-allocation, but wrong behaviour); (b) advance computed without refunds → test 4 fails. Restored | **Detected** both |
+| 12 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 200 | **Pass**, exit 0 |

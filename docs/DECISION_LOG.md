@@ -274,3 +274,12 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Minimum price** compares the line value after all discounts (including its share of the invoice discount) with min price × quantity; below it needs `pos.price_override`.
 - **Payments:** methods cash, UPI, card, bank transfer, other (fixed list; FR-POS-3 AC1 "configurable list" is deferred). A balance due or an overpayment needs a customer with a mobile (D-014); an overpayment becomes advance. Using advance cannot be combined with overpaying. References that look like card numbers are refused in the API and the DB.
 - **Invoices** are visible to holders of `customers.view`; line costs only with `catalogue.cost.view`. Any member may withdraw their own approval request (`member` + not read-only).
+
+### D-041 · 2026-10-27 · Accepted
+**Decision (payments, refunds, reversals, increment 5.4):**
+- **Every money movement of a customer locks the customer row first** (checkout, later payment, applying advance, refund, reversal), then invoice rows and payment advisory locks (D-020). The allocation bounds trigger now counts refunds too and stays the backstop.
+- **Later payments** belong to a customer (walk-ins pay at the counter only); they are allocated to the chosen invoices in the given order, else oldest first; the rest is advance (D-014). Applying advance is an explicit action as well as part of checkout.
+- **Refunds** pay out advance only, oldest payment first, as `payment_refunds` rows (method, reference, reason ≥ 10 characters) with REFUND ledger entries. They need `refunds.approve` (Manager, Owner). Refunds of invoiced amounts go through credit notes (5.5).
+- **Reversal** of a wrongly recorded payment also needs `refunds.approve` and a reason: a reversal payment row, negative allocations and a REVERSAL ledger entry; a payment with refunds, an already reversed payment or a reversal cannot be reversed.
+- **Statements** use business dates: a day runs from local midnight in the business's timezone.
+- Payment status of invoices (UNPAID / PARTIALLY_PAID / PAID) is derived, never stored; credit notes will count from 5.5.
