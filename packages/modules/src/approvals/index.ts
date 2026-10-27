@@ -3,6 +3,7 @@
 // have seen that same hash. Execution runs once, in the approving transaction,
 // through an executor supplied by the module that owns the action.
 import { createHash } from 'node:crypto';
+import type { EffectiveGrant } from '@lbgos/domain';
 import { sql } from 'kysely';
 import { withTenant, type Db, type TenantContext, type Trx } from '@lbgos/db';
 import { recordTenantEvent } from '../audit/index.ts';
@@ -19,6 +20,16 @@ export type ApprovalExecutor = (
   payload: unknown,
   requestId: string,
 ) => Promise<Record<string, unknown>>;
+
+/** The decider's effective permissions (a Map carries limits, e.g. for pos.discount). */
+export type DeciderPermissions = ReadonlySet<string> | ReadonlyMap<string, EffectiveGrant>;
+
+/** An executor with an extra check on the decider, beyond holding the required permission. */
+export interface ApprovalAction {
+  readonly execute: ApprovalExecutor;
+  /** Returns why this decider may not approve the payload (e.g. above their limit), or null. */
+  readonly authorize?: (permissions: DeciderPermissions, payload: unknown) => string | null;
+}
 
 export class ApprovalError extends Error {
   readonly code:
@@ -177,7 +188,7 @@ const errorCodeOf = (err: unknown): string => {
 export async function decideApproval(
   db: Db,
   ctx: TenantContext,
-  permissions: ReadonlySet<string> | ReadonlyMap<string, unknown>,
+  permissions: DeciderPermissions,
   id: string,
   decision: {
     readonly approve: boolean;
@@ -185,7 +196,7 @@ export async function decideApproval(
     readonly note?: string | undefined;
     readonly requestId?: string | undefined;
   },
-  executors: Readonly<Record<string, ApprovalExecutor>>,
+  executors: Readonly<Record<string, ApprovalExecutor | ApprovalAction>>,
 ): Promise<ApprovalRequest> {
   return withTenant(db, ctx, async (trx) => {
     await expireDue(trx, ctx);
@@ -226,15 +237,18 @@ export async function decideApproval(
         ...(decision.requestId ? { requestId: decision.requestId } : {}),
       });
     } else {
-      const executor = executors[row.action_type];
-      if (!executor) throw new ApprovalError('UNKNOWN_ACTION', `no executor for ${row.action_type}`);
+      const entry = executors[row.action_type];
+      if (!entry) throw new ApprovalError('UNKNOWN_ACTION', `no executor for ${row.action_type}`);
+      const action = typeof entry === 'function' ? { execute: entry } : entry;
+      const refusal = action.authorize?.(permissions, row.payload) ?? null;
+      if (refusal) throw new ApprovalError('FORBIDDEN', refusal);
       await sql`update lbg.approval_requests set status = 'APPROVED', decided_by = ${ctx.userId}, decided_at = now(),
                   decision_note = ${note} where id = ${id}`.execute(trx);
       // Execution failures (e.g. the stock is no longer there) are recorded
       // on the request; only the execution's own writes are rolled back.
       await sql`savepoint approval_execution`.execute(trx);
       try {
-        const result = await executor(trx, ctx, row.payload, id);
+        const result = await action.execute(trx, ctx, row.payload, id);
         await sql`release savepoint approval_execution`.execute(trx);
         await sql`update lbg.approval_requests set status = 'EXECUTED', executed_at = now(), result = ${JSON.stringify(result)}::jsonb
                    where id = ${id}`.execute(trx);

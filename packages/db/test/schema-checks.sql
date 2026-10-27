@@ -227,10 +227,10 @@ insert into lbg.invoices (business_id, id, document_type, financial_year, invoic
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1001', 'TAX_INVOICE', '2026-27',
    '2026-10-27', '00000000-0000-0000-0000-00000000a0f1', '09', 100000, 9000, 9000, 118000);
 insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description, quantity,
-  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise) values
+  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise, gross_paise) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1001', 1,
-   '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 118000, 18, 100000, 9000, 9000, 118000);
-update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0001', issued_at = now()
+   '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 118000, 18, 100000, 9000, 9000, 118000, 118000);
+update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/0001', issued_at = now()
  where id = '00000000-0000-0000-0000-0000000a1001';
 select t.ok((select status = 'ISSUED' from lbg.invoices where id = '00000000-0000-0000-0000-0000000a1001'),
   'T14 draft invoice with reconciling lines can be issued');
@@ -250,10 +250,10 @@ insert into lbg.invoices (business_id, id, document_type, financial_year, invoic
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1002', 'TAX_INVOICE', '2026-27',
    '2026-10-27', '09', 60000, 4500, 4500, 69000);
 insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description, quantity,
-  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise) values
+  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise, gross_paise) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1002', 1,
-   '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 59000, 18, 50000, 4500, 4500, 59000);
-select t.expect_error($$update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0009', issued_at = now()
+   '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 59000, 18, 50000, 4500, 4500, 59000, 59000);
+select t.expect_error($$update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/0009', issued_at = now()
   where id = '00000000-0000-0000-0000-0000000a1002'$$, 'LB004',
   'T15c invoice whose totals do not reconcile with its lines cannot be issued');
 
@@ -265,22 +265,22 @@ insert into lbg.invoices (business_id, id, document_type, financial_year, invoic
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1004', 'TAX_INVOICE', '2027-28',
    '2027-04-01', '09', 100000, 9000, 9000, 118000);
 insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description, quantity,
-  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise)
+  unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise, gross_paise)
 select '00000000-0000-0000-0000-0000000000a1', i, 1, '00000000-0000-0000-0000-00000000a0c1',
-       'Accessory (synthetic)', 1, 118000, 18, 100000, 9000, 9000, 118000
+       'Accessory (synthetic)', 1, 118000, 18, 100000, 9000, 9000, 118000, 118000
   from unnest(array['00000000-0000-0000-0000-0000000a1003', '00000000-0000-0000-0000-0000000a1004']::uuid[]) i;
-select t.expect_error($$update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0001', issued_at = now()
+select t.expect_error($$update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/0001', issued_at = now()
   where id = '00000000-0000-0000-0000-0000000a1003'$$, '23505',
   'T14b duplicate invoice number in the same financial year rejected');
-select t.expect_error($$update lbg.invoices set status = 'ISSUED', invoice_number = 'A/2026-27/0000001', issued_at = now()
+select t.expect_error($$update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/2026-27/0000001', issued_at = now()
   where id = '00000000-0000-0000-0000-0000000a1003'$$, '23514',
   'T14c invoice number longer than 16 characters rejected');
-select t.expect_error($$update lbg.invoices set status = 'ISSUED', invoice_number = 'A 0002', issued_at = now()
+select t.expect_error($$update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A 0002', issued_at = now()
   where id = '00000000-0000-0000-0000-0000000a1003'$$, '23514',
   'T14d invoice number with disallowed character rejected');
-update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0002', issued_at = now()
+update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/0002', issued_at = now()
  where id = '00000000-0000-0000-0000-0000000a1003';
-update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0001', issued_at = now()
+update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = 'A/0001', issued_at = now()
  where id = '00000000-0000-0000-0000-0000000a1004';
 select t.ok((select count(*) = 2 from lbg.invoices where invoice_number = 'A/0001'),
   'T14e same number allowed in a different financial year');
@@ -290,9 +290,9 @@ select t.expect_error($$update lbg.invoices set total_paise = 1, taxable_paise =
   where id = '00000000-0000-0000-0000-0000000a1001'$$, 'LB003',
   'T16 issued invoice amounts cannot be edited');
 select t.expect_error($$insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description,
-  quantity, unit_price_paise, tax_rate_percent, taxable_paise, line_total_paise)
+  quantity, unit_price_paise, tax_rate_percent, taxable_paise, line_total_paise, gross_paise)
   values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1001', 2,
-          '00000000-0000-0000-0000-00000000a0c1', 'Extra', 1, 100, 0, 100, 100)$$, 'LB003',
+          '00000000-0000-0000-0000-00000000a0c1', 'Extra', 1, 100, 0, 100, 100, 100)$$, 'LB003',
   'T16b lines cannot be added to an issued invoice');
 select t.expect_error($$update lbg.invoices set status = 'CANCELLED', cancelled_at = now()
   where id = '00000000-0000-0000-0000-0000000a1001'$$, '23514',
@@ -307,6 +307,26 @@ select t.ok((select status = 'CANCELLED' and invoice_number = 'A/0001' from lbg.
 select t.expect_error($$update lbg.invoices set status = 'ISSUED'
   where id = '00000000-0000-0000-0000-0000000a1001'$$, 'LB003',
   'T16f cancelled invoice cannot be re-issued');
+
+-- Migration 0013: the tax engine's value relation per line, and issued documents carry their party snapshot.
+insert into lbg.invoices (business_id, id, document_type, financial_year, invoice_date,
+  place_of_supply_state, taxable_paise, cgst_paise, sgst_paise, total_paise) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1005', 'TAX_INVOICE', '2026-27',
+   '2026-10-27', '09', 100000, 9000, 9000, 118000);
+select t.expect_error($$insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description,
+  quantity, unit_price_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise, gross_paise)
+  values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1005', 1,
+          '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 118000, 18, 100000, 9000, 9000, 118000,
+          120000)$$, '23514', 'T16i line gross minus discounts must equal the inclusive line total');
+insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description, quantity,
+  unit_price_paise, discount_paise, tax_rate_percent, taxable_paise, cgst_paise, sgst_paise, line_total_paise,
+  gross_paise) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000a1005', 1,
+   '00000000-0000-0000-0000-00000000a0c1', 'Accessory (synthetic)', 1, 120000, 2000, 18, 100000, 9000, 9000, 118000,
+   120000);
+select t.expect_error($$update lbg.invoices set status = 'ISSUED', invoice_number = 'A/0003', issued_at = now()
+  where id = '00000000-0000-0000-0000-0000000a1005'$$, '23514',
+  'T16j an issued document must carry its party snapshot');
 
 -- ===========================================================================
 -- Payments, allocations, ledger (D-014, FR-LED-1/2)

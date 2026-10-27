@@ -1,5 +1,6 @@
-// Customers and document numbering (increment 5.2: FR-POS-4, FR-POS-5,
-// FR-CRM-1 core, FR-TAX-2 AC2). Selling and invoices are added in 5.3.
+// Customers, document numbering (increment 5.2: FR-POS-4, FR-POS-5, FR-CRM-1
+// core, FR-TAX-2 AC2), selling and invoices (increment 5.3: FR-POS-1…3,
+// FR-INV-5 AC2–4, FR-LED-1).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
@@ -11,7 +12,24 @@ import {
   updateCustomer,
   type CustomerInput,
 } from '@lbgos/modules/customers';
-import { getNumbering, NumberingSettingsError, saveNumbering } from '@lbgos/modules/sales';
+import {
+  createSaleDraft,
+  discardSale,
+  getInvoice,
+  getNumbering,
+  getSale,
+  issueSale,
+  listHeldSales,
+  listInvoices,
+  NumberingSettingsError,
+  requestDiscountApproval,
+  SaleError,
+  saveNumbering,
+  updateSaleDraft,
+  type IssueInput,
+  type SaleDraftInput,
+  type SellerAccess,
+} from '@lbgos/modules/sales';
 import type { AppServices } from '../services.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
@@ -32,6 +50,69 @@ const customerFields = {
   notes: optionalText(2000),
 };
 
+const paise = z.number().int().min(0).max(10_000_000_000_000);
+const discount = z
+  .discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('PERCENT'), bp: z.number().int().min(0).max(10_000) }),
+    z.strictObject({ kind: z.literal('AMOUNT'), paise }),
+  ])
+  .nullable()
+  .optional();
+const saleBody = z.strictObject({
+  customerId: z.uuid().nullable().optional(),
+  lines: z
+    .array(
+      z
+        .strictObject({
+          variantId: z.uuid().optional(),
+          unitId: z.uuid().nullable().optional(),
+          quantity: z
+            .string()
+            .regex(/^\d{1,9}(\.\d{1,3})?$/, 'a quantity with up to 3 decimals')
+            .optional(),
+          unitPricePaise: paise.optional(),
+          discount,
+        })
+        .refine((l) => l.variantId !== undefined || l.unitId, { message: 'variantId or unitId is required' }),
+    )
+    .min(1)
+    .max(100),
+  invoiceDiscount: discount,
+  notes: optionalText(1000),
+});
+const issueBody = z.strictObject({
+  expectedTotalPaise: paise,
+  payments: z
+    .array(
+      z.strictObject({
+        method: z.enum(['CASH', 'UPI', 'CARD', 'BANK_TRANSFER', 'OTHER']),
+        amountPaise: paise.min(1),
+        reference: z.string().trim().min(1).max(60).nullable().optional(),
+        tenderedPaise: paise.nullable().optional(),
+      }),
+    )
+    .max(10),
+  useAdvancePaise: paise.optional(),
+});
+
+const SALE_STATUS = {
+  NOT_FOUND: 404,
+  NOT_DRAFT: 409,
+  INVALID_LINE: 422,
+  CUSTOMER_NOT_FOUND: 422,
+  DISCOUNT_EXCEEDS_VALUE: 422,
+  NOT_READY: 422,
+  TOTAL_CHANGED: 409,
+  PAYMENT_INVALID: 422,
+  BALANCE_NEEDS_CUSTOMER: 422,
+  OVERPAYMENT_NEEDS_CUSTOMER: 422,
+  INSUFFICIENT_ADVANCE: 422,
+  INSUFFICIENT_STOCK: 409,
+  UNIT_NOT_AVAILABLE: 409,
+  APPROVAL_NOT_NEEDED: 409,
+  SERIES_EXHAUSTED: 409,
+} as const satisfies Record<SaleError['code'], number>;
+
 export function sendSalesError(err: unknown, request: FastifyRequest, reply: FastifyReply) {
   const send = (status: number, body: Record<string, unknown>) =>
     reply.status(status).send({ error: { ...body, requestId: request.id } });
@@ -43,6 +124,15 @@ export function sendSalesError(err: unknown, request: FastifyRequest, reply: Fas
     return send(422, { code: err.code, message: err.message });
   }
   if (err instanceof NumberingSettingsError) return send(422, { code: err.code, message: err.message });
+  if (err instanceof SaleError) {
+    if (err.code === 'NOT_FOUND') return send(404, { code: 'NOT_FOUND', message: 'Not found.' });
+    return send(SALE_STATUS[err.code], {
+      code: err.code,
+      message: err.message,
+      ...(err.lineIndex === undefined ? {} : { lineIndex: err.lineIndex }),
+      ...(err.problems ? { problems: err.problems } : {}),
+    });
+  }
   return undefined;
 }
 
@@ -62,6 +152,11 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
         throw err;
       }
     };
+  const sellerAccess = (request: FastifyRequest): SellerAccess => ({
+    discount: request.access?.permissions.get('pos.discount'),
+    priceOverride: request.access?.permissions.has('pos.price_override') === true,
+  });
+  const idOf = (request: FastifyRequest) => (request.params as { id: string }).id;
   const notFound = (request: FastifyRequest, reply: FastifyReply) =>
     reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Not found.', requestId: request.id } });
 
@@ -142,5 +237,128 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
     guarded(async (request) =>
       saveNumbering(s.appDb, ctxOf(request), request.body as { prefix: string; numberFormat: string }, request.id),
     ),
+  );
+
+  // Draft sales (carts). Held carts are drafts; they do not reserve stock.
+  app.get(
+    '/api/businesses/:businessId/sales',
+    { config: { permission: 'pos.sell' }, schema: { params: businessParams } },
+    async (request) => ({ sales: await listHeldSales(s.appDb, ctxOf(request)) }),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/sales',
+    { config: { permission: 'pos.sell' }, schema: { params: businessParams, body: saleBody } },
+    guarded(async (request, reply) => {
+      const sale = await createSaleDraft(
+        s.appDb,
+        ctxOf(request),
+        sellerAccess(request),
+        request.body as SaleDraftInput,
+      );
+      return reply.status(201).send({ sale });
+    }),
+  );
+
+  app.get(
+    '/api/businesses/:businessId/sales/:id',
+    { config: { permission: 'pos.sell' }, schema: { params: idParams } },
+    guarded(async (request) => ({
+      sale: await getSale(s.appDb, ctxOf(request), sellerAccess(request), idOf(request)),
+    })),
+  );
+
+  app.put(
+    '/api/businesses/:businessId/sales/:id',
+    { config: { permission: 'pos.sell' }, schema: { params: idParams, body: saleBody } },
+    guarded(async (request) => ({
+      sale: await updateSaleDraft(
+        s.appDb,
+        ctxOf(request),
+        sellerAccess(request),
+        idOf(request),
+        request.body as SaleDraftInput,
+      ),
+    })),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/sales/:id/discount-approval',
+    {
+      config: { permission: 'pos.sell' },
+      schema: { params: idParams, body: z.strictObject({ reason: z.string().trim().min(10).max(500) }) },
+    },
+    guarded(async (request, reply) => {
+      const created = await requestDiscountApproval(
+        s.appDb,
+        ctxOf(request),
+        sellerAccess(request),
+        idOf(request),
+        (request.body as { reason: string }).reason,
+      );
+      return reply.status(201).send({ approvalRequest: created });
+    }),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/sales/:id/issue',
+    { config: { permission: 'pos.sell' }, schema: { params: idParams, body: issueBody } },
+    guarded(async (request, reply) => {
+      const issued = await issueSale(
+        s.appDb,
+        ctxOf(request),
+        sellerAccess(request),
+        idOf(request),
+        request.body as IssueInput,
+        { requestId: request.id },
+      );
+      return reply.status(201).send({ invoice: issued });
+    }),
+  );
+
+  app.post(
+    '/api/businesses/:businessId/sales/:id/discard',
+    { config: { permission: 'pos.sell' }, schema: { params: idParams } },
+    guarded(async (request, reply) => {
+      await discardSale(s.appDb, ctxOf(request), idOf(request));
+      return reply.status(204).send();
+    }),
+  );
+
+  // Issued documents. Seeing invoices is part of selling and of the customer ledger.
+  app.get(
+    '/api/businesses/:businessId/invoices',
+    {
+      config: { permission: 'customers.view' },
+      schema: {
+        params: businessParams,
+        querystring: z.strictObject({
+          customerId: z.uuid().optional(),
+          from: z.iso.date().optional(),
+          to: z.iso.date().optional(),
+        }),
+      },
+    },
+    async (request) => {
+      const q = request.query as { customerId?: string; from?: string; to?: string };
+      return {
+        invoices: await listInvoices(s.appDb, ctxOf(request), {
+          customerId: q.customerId,
+          ...(q.from ? { from: q.from } : {}),
+          ...(q.to ? { to: q.to } : {}),
+        }),
+      };
+    },
+  );
+
+  app.get(
+    '/api/businesses/:businessId/invoices/:id',
+    { config: { permission: 'customers.view' }, schema: { params: idParams } },
+    async (request, reply) => {
+      const invoice = await getInvoice(s.appDb, ctxOf(request), idOf(request), {
+        canSeeCost: request.access?.permissions.has('catalogue.cost.view') === true,
+      });
+      return invoice ? { invoice } : notFound(request, reply);
+    },
   );
 }

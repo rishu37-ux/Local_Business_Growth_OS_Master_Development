@@ -23,6 +23,8 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC4 FR-INV-5 AC2–4, FR-LED-1: issuing in one transaction: number, invoice and line snapshots (tax engine), SALE movements, units SOLD, COGS snapshot (D-017), customer ledger INVOICE/PAYMENT entries, payment allocations; any failure writes nothing; **concurrent sale of the same IMEI: exactly one succeeds**; non-serialized stock cannot go negative unless allowed.
 - AC5 FR-TAX-1 AC4: document type follows the tax profile (TAX_INVOICE for regular, BILL_OF_SUPPLY otherwise).
 
+**Status (5.3):** done — TR-0019, D-040. Not offered yet: in-person approver re-authentication at the counter (approval requests are used), configurable payment-method list, reserve-on-hold.
+
 ## Increment 5.4 — Payments, allocation, ledger (P-05, FR-LED-1/2/3)
 - AC1 FR-LED-2: later payments allocated to selected invoices or FIFO; remainder → advance; advance applied to a new invoice; advance refund (`refunds.approve`); payment reversal reverses its allocations and ledger entries; invoice payment status derived (UNPAID/PARTIALLY_PAID/PAID).
 - AC2 D-020: concurrent allocations to one invoice never over-allocate (locks; test with parallel requests).

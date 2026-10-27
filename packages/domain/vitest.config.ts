@@ -6,7 +6,14 @@ export default defineConfig({
   test: {
     coverage: {
       provider: 'v8',
-      include: ['src/tax-engine.ts', 'src/allocation.ts', 'src/money.ts', 'src/numbering.ts', 'src/purchase.ts'],
+      include: [
+        'src/tax-engine.ts',
+        'src/allocation.ts',
+        'src/money.ts',
+        'src/numbering.ts',
+        'src/purchase.ts',
+        'src/discount-limits.ts',
+      ],
       reporter: ['text'],
       thresholds: { branches: 95, lines: 95, functions: 95, statements: 95 },
     },

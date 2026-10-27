@@ -11,8 +11,6 @@ import {
   type ApprovalStatus,
 } from '@lbgos/modules/approvals';
 import {
-  ADJUSTMENT_ACTION,
-  adjustmentExecutor,
   adjustStock,
   agedStock,
   inspectionQueue,
@@ -27,6 +25,8 @@ import {
   type AdjustmentAction,
   type InspectionInput,
 } from '@lbgos/modules/inventory';
+import { APPROVAL_ACTIONS } from '../approval-actions.ts';
+import { MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
@@ -68,8 +68,6 @@ const APPROVAL_STATUSES = [
   'EXECUTED',
   'EXECUTION_FAILED',
 ] as const;
-
-const EXECUTORS = { [ADJUSTMENT_ACTION]: adjustmentExecutor };
 
 function sendInventoryError(err: unknown, request: FastifyRequest, reply: FastifyReply) {
   const send = (status: number, code: string, message: string) =>
@@ -222,6 +220,15 @@ export function registerInventoryRoutes(app: FastifyInstance, s: AppServices): v
   );
 
   app.get(
+    '/api/businesses/:businessId/approvals/mine',
+    { config: { permission: MEMBER }, schema: { params: businessParams } },
+    async (request) => {
+      const c = ctxOf(request);
+      return { requests: await listApprovals(s.appDb, c, { requestedBy: c.userId }) };
+    },
+  );
+
+  app.get(
     '/api/businesses/:businessId/approvals',
     {
       config: { permission: 'approvals.decide' },
@@ -255,7 +262,7 @@ export function registerInventoryRoutes(app: FastifyInstance, s: AppServices): v
         request.access?.permissions ?? new Map(),
         (request.params as { id: string }).id,
         { ...body, requestId: request.id },
-        EXECUTORS,
+        APPROVAL_ACTIONS,
       );
       return { request: decided };
     }),
@@ -263,8 +270,18 @@ export function registerInventoryRoutes(app: FastifyInstance, s: AppServices): v
 
   app.post(
     '/api/businesses/:businessId/approvals/:id/cancel',
-    { config: { permission: 'inventory.adjust.request' }, schema: { params: idParams } },
+    // Any member may withdraw their own request (the module checks the requester).
+    { config: { permission: MEMBER }, schema: { params: idParams } },
     guarded(async (request, reply) => {
+      if (request.access?.mode === 'READ_ONLY') {
+        return reply.status(403).send({
+          error: {
+            code: 'TENANT_READ_ONLY',
+            message: 'This action is not available for this business right now.',
+            requestId: request.id,
+          },
+        });
+      }
       await cancelApproval(s.appDb, ctxOf(request), (request.params as { id: string }).id);
       return reply.status(204).send();
     }),

@@ -38,6 +38,7 @@ describe('migrations', () => {
       '0010_inspections',
       '0011_ocr',
       '0012_customers_series',
+      '0013_sales',
     ]);
   });
 });

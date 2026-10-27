@@ -126,3 +126,4 @@ export {
 } from './numbering.ts';
 export { METRICS, type MetricKey } from './metrics.ts';
 export { normalizeMobile, placeOfSupply } from './customers.ts';
+export { discountWithinLimit } from './discount-limits.ts';

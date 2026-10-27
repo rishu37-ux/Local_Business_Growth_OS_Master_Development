@@ -1,13 +1,17 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 5, after increment 5.2)
+Last updated: 2026-10-27 (Phase 5, after increment 5.3)
 
 ## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
 
 1. ~~CI green on the Phase 4 exit (#21)~~ · ~~`PHASE5_PLAN.md`~~ · ~~5.1 engines (P-01, allocation, formats)~~ (done, TR-0017).
 2. ~~5.2 / P-02 numbering service, customers, re-authentication~~ (done, TR-0018).
-5. P-03/P-04 POS UI and atomic invoice issue (stock SALE movements, units SOLD, ledger, COGS snapshot), IMEI double-sale race test.
-6. P-05…P-09 allocation, cancellation/credit notes (returns into inspection), print/PDF, statements and reports, exports.
+3. ~~5.3 / P-03 API, P-04 drafts (carts), discount limits and approvals, atomic issue, IMEI race~~ (done, TR-0019, D-040).
+4. 5.4 / P-05 later payments (selected invoices or FIFO), advance refunds, payment reversal, customer statement, payment status (FR-LED-1/2/3).
+5. 5.5 cancellation within the window, credit/debit notes, returns into inspection (FR-TAX-3, FR-POS-3 AC5, FR-INV-6 AC1).
+6. 5.6 print/PDF (A4, A5, 80 mm, 58 mm; seller address/phone settings needed for the printed header).
+7. 5.7 reports and exports; 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
+8. Check CI for the 5.1–5.3 pushes.
 
 ## Phase 4 (complete)
 

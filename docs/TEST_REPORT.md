@@ -460,3 +460,35 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 11 | — | `pnpm check`: domain 126, API DB 171 | **Pass**, exit 0 |
 
 **Test-infrastructure defect found and fixed:** the first full run failed with HTTP 429 on sign-up in `lifecycle.db.test.ts`. Each test file restarted the synthetic client-IP counter at the same value while all files share the database that stores auth rate-limit counters, so adding a test file made sign-ups from "the same IP" exceed the limit. Each file now starts at a random point of 10.0.0.0/8. (The rate limit itself behaved correctly.)
+
+## TR-0019 · 2026-10-27 · Phase 5 increment 5.3 — selling and issuing
+
+**Environment:** as TR-0011, migrations 0001–0013 (throwaway PostgreSQL 16 via `scripts/with-throwaway-pg.sh`).
+
+| # | Requirement / AC | Check (`sales.db.test.ts`, `discount-limits.test.ts`, `schema-checks.sql`) | Result |
+|---|---|---|---|
+| 1 | FR-INV-5 AC2–3, FR-TAX-1 AC1/AC4, D-017 | Walk-in sale of a phone (by unit) and 2 cables, 18 % inclusive, GST-registered shop: TAX_INVOICE, taxable 13,559.32, CGST = SGST = 1,220.34, total 16,000.00; number `T26-27/0001`; unit SOLD; SALE movements −1 (unit cost) and −2 (average cost); line COGS 11,000.00 and 400.00; line description carries the IMEI; payment allocations = total; cash tendered 17,000 → change 1,000; `sale.issue` audited; seller GSTIN in the party snapshot; costs hidden from Billing, shown to the owner | **Pass** |
+| 2 | FR-TAX-1 AC2 | B2B customer with a Karnataka GSTIN at a Maharashtra shop: place of supply 29, IGST 76.27, no CGST/SGST | **Pass** |
+| 3 | FR-TAX-1 AC4 | Unregistered shop: BILL_OF_SUPPLY, no tax, ₹333.33 rounded to ₹333.00 (round-off −0.33) | **Pass** |
+| 4 | FR-TAX-1 AC3 | Mixed sale with a 1 % line discount, a price override and a ₹10.01 invoice discount: every stored total equals `computeSale`; the DB reconciled header and lines on issue | **Pass** |
+| 5 | — | A confirmed total that differs from the recomputed total is 409 `TOTAL_CHANGED` | **Pass** |
+| 6 | FR-INV-5 AC4 (atomicity) | Issue failing after stock movements were written (series exhausted): 409 `SERIES_EXHAUSTED`; no stock movement, unit still IN_STOCK, draft still DRAFT, series counter unchanged; after fixing the series the sale takes the next consecutive number | **Pass** |
+| 7 | FR-INV-5 AC4 | Two checkouts of the same IMEI at once: exactly one 201, the other 409 `UNIT_NOT_AVAILABLE`; one SALE movement | **Pass** |
+| 8 | — | The same draft issued twice at once: one invoice, the other 409 `NOT_DRAFT`; one allocation | **Pass** |
+| 9 | FR-INV-5 AC3 | The last unit of a non-serialized item sold by two checkouts at once: one 201, the other 409 `INSUFFICIENT_STOCK`; stock 0, never negative | **Pass** |
+| 10 | FR-POS-3 AC2, D-014, FR-LED-1 | Part payment for a walk-in is 422 `BALANCE_NEEDS_CUSTOMER`; with a customer: UPI 500 + cash 300 on 2,000 → balance 1,200; ledger INVOICE +2,000, PAYMENT −300, −500 | **Pass** |
+| 11 | FR-POS-3 AC1, D-014 | Overpayment refused for walk-ins; for a customer the 300 extra is advance (ledger −300); the next sale uses 300 advance + 200 cash (balance 0, allocations = total); using more advance than held is 422 `INSUFFICIENT_ADVANCE` | **Pass** |
+| 12 | FR-POS-3 AC3–4 | Reference "4111 1111 1111 1111" is 422 `PAYMENT_INVALID`; a tendered amount on a UPI payment is refused | **Pass** |
+| 13 | FR-POS-2 AC1–2 | Billing (2 % / ₹500): 1 % issues; 3 % reports `DISCOUNT_NEEDS_APPROVAL` and issuing is 422 `NOT_READY`; the cashier requests approval, cannot decide it (403); the Manager approves (EXECUTED); the sale issues and records the Manager and the request on the invoice | **Pass** |
+| 14 | FR-POS-2 AC2 | 20 % discount: the Manager (10 %) is refused 403 `FORBIDDEN`; the owner approves; adding an item afterwards makes approval necessary again; requesting approval within one's own limit is 409 `APPROVAL_NOT_NEEDED` | **Pass** |
+| 15 | FR-POS-2 AC2 | A request approved after the draft changed ends EXECUTION_FAILED `SALE_CHANGED` (nothing approved) | **Pass** |
+| 16 | FR-POS-2 AC3 | Below the minimum price: Billing gets `BELOW_MIN_PRICE`; the Manager (`pos.price_override`) issues | **Pass** |
+| 17 | FR-POS-1 AC2 | A serialized item without a unit reports `UNIT_REQUIRED`; a sold unit `UNIT_NOT_AVAILABLE`; the same unit twice or quantity 2 is 422 `INVALID_LINE` | **Pass** |
+| 18 | FR-POS-1 AC4 | Held carts are listed; a discarded cart cannot be issued (`NOT_DRAFT`) | **Pass** |
+| 19 | NFR tenancy | Inventory role 403 on sales and invoices; another business's owner gets 404 for this shop's sale (by its URL and by their own); other businesses' items (`INVALID_LINE`) and customers (`CUSTOMER_NOT_FOUND`) cannot be used; another business's invoice is 404; a suspended (read-only) business can list invoices, but creating a sale or cancelling an approval request is 403 `TENANT_READ_ONLY`; an empty cart is refused (400) | **Pass** |
+| 20 | FR-POS-2 AC1 | Domain: both caps apply, exact at the boundary (2 % of ₹10,000; ₹500 cap), fractional percentages, unlimited grants, no grant ⇒ only zero | **Pass** |
+| 21 | DB backstop | Schema checks T16i (line gross − discounts ≠ inclusive total refused) and T16j (issuing without a party snapshot refused) | **Pass** |
+| 22 | — | Negative controls: (a) the sorted unit lock removed → test 7 fails (the second sale was then stopped only by the stock trigger, with `INSUFFICIENT_STOCK`); (b) every cashier treated as unlimited → test 13 fails. Restored | **Detected** both |
+| 23 | — | `pnpm check`: lint, format, typecheck, build, domain 130 (coverage 100 % lines, 99.39 % branches over the money modules), API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 191 | **Pass**, exit 0 |
+
+**Defects found while testing (fixed before commit):** `invoices` had no `created_at` (needed for held carts; added in 0013); test items created without a tax rate in a GST-registered shop were correctly reported as `NO_TAX_RATE` (test fixture fixed).
