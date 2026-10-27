@@ -5,22 +5,22 @@ import { useState } from 'react';
 import { Form } from 'react-aria-components';
 import { Link, useParams } from 'react-router';
 import { api, ApiError, type Me } from '../api.ts';
-import { Alert, Button, errorText, Field, NativeSelect, Page } from '../ui.tsx';
+import { Alert, Badge, Button, errorText, Field, humanize, NativeSelect, Page, statusTone } from '../ui.tsx';
 
 interface BusinessView {
   business: { legal_name: string; display_name: string | null; status: string };
   access: { mode: string; roles: string[]; permissions: string[] };
 }
 
-// Screens shown when the member holds the permission (the API checks again).
-const SCREENS: readonly (readonly [string, string, string])[] = [
-  ['catalogue', 'Catalogue', 'catalogue.view'],
-  ['stock', 'Stock', 'inventory.view'],
-  ['purchases', 'Purchases', 'purchases.view'],
-  ['scans', 'Scans', 'ocr.scan'],
-  ['suppliers', 'Suppliers', 'suppliers.view'],
-  ['approvals', 'Approvals', 'approvals.decide'],
-  ['members', 'Staff and invitations', 'users.view'],
+// Quick tasks on the overview (navigation itself is the side menu). Shown only
+// with the permission; the API checks again.
+const TASKS: readonly (readonly [string, string, string, string])[] = [
+  ['catalogue', 'Add a product', 'Models, variants, prices and tax rates.', 'catalogue.manage'],
+  ['purchases/new', 'Record a purchase', 'Enter a supplier bill and scan IMEIs into stock.', 'purchases.create'],
+  ['scans', 'Read a bill or label', 'Upload a photo; review what was read before saving.', 'ocr.scan'],
+  ['stock', 'Check stock levels', 'Available, in inspection, damaged and reorder suggestions.', 'inventory.view'],
+  ['approvals', 'Review requests', 'Adjustments and discounts waiting for a decision.', 'approvals.decide'],
+  ['members', 'Invite your team', 'Give staff the role they need, nothing more.', 'users.manage'],
 ];
 interface Application {
   legal_name: string;
@@ -51,11 +51,23 @@ export function BusinessPage({ me }: { me: Me }) {
   if (unavailable && application.data) {
     const last = application.data.history.at(-1);
     return (
-      <Page title={application.data.legal_name}>
-        <p className="mb-2">
-          Application status: <strong>{application.data.status.replaceAll('_', ' ').toLowerCase()}</strong>
-        </p>
-        {last?.reason ? <p className="mb-2">Reason: {last.reason}</p> : null}
+      <Page
+        eyebrow="Application"
+        title={application.data.legal_name}
+        description={
+          <span className="inline-flex items-center gap-2">
+            Application status:{' '}
+            <Badge tone={statusTone(application.data.status)}>{humanize(application.data.status)}</Badge>
+          </span>
+        }
+      >
+        <section>
+          <p className="text-sm text-ink-700">
+            A platform administrator reviews new shops before they can go live. You will get a notification when the
+            status changes.
+          </p>
+          {last?.reason ? <p className="mt-3 text-sm">Reason given: {last.reason}</p> : null}
+        </section>
       </Page>
     );
   }
@@ -65,7 +77,7 @@ export function BusinessPage({ me }: { me: Me }) {
       <Page title="Business">
         <Alert message={view.error.message} />
         {code === 'MFA_ENROLMENT_REQUIRED' ? (
-          <Link className="text-blue-800 underline" to="/mfa">
+          <Link className="link" to="/mfa">
             Set up two-step verification
           </Link>
         ) : null}
@@ -73,26 +85,68 @@ export function BusinessPage({ me }: { me: Me }) {
     );
   }
   const b = view.data.business;
+  const permissions = new Set(view.data.access.permissions);
+  const tasks = TASKS.filter(([, , , permission]) => permissions.has(permission));
+  const roles = view.data.access.roles.join(', ') || 'No role';
   return (
-    <Page title={b.display_name ?? b.legal_name}>
-      <p className="mb-4">
-        Status: <strong>{b.status.replaceAll('_', ' ').toLowerCase()}</strong> · Your role:{' '}
-        {view.data.access.roles.join(', ') || 'none'}
-      </p>
-      <nav aria-label="Business" className="mb-4">
-        <ul className="flex flex-wrap gap-x-4 gap-y-2">
-          {SCREENS.filter(([, , permission]) => view.data.access.permissions.includes(permission)).map(
-            ([path, label]) => (
+    <Page
+      eyebrow="Overview"
+      title={b.display_name ?? b.legal_name}
+      description={
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2">
+            Status: <Badge tone={statusTone(b.status)}>{humanize(b.status)}</Badge>
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>Your role: {roles}</span>
+        </span>
+      }
+    >
+      {view.data.access.mode === 'SETUP' ? <SetupWizard businessId={businessId} me={me} /> : null}
+      {tasks.length > 0 ? (
+        <section aria-labelledby="tasks-heading">
+          <h2 id="tasks-heading" className="section-title">
+            Get things done
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {tasks.map(([path, label, hint]) => (
               <li key={path}>
-                <Link className="text-blue-800 underline" to={`/b/${businessId}/${path}`}>
-                  {label}
+                <Link
+                  to={`/b/${businessId}/${path}`}
+                  className="group flex h-full flex-col rounded-xl border border-ink-200 bg-ink-50/60 p-4 transition hover:border-brand-300 hover:bg-white hover:shadow-[var(--shadow-raised)]"
+                >
+                  <span className="flex items-center justify-between gap-2 font-semibold text-ink-900">
+                    {label}
+                    <span aria-hidden="true" className="text-brand-600 transition group-hover:translate-x-0.5">
+                      →
+                    </span>
+                  </span>
+                  <span className="mt-1 text-sm text-ink-600">{hint}</span>
                 </Link>
               </li>
-            ),
-          )}
-        </ul>
-      </nav>
-      {view.data.access.mode === 'SETUP' ? <SetupWizard businessId={businessId} me={me} /> : null}
+            ))}
+          </ul>
+        </section>
+      ) : null}
+      <section aria-labelledby="access-heading">
+        <h2 id="access-heading" className="section-title">
+          Your access
+        </h2>
+        <dl className="grid gap-4 text-sm sm:grid-cols-3">
+          <div>
+            <dt className="text-ink-500">Business</dt>
+            <dd className="mt-0.5 font-medium">{b.legal_name}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-500">Roles</dt>
+            <dd className="mt-0.5 font-medium">{roles}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-500">Permissions</dt>
+            <dd className="mt-0.5 font-medium">{String(view.data.access.permissions.length)} granted</dd>
+          </div>
+        </dl>
+      </section>
     </Page>
   );
 }
@@ -124,7 +178,7 @@ function SetupWizard({ businessId, me }: { businessId: string; me: Me }) {
 
   return (
     <section aria-labelledby="setup-heading">
-      <h2 id="setup-heading" className="mb-2 text-xl font-semibold">
+      <h2 id="setup-heading" className="section-title">
         Set up your shop
       </h2>
       <p className="mb-3">Required before going live: business details, tax, two-step verification.</p>
@@ -149,7 +203,7 @@ function SetupWizard({ businessId, me }: { businessId: string; me: Me }) {
       </Form>
 
       <h3 className="mt-6 mb-2 font-semibold">2. Tax {done.has('tax') ? '✓' : ''}</h3>
-      <p className="mb-2 text-sm text-slate-700">
+      <p className="mb-2 text-sm text-ink-600">
         GST settings must be confirmed with your tax adviser. The GSTIN format is checked here, not its registration.
       </p>
       <Form
@@ -197,7 +251,7 @@ function SetupWizard({ businessId, me }: { businessId: string; me: Me }) {
       {me.twoFactorEnabled ? (
         <p>Enabled.</p>
       ) : (
-        <Link className="text-blue-800 underline" to="/mfa">
+        <Link className="link" to="/mfa">
           Set it up
         </Link>
       )}

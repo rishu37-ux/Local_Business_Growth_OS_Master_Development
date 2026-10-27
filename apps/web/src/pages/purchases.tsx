@@ -167,7 +167,7 @@ export function PurchaseForm(props: { businessId: string; form: DraftForm; onCha
       {form.lines.map((l, i) => {
         const n = String(i + 1);
         return (
-          <fieldset key={n} className="mb-4 min-w-0 rounded border border-slate-300 bg-white p-3">
+          <fieldset key={n} className="mb-4 min-w-0 card-inset">
             <legend className="px-1 font-semibold">Line {n}</legend>
             <NativeSelect
               label={`Line ${n} product`}
@@ -276,7 +276,7 @@ export function PurchasesPage() {
     <Page title="Purchases">
       {business.can('purchases.create') ? (
         <p className="mb-4">
-          <Link className="text-blue-800 underline" to={`/b/${businessId}/purchases/new`}>
+          <Link className="link" to={`/b/${businessId}/purchases/new`}>
             New purchase
           </Link>
         </p>
@@ -287,7 +287,7 @@ export function PurchasesPage() {
           <tr key={p.id}>
             <td className={cell}>{p.supplierName}</td>
             <td className={cell}>
-              <Link className="text-blue-800 underline" to={`/b/${businessId}/purchases/${p.id}`}>
+              <Link className="link" to={`/b/${businessId}/purchases/${p.id}`}>
                 {p.supplierInvoiceNo}
               </Link>
             </td>
@@ -374,7 +374,7 @@ export function PurchaseEditorPage() {
       ) : null}
       {p ? (
         <section aria-labelledby="totals" className="mt-6">
-          <h2 id="totals" className="mb-2 text-xl font-semibold">
+          <h2 id="totals" className="section-title">
             Totals (computed)
           </h2>
           <Table
@@ -390,7 +390,7 @@ export function PurchaseEditorPage() {
           </Table>
           {p.problems.length > 0 ? (
             <>
-              <h2 className="mb-2 text-xl font-semibold">Checks</h2>
+              <h2 className="section-title">Checks</h2>
               <ul className="mb-4 list-disc pl-6">
                 {p.problems.map((x, i) => (
                   <li key={i}>
@@ -408,7 +408,7 @@ export function PurchaseEditorPage() {
       ) : null}
       {p?.status === 'DRAFT' && business.can('purchases.post') ? (
         <section aria-labelledby="post" className="mb-6">
-          <h2 id="post" className="mb-2 text-xl font-semibold">
+          <h2 id="post" className="section-title">
             Post to stock
           </h2>
           {duplicate ? (
@@ -452,10 +452,10 @@ export function PurchaseEditorPage() {
       ) : null}
       {p?.status === 'POSTED' && business.can('purchases.post') ? (
         <section aria-labelledby="reverse" className="mb-6">
-          <h2 id="reverse" className="mb-2 text-xl font-semibold">
+          <h2 id="reverse" className="section-title">
             Reverse this purchase
           </h2>
-          <p className="mb-2 text-sm text-slate-700">Only possible while every unit from it is still in stock.</p>
+          <p className="mb-2 text-sm text-ink-600">Only possible while every unit from it is still in stock.</p>
           <Field
             label="Reason for reversing"
             name="reverseReason"

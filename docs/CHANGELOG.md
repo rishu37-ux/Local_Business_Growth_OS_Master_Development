@@ -11,6 +11,7 @@
 - Migration 0015 and returns in `@lbgos/modules/sales`: invoice cancellation within the window (goods back to stock or into inspection; payments to advance or refunded), credit notes (partial/full, from line snapshots, returns into inspection, release or refund of paid money), debit notes; invoice credited amount and status; API routes.
 
 ### Changed
+- Portal redesign (D-043): design tokens, app shell with business side menu, dashboard-style overview, card sections, status badges, refined forms and tables, centred sign-in pages.
 - Approvals: executors may add an approver check (`ApprovalAction.authorize`); the action map is shared (`apps/api/src/approval-actions.ts`); any member may withdraw their own request and list it (`/approvals/mine`).
 
 ### Fixed

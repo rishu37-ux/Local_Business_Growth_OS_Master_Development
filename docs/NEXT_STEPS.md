@@ -9,6 +9,7 @@ Last updated: 2026-10-27 (Phase 5, after increment 5.5)
 3. ~~5.3 / P-03 API, P-04 drafts (carts), discount limits and approvals, atomic issue, IMEI race~~ (done, TR-0019, D-040).
 4. ~~5.4 / P-05 later payments, advance, refunds, reversal, statement, payment status~~ (done, TR-0020, D-041).
 5. ~~5.5 cancellation, credit/debit notes, returns into inspection~~ (done, TR-0021, D-042).
+5a. ~~Portal redesign (D-043, TR-0022)~~ done; the user could not run the portal locally on Windows (WSL password issue), so screenshots are shared from the dev container instead.
 6. 5.6 print/PDF (A4, A5, 80 mm, 58 mm; seller address/phone settings needed for the printed header).
 7. 5.7 reports and exports; 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
 8. CI: #22 (5.1), #23 (5.2), #25 (5.4, includes 5.3) green; #24 (5.3) was cancelled when #25 started. Check CI for the 5.5 push.

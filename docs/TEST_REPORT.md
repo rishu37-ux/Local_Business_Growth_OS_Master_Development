@@ -529,3 +529,15 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 9 | NFR tenancy | Other businesses 404 (cancel, credit note, by their URL and ours); suspended business 403 `TENANT_READ_ONLY` | **Pass** |
 | 10 | — | Negative controls: (a) the "not more than sold" quantity check removed → test 4 fails (test 7 still passes: with no quantity given the remaining quantity is 0 and is refused separately); (b) paid money not released on a credit note → test 5 fails. Restored | **Detected** both |
 | 11 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 209; CI #25 (5.4 push, includes 5.3) green | **Pass**, exit 0 |
+
+## TR-0022 · 2026-10-27 · Portal visual redesign (design system, app shell)
+
+**Environment:** as TR-0011; Chromium (Playwright 1.63) against the built web app.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Phase 3 exit browser test (sign-up → approval → MFA → setup → live → invite) on the redesigned screens, incl. axe (no serious/critical issues), no horizontal overflow at 1280/768/360 px, no CSP violations or page errors | **Pass** (5/5) |
+| 2 | Phase 4 exit browser test (8 inventory screens × 3 widths axe, overflow, CSP) on the redesigned screens | **Pass** |
+| 3 | First run after the redesign failed: the pending-application page no longer showed the text "Application status:" and the overview no longer showed "Status:" that the test (and screen-reader users) rely on; both labels restored | **Defect found and fixed** |
+| 4 | Visual review: screenshots of sign-in, home, overview, catalogue, stock, purchases, suppliers, staff at 1440 px and overview/stock at 390 px taken from the running app with synthetic data and shared with the user (not stored in the repository) | Done |
+| 5 | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 209 | **Pass**, exit 0 |

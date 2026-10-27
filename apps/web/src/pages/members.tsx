@@ -48,13 +48,13 @@ export function MembersPage() {
         <caption className="sr-only">Members of this business</caption>
         <thead>
           <tr>
-            <th scope="col" className="border-b p-2">
+            <th scope="col" className="border-b border-ink-100 px-3 py-2.5">
               Name
             </th>
-            <th scope="col" className="border-b p-2">
+            <th scope="col" className="border-b border-ink-100 px-3 py-2.5">
               Email
             </th>
-            <th scope="col" className="border-b p-2">
+            <th scope="col" className="border-b border-ink-100 px-3 py-2.5">
               Roles
             </th>
           </tr>
@@ -62,15 +62,15 @@ export function MembersPage() {
         <tbody>
           {(members.data?.members ?? []).map((m) => (
             <tr key={m.membershipId}>
-              <td className="border-b p-2">{m.displayName}</td>
-              <td className="border-b p-2 break-all">{m.email}</td>
-              <td className="border-b p-2">{m.roles.join(', ') || '—'}</td>
+              <td className="border-b border-ink-100 px-3 py-2.5">{m.displayName}</td>
+              <td className="border-b border-ink-100 px-3 py-2.5 break-all">{m.email}</td>
+              <td className="border-b border-ink-100 px-3 py-2.5">{m.roles.join(', ') || '—'}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <h2 className="mb-2 text-xl font-semibold">Invite a staff member</h2>
+      <h2 className="section-title">Invite a staff member</h2>
       <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
       <Form
         onSubmit={(e) => {

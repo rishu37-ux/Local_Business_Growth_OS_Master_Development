@@ -159,7 +159,7 @@ export function StockPage() {
       <ScanField label="Find by code" onCode={(c) => void lookup(c)} />
       <Alert message={found} tone="success" />
       <Alert message={lookupError} />
-      <p className="mb-2 text-sm text-slate-700">
+      <p className="mb-2 text-sm text-ink-600">
         Available = sellable stock. Returned goods awaiting inspection, damaged and in-repair stock are counted
         separately and cannot be sold.{' '}
         {recon.data
@@ -184,7 +184,7 @@ export function StockPage() {
         {(stock.data?.stock ?? []).map((r) => (
           <tr key={r.variantId}>
             <td className={cell}>
-              {r.productName} {r.variantLabel ? <span className="text-slate-700">({r.variantLabel})</span> : null}
+              {r.productName} {r.variantLabel ? <span className="text-ink-600">({r.variantLabel})</span> : null}
             </td>
             <td className={cell}>{r.sku}</td>
             <td className={cell}>
@@ -250,11 +250,11 @@ function Reports({ businessId }: { businessId: string }) {
   });
   return (
     <section aria-labelledby="reports" className="mb-6">
-      <h2 id="reports" className="mb-2 text-xl font-semibold">
+      <h2 id="reports" className="section-title">
         Reorder suggestions
       </h2>
       {reorder.data ? (
-        <p className="mb-2 text-sm text-slate-700">
+        <p className="mb-2 text-sm text-ink-600">
           Suggestion only. Formula: {reorder.data.formula}. Sales period: last {reorder.data.period.days} days; lead
           time {reorder.data.leadTimeDays} days. {reorder.data.onOrderNote}
         </p>
@@ -269,9 +269,9 @@ function Reports({ businessId }: { businessId: string }) {
           </tr>
         ))}
       </Table>
-      <h2 className="mb-2 text-xl font-semibold">Slow-moving and dead stock</h2>
+      <h2 className="section-title">Slow-moving and dead stock</h2>
       {aged.data ? (
-        <p className="mb-2 text-sm text-slate-700">
+        <p className="mb-2 text-sm text-ink-600">
           In stock with no sale for {aged.data.slowDays} days (slow) or {aged.data.deadDays} days (dead); items never
           sold count from when they were first received.
         </p>
@@ -325,7 +325,7 @@ function Inspections({ businessId, onDone }: { businessId: string; onDone: () =>
   const items = queue.data?.queue ?? [];
   return (
     <section aria-labelledby="inspections" className="mb-6">
-      <h2 id="inspections" className="mb-2 text-xl font-semibold">
+      <h2 id="inspections" className="section-title">
         Awaiting inspection
       </h2>
       <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
@@ -343,10 +343,7 @@ function Inspections({ businessId, onDone }: { businessId: string; onDone: () =>
                   ['RETURN_TO_SUPPLIER', 'Return to supplier'],
                 ];
           return (
-            <li
-              key={`${it.variantId}-${it.unitId ?? 'qty'}`}
-              className="mb-3 rounded border border-slate-300 bg-white p-3"
-            >
+            <li key={`${it.variantId}-${it.unitId ?? 'qty'}`} className="mb-3 card-inset">
               <p className="mb-2">{what}</p>
               <div className="flex flex-wrap gap-2" role="group" aria-label={`Outcome for ${what}`}>
                 {outcomes.map(([value, label]) => (
@@ -390,10 +387,10 @@ function Adjustments(props: { businessId: string; canApprove: boolean; onDone: (
   };
   return (
     <section aria-labelledby="adjust" className="mb-6">
-      <h2 id="adjust" className="mb-2 text-xl font-semibold">
+      <h2 id="adjust" className="section-title">
         Adjust a stock count
       </h2>
-      <p className="mb-2 text-sm text-slate-700">
+      <p className="mb-2 text-sm text-ink-600">
         For items counted by quantity.{' '}
         {props.canApprove
           ? 'Your adjustments apply at once and are recorded.'

@@ -47,34 +47,34 @@ export function HomePage({ me }: { me: Me }) {
   return (
     <Page title={`Welcome, ${me.name}`}>
       {mustEnrol ? (
-        <div role="alert" className="mb-4 rounded border border-amber-700 bg-amber-50 p-3">
+        <div role="alert" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900">
           Two-step verification is required for your account.{' '}
-          <Link className="font-medium text-blue-800 underline" to="/mfa">
+          <Link className="link" to="/mfa">
             Set it up now
           </Link>
         </div>
       ) : null}
 
       <section aria-labelledby="biz-heading" className="mb-6">
-        <h2 id="biz-heading" className="mb-2 text-xl font-semibold">
+        <h2 id="biz-heading" className="section-title">
           Your businesses
         </h2>
         <Alert message={businesses.error ? errorText(businesses.error) : null} />
         {businesses.isSuccess && list.length === 0 ? <p>You are not part of any business yet.</p> : null}
         <ul className="flex flex-col gap-2">
           {list.map((b) => (
-            <li key={b.businessId} className="rounded border border-slate-300 bg-white p-3">
-              <Link className="font-medium text-blue-800 underline" to={`/b/${b.businessId}`}>
+            <li key={b.businessId} className="card-inset">
+              <Link className="link" to={`/b/${b.businessId}`}>
                 {b.displayName ?? b.legalName}
               </Link>{' '}
-              <span className="text-sm text-slate-700">({b.status.replaceAll('_', ' ').toLowerCase()})</span>
+              <span className="text-sm text-ink-600">({b.status.replaceAll('_', ' ').toLowerCase()})</span>
             </li>
           ))}
         </ul>
       </section>
 
       <section aria-labelledby="apply-heading" className="mb-6">
-        <h2 id="apply-heading" className="mb-2 text-xl font-semibold">
+        <h2 id="apply-heading" className="section-title">
           Register a mobile or electronics shop
         </h2>
         <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
@@ -91,12 +91,12 @@ export function HomePage({ me }: { me: Me }) {
       </section>
 
       <section aria-labelledby="notes-heading">
-        <h2 id="notes-heading" className="mb-2 text-xl font-semibold">
+        <h2 id="notes-heading" className="section-title">
           Notifications
         </h2>
         <ul className="flex flex-col gap-2">
           {(notifications.data?.notifications ?? []).map((n) => (
-            <li key={n.id} className="rounded border border-slate-300 bg-white p-3">
+            <li key={n.id} className="card-inset">
               <p className="font-medium">{n.title}</p>
               <p>{n.body}</p>
             </li>

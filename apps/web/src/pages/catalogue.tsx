@@ -197,7 +197,7 @@ export function CataloguePage() {
   return (
     <Page title="Catalogue">
       <p className="mb-4">
-        <Link className="text-blue-800 underline" to={`/b/${businessId}/tax-rates`}>
+        <Link className="link" to={`/b/${businessId}/tax-rates`}>
           Tax rates
         </Link>
       </p>
@@ -206,7 +206,7 @@ export function CataloguePage() {
         {(products.data?.products ?? []).map((p) => (
           <tr key={p.id}>
             <td className={cell}>
-              <Link className="text-blue-800 underline" to={`/b/${businessId}/catalogue/${p.id}`}>
+              <Link className="link" to={`/b/${businessId}/catalogue/${p.id}`}>
                 {p.modelName}
               </Link>
             </td>
@@ -218,7 +218,7 @@ export function CataloguePage() {
       </Table>
       {canManage ? (
         <section aria-labelledby="new-product">
-          <h2 id="new-product" className="mb-2 text-xl font-semibold">
+          <h2 id="new-product" className="section-title">
             Add a product
           </h2>
           <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
@@ -320,7 +320,7 @@ export function ProductPage() {
       </Table>
       {business.can('catalogue.manage') ? (
         <section aria-labelledby="add-variant">
-          <h2 id="add-variant" className="mb-2 text-xl font-semibold">
+          <h2 id="add-variant" className="section-title">
             Add a variant
           </h2>
           <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
@@ -374,7 +374,7 @@ export function TaxRatesPage() {
 
   return (
     <Page title="Tax rates">
-      <p className="mb-3 text-sm text-slate-700">
+      <p className="mb-3 text-sm text-ink-600">
         No rates are built in. Enter the rates your tax adviser has confirmed; a change is saved as a new version from a
         date, and past documents keep the rate they used.
       </p>
@@ -390,7 +390,7 @@ export function TaxRatesPage() {
       </Table>
       {business.can('tax.settings.manage') ? (
         <section aria-labelledby="add-rate">
-          <h2 id="add-rate" className="mb-2 text-xl font-semibold">
+          <h2 id="add-rate" className="section-title">
             Add a tax rate
           </h2>
           <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />

@@ -1,7 +1,192 @@
 @import 'tailwindcss';
 
+/*
+ * Design tokens. A calm, professional palette: deep ink navy for structure,
+ * an indigo brand colour for actions and an emerald accent for success. All
+ * text/background pairs used below meet WCAG AA contrast (NFR-1).
+ */
+@theme {
+  --font-sans:
+    'Inter', 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --color-ink-50: #f6f7fb;
+  --color-ink-100: #eceef5;
+  --color-ink-200: #d9dde9;
+  --color-ink-300: #b6bdd1;
+  --color-ink-400: #8a93ad;
+  --color-ink-500: #5f6987;
+  --color-ink-600: #47506c;
+  --color-ink-700: #363e57;
+  --color-ink-800: #232a40;
+  --color-ink-900: #151a2d;
+  --color-ink-950: #0c1020;
+
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-500: #5b5bd6;
+  --color-brand-600: #4743c4;
+  --color-brand-700: #3b34a8;
+  --color-brand-800: #302b86;
+
+  --shadow-card: 0 1px 2px rgb(21 26 45 / 0.04), 0 1px 3px rgb(21 26 45 / 0.06);
+  --shadow-raised: 0 4px 12px -2px rgb(21 26 45 / 0.08), 0 2px 4px -2px rgb(21 26 45 / 0.05);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-ink-50);
+    color: var(--color-ink-900);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.01em;
+    color: var(--color-ink-900);
+  }
+  /* Tables and figures line up money and quantities. */
+  td,
+  th {
+    font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    background: var(--color-brand-200);
+  }
+}
+
+@layer components {
+  /* Links in text and lists. */
+  .link {
+    color: var(--color-brand-700);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand-300);
+    text-underline-offset: 3px;
+    transition:
+      color 120ms ease,
+      text-decoration-color 120ms ease;
+  }
+  .link:hover {
+    color: var(--color-brand-800);
+    text-decoration-color: currentColor;
+  }
+
+  /* Top-level sections of a page are cards. */
+  .page-body > section,
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-ink-200);
+    border-radius: 0.875rem;
+    box-shadow: var(--shadow-card);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .page-body > section,
+    .card {
+      padding: 1.5rem;
+    }
+  }
+  /* The side menu's column runs the full height of the page on wide screens. */
+  @media (min-width: 1024px) {
+    .business-shell {
+      background: linear-gradient(
+        to right,
+        #fff 0,
+        #fff 16rem,
+        var(--color-ink-200) 16rem,
+        var(--color-ink-200) calc(16rem + 1px),
+        transparent calc(16rem + 1px)
+      );
+    }
+  }
+  /* Forms stay at a comfortable reading width inside wide cards. */
+  .page-body > section > form,
+  .page-body > form {
+    max-width: 52rem;
+  }
+  .section-title {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  /* Boxed list items inside a card. */
+  .card-inset {
+    border: 1px solid var(--color-ink-200);
+    border-radius: 0.625rem;
+    background: var(--color-ink-50);
+    padding: 0.75rem 0.875rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: '';
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 999px;
+    background: currentColor;
+  }
+  .badge-success {
+    background: #ecfdf3;
+    color: #05603a;
+  }
+  .badge-warning {
+    background: #fffaeb;
+    color: #93370d;
+  }
+  .badge-neutral {
+    background: var(--color-ink-100);
+    color: var(--color-ink-700);
+  }
+  .badge-danger {
+    background: #fef3f2;
+    color: #a4140c;
+  }
+
+  /* Plain HTML tables written in pages (outside the Table component). */
+  .page-body table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.875rem;
+  }
+  .page-body thead th {
+    background: var(--color-ink-50);
+    color: var(--color-ink-600);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--color-ink-200);
+  }
+  .page-body tbody tr:hover td {
+    background: var(--color-ink-50);
+  }
+  .page-body h3 {
+    color: var(--color-ink-800);
+  }
+}
+
 /* Visible focus for keyboard users everywhere (NFR-1). */
 :focus-visible {
-  outline: 3px solid #1d4ed8;
+  outline: 3px solid var(--color-brand-500);
   outline-offset: 2px;
 }
