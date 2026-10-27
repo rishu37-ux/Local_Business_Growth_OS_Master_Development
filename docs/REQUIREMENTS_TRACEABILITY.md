@@ -1,38 +1,116 @@
 # Requirements Traceability Matrix
 
-Requirement IDs are defined in `REQUIREMENTS_BLUEPRINT.md` (refined into the SRS in Phase 1).
+Requirement IDs and acceptance criteria are defined in `SRS.md` (Phase 1). Origin: `REQUIREMENTS_BLUEPRINT.md`.
 Status values: `Not started` · `Specified` · `In progress` · `Implemented (untested)` · `Implemented + tested` · `Verified` · `Blocked`.
-Test evidence must reference an entry in `TEST_REPORT.md`. No entry may claim testing without such evidence.
+Test evidence must reference an entry in `TEST_REPORT.md`. "Design prototype only" means a database-level control was exercised in the schema draft (TR-0002); the requirement itself is **not implemented** in any application.
 
-Last updated: 2026-10-27 (Phase 0)
+Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
+
+Last updated: 2026-10-27 (Phase 1) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
-| FR-MEM-1 | Continuity | Project memory docs in `/docs` | 0 | Implemented (docs) | `docs/*.md`, `CLAUDE.md` | TR-0001 (file presence & secret-pattern check) |
-| FR-AUTH-1 | Auth | Login/logout, session expiry, revocation | 3 | Not started | — | — |
-| FR-AUTH-2 | Auth | Reset/verification without enumeration | 3 | Not started | — | — |
-| FR-AUTH-3 | Auth | MFA for privileged users | 3 | Not started | — | — |
-| FR-AUTH-4 | Auth | Login rate limiting | 3 | Not started | — | — |
-| FR-ONB-1 | Onboarding | Self-registration → PENDING_APPROVAL | 3 | Not started | — | — |
-| FR-ONB-2 | Onboarding | Setup wizard + progress | 3 | Not started | — | — |
-| FR-ONB-3 | Onboarding | Approval history, notifications | 3 | Not started | — | — |
-| FR-RBAC-1 | Auth | Least-privilege configurable roles | 3 | Not started | — | — |
-| BR-T1..T4 | Tenancy | Business status lifecycle | 3 | Not started | — | — |
-| FR-AUD-1 | Audit | Append-only audit log | 3 | Not started | — | — |
-| FR-INV-1..9 | Inventory | Catalogue, variants, IMEI units, stock ledger, returns inspection, alerts, suppliers, scanning | 4 | Not started | — | — |
-| FR-OCR-1..6 | OCR | Capture, confidence, validation, review, untrusted input, file safety | 4 | Not started | — | — |
-| FR-POS-1..5 | POS | Billing, discounts, payments, numbering, customer capture | 5 | Not started | — | — |
-| FR-TAX-1..4 | Tax | Deterministic GST calc, versioned config, notes, e-invoice only where applicable | 5 | Not started | — | — |
-| FR-PRN-1 | Print | A4/A5/80mm/58mm, PDF | 5 | Not started | — | — |
-| FR-LED-1..3 | Ledger | Customer ledger, allocation, metric separation | 5 | Not started | — | — |
-| FR-CRM-1..2 | CRM | Profiles, minimisation | 6 | Not started | — | — |
-| FR-CON-1 | CRM | Consent, suppression, history | 6 | Not started | — | — |
-| FR-REM-1 | CRM | Reminders | 6 | Not started | — | — |
-| FR-RPT-1..5 | Analytics | Reports, definitions, timezone/FY, export, AI fact/estimate | 5–6 | Not started | — | — |
-| FR-HUB-1..6 | API Hub | Adapters, config, vault, health, SSRF, cost attribution | 7 | Not started | — | — |
-| FR-AIC-1..5 | Creative | Drafts/media, grounding, approval, variants, cost | 7 | Not started | — | — |
-| FR-MSG-1..5 | Messaging | WhatsApp, DLT SMS, GBP/Meta, confirmed status, approval/opt-out | 7 | Not started | — | — |
-| FR-AGT-1..6 | Agents | Five agents, deterministic core, least privilege, approval, idempotency, audit | 8 | Not started | — | — |
-| FR-SUB-1..3 | Commercial | Plans, configurable pricing, metering/quotas | 3/8/10 | Not started | — | — |
-| NFR-1..12 | Non-functional | See blueprint §5 | 3–9 | Not started | — | — |
-| SEC T1–T24 | Security | See `SECURITY_THREAT_MODEL.md` | 3–9 | Not started | — | — |
+| BR-T1 | Tenancy | Pending application | 3 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T23, T23a |
+| BR-T2 | Tenancy | Approval history | 3 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T02, T02b |
+| BR-T3 | Tenancy | Reasons required | 3 | Specified | — | — |
+| BR-T4 | Tenancy | Suspension and read-only modes | 3 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T03 |
+| FR-AUTH-1 | Auth | Sessions | 3 | Specified | — | — |
+| FR-AUTH-2 | Auth | Password reset and verification | 3 | Specified | — | — |
+| FR-AUTH-3 | Auth | MFA | 3 | Specified | — | — |
+| FR-AUTH-4 | Auth | Rate limiting | 3 | Specified | — | — |
+| FR-AUTH-5 | Auth | MFA recovery | 3 | Specified | — | — |
+| FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Specified | — | — |
+| FR-ONB-2 | Onboarding | Setup wizard | 3 | Specified | — | — |
+| FR-ONB-3 | Onboarding | Notifications and history | 3 | Specified | — | — |
+| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Specified | — | — |
+| FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
+| FR-INV-1 | Inventory | Hierarchy | 4 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T07, T08 |
+| FR-INV-2 | Inventory | Phone attributes | 4 | Specified | — | — |
+| FR-INV-3 | Inventory | Serialized units and IMEI | 4 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T09–T11 |
+| FR-INV-4 | Inventory | Stock ledger | 4 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T12–T13b, T28, T28b |
+| FR-INV-5 | Inventory | Confirmed transactions only | 4 | Specified | — | — |
+| FR-INV-6 | Inventory | Returns inspection | 4 | Specified | — | — |
+| FR-INV-7 | Inventory | Alerts and reports | 4 | Specified | — | — |
+| FR-INV-8 | Inventory | Suppliers and purchases | 4 | Specified | — | — |
+| FR-INV-9 | Inventory | Barcode/QR scanning | 4 | Specified | — | — |
+| FR-OCR-1 | OCR | Capture and upload | 4 | Specified | — | — |
+| FR-OCR-2 | OCR | Confidence and evidence | 4 | Specified | — | — |
+| FR-OCR-3 | OCR | Deterministic validation | 4 | Specified | — | — |
+| FR-OCR-4 | OCR | Review before posting | 4 | Specified | — | — |
+| FR-OCR-5 | OCR | Untrusted content | 4 | Specified | — | — |
+| FR-OCR-6 | OCR | File safety | 4 | Specified | — | — |
+| FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
+| FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
+| FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T24 |
+| FR-POS-4 | POS | Invoice numbering | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T14–T14e |
+| FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
+| FR-TAX-1 | Tax | Deterministic tax calculation | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T15–T15c |
+| FR-TAX-2 | Tax | Configurable, versioned rates | 5 | Specified | — | — |
+| FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T16–T16g |
+| FR-TAX-4 | Tax | E-invoice / signature only where applicable | 5 | Specified | — | — |
+| FR-PRN-1 | Print | Print and PDF | 5 | Specified | — | — |
+| FR-CRM-1 | CRM | Customer profile | 6 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T27, T27b |
+| FR-CRM-2 | CRM | Data minimisation | 6 | Specified | — | — |
+| FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
+| FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
+| FR-LED-1 | Ledger | Customer ledger | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T18–T18d |
+| FR-LED-2 | Ledger | Deterministic allocation | 5 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T17–T17c |
+| FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
+| FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
+| FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
+| FR-RPT-1 | Reports | Report set | 5–6 | Specified | — | — |
+| FR-RPT-2 | Reports | Definitions shown | 5–6 | Specified | — | — |
+| FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Specified | — | — |
+| FR-RPT-4 | Reports | Export | 5–6 | Specified | — | — |
+| FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
+| FR-EXP-1 | Expenses | Expenses (optional module) | 6 | Specified | — | — |
+| FR-AIC-1 | Creative | Generation | 7 | Specified | — | — |
+| FR-AIC-2 | Creative | Grounding | 7 | Specified | — | — |
+| FR-AIC-3 | Creative | Approval | 7 | Specified | — | — |
+| FR-AIC-4 | Creative | Variants and scheduling | 7 | Specified | — | — |
+| FR-AIC-5 | Creative | Cost and asset tracking | 7 | Specified | — | — |
+| FR-HUB-1 | API Hub | Adapters | 7 | Specified | — | — |
+| FR-HUB-2 | API Hub | Configuration fields | 7 | Specified | — | — |
+| FR-HUB-3 | API Hub | Secret handling | 7 | Specified | — | — |
+| FR-HUB-4 | API Hub | Lifecycle and health | 7 | Specified | — | — |
+| FR-HUB-5 | API Hub | SSRF protection | 7 | Specified | — | — |
+| FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | Specified | — | — |
+| FR-MSG-1 | Messaging | WhatsApp | 7 | Specified | — | — |
+| FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Specified | — | — |
+| FR-MSG-3 | Messaging | Google Business Profile and Meta | 7 | Specified | — | — |
+| FR-MSG-4 | Messaging | Truthful status | 7 | Specified | — | — |
+| FR-MSG-5 | Messaging | Drafts, approval, retries, opt-out | 7 | Specified | — | — |
+| FR-AGT-1 | Agents | Initial agents | 8 | Specified | — | — |
+| FR-AGT-2 | Agents | Deterministic core | 8 | Specified | — | — |
+| FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Specified | — | — |
+| FR-AGT-4 | Agents | Human approval | 8 | Specified | — | — |
+| FR-AGT-5 | Agents | Reliability and budgets | 8 | Specified | — | — |
+| FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
+| FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | Specified | — | — |
+| FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Specified | — | — |
+| FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
+| FR-AUD-1 | Audit | Audit log | 3 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T25–T25d |
+| FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested | `scripts/check-docs.sh` | TR-0001, TR-0002 (#doc checks) |
+| NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | Specified | — | — |
+| NFR-2 | Non-functional | Modular monolith | 3–9 | Specified | — | — |
+| NFR-3 | Non-functional | TypeScript + validation | 3–9 | Specified | — | — |
+| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | Specified | `docs/data-model/schema_draft.sql` (design draft) | Design prototype only: TR-0002 T04–T08, T19–T22, T26, T26b |
+| NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
+| NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
+| NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |
+| NFR-8 | Non-functional | Money correctness | 3–9 | Specified | — | — |
+| NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
+| NFR-10 | Non-functional | Observability | 3–9 | Specified | — | — |
+| NFR-11 | Non-functional | Backups | 3–9 | Specified | — | — |
+| NFR-12 | Non-functional | Data protection | 3–9 | Specified | — | — |
+| NFR-13 | Non-functional | Password storage | 3–9 | Specified | — | — |
+| NFR-14 | Non-functional | Performance (pilot) | 3–9 | Specified | — | — |
+| NFR-15 | Non-functional | Availability (pilot) | 3–9 | Specified | — | — |
+| NFR-16 | Non-functional | Browser support | 3–9 | Specified | — | — |
+| NFR-17 | Non-functional | Security headers | 3–9 | Specified | — | — |
+| NFR-18 | Non-functional | Webhook security | 3–9 | Specified | — | — |
+| NFR-19 | Non-functional | Supply chain | 3–9 | Specified | — | — |
+
+## Security threats
+
+Threat-by-threat mitigation status is tracked in `SECURITY_THREAT_MODEL.md` §6 (T1–T31).

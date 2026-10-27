@@ -31,4 +31,6 @@ else
   echo "ok      no secret patterns found in docs/ or CLAUDE.md"
 fi
 
+python3 -I scripts/check_traceability.py || fail=1
+
 exit "$fail"

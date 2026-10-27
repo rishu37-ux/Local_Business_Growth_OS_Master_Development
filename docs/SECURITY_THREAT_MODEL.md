@@ -1,9 +1,9 @@
 # Security Threat Model
 
-Version: 0.1 (Phase 0 initial draft) — 2026-10-27
+Version: 0.2 (Phase 1 refinement) — 2026-10-27
 Method: asset/trust-boundary analysis with STRIDE per boundary; verification against an OWASP ASVS-aligned checklist (to be created in Phase 3).
 
-**Status: design only. No control listed here is implemented or tested yet.** Each mitigation's status is tracked in the table in §6.
+**Status: design only — no application exists.** Some database-level controls have been prototyped in the schema draft and tested (TR-0002); that is evidence for the design, not for a deployed system. Each mitigation's status is tracked in §6.
 
 ## 1. Assets
 
@@ -76,7 +76,14 @@ Threat actors: unauthenticated internet attacker; malicious or compromised tenan
 | T21 | TB1 | DoS / resource exhaustion | Edge WAF/DDoS from hosting provider; request size limits; pagination limits; queue back-pressure | Large volumetric attacks depend on provider |
 | T22 | AS2 | PII in logs/agent traces | Structured logging with redaction; agent audit stores references, not raw PII | Developer error — review |
 | T23 | TB2 | Account enumeration via registration/reset | Uniform responses and timing | Low |
-| T24 | Lifecycle | Unapproved/suspended tenants accessing data | Business status checked in authorization middleware on every request | Low |
+| T24 | Lifecycle | Unapproved/suspended tenants accessing data | Business status checked in authorization middleware on every request; tenant cannot change its own status (column grants, T03) | Low |
+| T25 | TB3 | **search_path hijacking** in SECURITY DEFINER / trigger functions (an object in a caller-controlled schema shadows a table) | Every function pins `search_path`; `public` has no CREATE for app roles; definer functions minimal and reviewed | Found as a real defect in the schema draft (TR-0002) and fixed; add a lint/check in CI |
+| T26 | TB3 | **Tenant context leakage across pooled connections** (setting from request A still set for request B) | Context set only with transaction-local `set_config(..., true)` inside each transaction; middleware test that a fresh transaction has no context | Pooler configuration error — test in Phase 3 |
+| T27 | TB2 | Approval abuse: self-approval of refunds/discounts/adjustments; approving a payload different from what was shown | Approval stores payload hash; edits invalidate approval; R3 no self-approval when another approver exists; audit | Sole-owner shops must self-approve (audited) |
+| T28 | TB2 | Cross-tenant inference via uniqueness errors (e.g. "IMEI already exists" revealing another shop's stock) | IMEI uniqueness scoped per tenant (D-008); error messages never reference other tenants (T11) | Low |
+| T29 | TB5 | Fraudulent or manipulated supplier invoices (via OCR) inflating stock/costs | OCR only creates drafts; posting requires `purchases.post` and review; code recomputes totals and shows mismatches; duplicate supplier invoice check | Collusion by an authorised insider — audit and reports |
+| T30 | AS2 | Forged or missing consent evidence leading to unlawful messaging | Consent rows append-only with source/actor/time; suppression checked at send time | Owner may record consent falsely — legal responsibility stays with the shop; documented in terms |
+| T31 | TB9 | Agent tool call with forged `business_id` / escalated scope from model output | Tools take tenant and user from session context only; per-tool permission check (FR-AGT-3) | Low |
 
 ## 5. Security requirements derived (ASVS-aligned areas)
 
@@ -86,10 +93,31 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 
 | Mitigation area | Status | Evidence |
 |---|---|---|
-| All of T1–T24 | Planned (not implemented) | None — no code exists yet |
+| T1 tenant isolation (DB layer: RLS, forced RLS, composite FKs, fail-closed context) | Designed; **prototyped and tested in schema draft** | TR-0002: T04–T08, T11, T20–T22, T25c, T26 |
+| T1 tenant isolation (service layer, per-endpoint cross-tenant tests) | Specified (NFR-4) | — |
+| T8 platform admin cannot read tenant business data (DB role separation) | Designed; prototyped and tested | TR-0002: T19a–d, T29 |
+| T14/T18 append-only ledgers, audit and immutable issued invoices | Designed; prototyped and tested | TR-0002: T12, T12c, T16–T16g, T18–T18d, T25b |
+| T15 money/tax arithmetic invariants at DB level | Partially prototyped (total and reconciliation checks) | TR-0002: T15–T15c; tax engine unit tests pending (Phase 5) |
+| T24 tenant cannot self-approve status | Prototyped and tested | TR-0002: T02, T03, T23 |
+| T25 search_path pinning | Fixed in draft | TR-0002 (defect found and fixed) |
+| T28 per-tenant IMEI uniqueness | Prototyped and tested | TR-0002: T09–T11 |
+| All other threats (T2–T7, T9–T13, T16–T17, T19–T23, T26–T27, T29–T31) | Specified in SRS; not implemented | — |
 
 ## 7. Known limitations and statements
 
 - No system is 100% secure; this platform will not be described as "hack-proof".
 - Authorized independent penetration testing is required before broad commercial launch.
 - Legal requirements (GST, DPDP Act, TRAI DLT, WhatsApp/Meta/Google policies) need qualified review; nothing here constitutes verified compliance.
+
+## 8. Data flows per workflow (Phase 1)
+
+| Workflow (WORKFLOWS.md) | Boundaries crossed | Untrusted inputs | Key controls |
+|---|---|---|---|
+| §2 Registration → approval | TB1, TB2 | All form fields, uploaded logo | Email verification, rate limits, `register_application()` forces PENDING_APPROVAL, admin review, reasons recorded |
+| §5 Purchase → stock-in | TB1, TB2, TB3 | Supplier invoice data, IMEIs | Permission `purchases.post`, IMEI validation (app + DB), totals recomputed, atomic posting, append-only movements |
+| §6 POS sale → invoice → payment | TB1, TB2, TB3 | Cart contents, discounts, payment references | Server-side price/discount limits, tax engine, gapless numbering under lock, immutable issued invoice, allocation bounds |
+| §7 OCR scan → review → post | TB1, TB4, TB5, TB6, TB9 | Image/PDF bytes, OCR text, model output | File checks, isolated worker, delimited untrusted text, schema-validated output, mandatory human review, drafts only |
+| §8 Return → inspection → refund | TB1, TB2, TB3 | Return claims | Inspection state, `refunds.approve`, credit note + reversal entries |
+| §9 Campaign → approval → send | TB2, TB6, TB8 | Generated content, provider webhooks | Grounding post-check, approval of exact version, consent/suppression at send time, quotas, signed webhooks, provider-confirmed status only |
+| §10 Integration configuration | TB1, TB6, TB7 | Endpoint URLs, credentials | Re-authentication, SSRF-guarded client, write-only secrets, encryption, audit |
+| §11–12 Agent runs and approvals | TB5, TB6, TB9 | Model output, tool arguments | Session-derived tenant/user, per-tool permission, approval for consequential actions, budgets, idempotency |

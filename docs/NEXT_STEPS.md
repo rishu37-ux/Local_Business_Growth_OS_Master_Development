@@ -1,29 +1,29 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (end of Phase 0)
+Last updated: 2026-10-27 (end of Phase 1)
 
-## Phase 1 — Requirements / SRS (next)
+## Phase 2 — Architecture, cost model, deployment plan, backlog (next)
 
-1. Write `docs/SRS.md` from `REQUIREMENTS_BLUEPRINT.md`: user stories and testable acceptance criteria for every FR/NFR.
-2. Document core workflows (`docs/WORKFLOWS.md`): shop registration → approval → setup; purchase → stock-in (with IMEI); POS sale → invoice → payment → ledger; return → inspection → restock; OCR scan → review → post; campaign draft → approval → send.
-3. Finalise role/permission catalogue (permission keys per module, default role templates: Owner, Manager, Billing, Inventory).
-4. Decide open Phase 1 questions: IMEI uniqueness scope; suspended-tenant access policy; subscription states; owner MFA mandatory or optional.
-5. Produce logical data model (`docs/DATA_MODEL.md`) with tenant keys, constraints (IMEI uniqueness, invoice number uniqueness), append-only tables and RLS plan.
-6. Refine `SECURITY_THREAT_MODEL.md` with data-flow details per workflow.
-7. Update traceability matrix statuses to `Specified`.
+1. `docs/ARCHITECTURE_DECISION_RECORD.md`: compare and choose
+   - API framework (e.g. Fastify / NestJS / Hono) and schema validation library;
+   - frontend build (Vite React SPA vs Next.js) and UI component approach (Tailwind + accessible primitives);
+   - database access (query builder vs ORM) — must support transaction-local `set_config` for RLS and raw SQL for constraints/policies;
+   - migration tool (must handle policies, triggers and functions);
+   - job queue (PostgreSQL-backed vs Redis-backed);
+   - auth approach (managed provider vs maintained library) against FR-AUTH-1…5 and D-011 — depends on Q3;
+   - monorepo layout and module-boundary enforcement (NFR-2).
+2. Tenant-context middleware design: transaction-per-request, pooler mode, tests for context leakage (threat T26).
+3. Cost model: 2–3 managed hosting options (DB with PITR, object storage, compute, queue, email); dated price assumptions; per-tenant cost at 1, 10, 100 shops. Depends on Q2 for budget.
+4. Deployment, backup and rollback plan → fill `DEPLOYMENT_RUNBOOK.md` §3–5 (design; restore test stays in Phase 9).
+5. Development backlog for Phases 3–5 with acceptance criteria references (SRS IDs).
+6. Update `DECISION_LOG.md` (D-003…D-006 → Accepted or revised), traceability, memory.
 
-## Phase 2 — Architecture (after Phase 1)
+## Phase 3 — Foundation (first application code)
 
-8. ADR: frameworks, ORM/query builder, queue, auth approach, monorepo layout.
-9. Cost model comparing 2–3 managed hosting options (state assumptions and dates of pricing).
-10. Deployment/backup plan; development backlog.
+7. Monorepo scaffold; lint, typecheck, unit tests; CI running `scripts/check-docs.sh`, `scripts/test-schema-draft.sh` (or its migration successor), dependency and secret scanning.
+8. Convert schema draft into versioned migrations; keep the 67 checks as DB tests.
+9. Auth, sessions, MFA, onboarding/approval flow, RBAC middleware with route-permission enumeration test, audit log.
 
-## Phase 3 — Foundation (first code)
+## Inputs requested from the user
 
-11. Monorepo scaffold, lint/typecheck/test, CI with secret and dependency scanning.
-12. Migrations: businesses, users, memberships, roles, audit; RLS policies; cross-tenant tests.
-13. Auth, onboarding/approval flow.
-
-## Inputs requested from the user (non-blocking for Phase 1)
-
-See `PHASE0_INSPECTION_REPORT.md` §5 (Q1–Q6).
+Q1–Q6 in `PHASE0_INSPECTION_REPORT.md` §5. Q2 (hosting/budget) and Q3 (auth approach) are needed for Phase 2; sensible documented defaults will be used if not provided.

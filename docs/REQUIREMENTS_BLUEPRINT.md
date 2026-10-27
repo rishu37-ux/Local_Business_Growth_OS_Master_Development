@@ -1,6 +1,6 @@
 # Initial Requirements and Security Blueprint (Phase 0)
 
-Status: **Draft — input to the Phase 1 SRS.** Source: `Local_Business_Growth_OS_Master_Development_Prompt.txt` (v1.0, 27 Oct 2026). Requirement IDs here are used in `REQUIREMENTS_TRACEABILITY.md`.
+Status: **Superseded for detail by `SRS.md` (Phase 1)** — kept as the original Phase 0 blueprint; the SRS is authoritative where they differ. Source: `Local_Business_Growth_OS_Master_Development_Prompt.txt` (v1.0, 27 Oct 2026). Requirement IDs here are used in `REQUIREMENTS_TRACEABILITY.md`.
 
 Nothing in this document is implemented yet.
 

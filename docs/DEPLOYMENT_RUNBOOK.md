@@ -2,7 +2,7 @@
 
 Status: **Placeholder — nothing has been deployed.** No hosting provider has been chosen (Phase 2 decision). Every procedure below is a requirement to be filled in and then actually rehearsed; none has been tested.
 
-Last updated: 2026-10-27 (Phase 0)
+Last updated: 2026-10-27 (Phase 1)
 
 ## 1. Environments (planned)
 
@@ -18,6 +18,8 @@ Last updated: 2026-10-27 (Phase 0)
 - Node.js 22 and pnpm available in the cloud dev session.
 - PostgreSQL 16 server binaries at `/usr/lib/postgresql/16/bin`; must run as the `postgres` OS user (verified once in Phase 0).
 - Docker daemon not available in the cloud session; developer machines may use Docker Compose (to be provided in Phase 3).
+- Schema-draft tests: `scripts/test-schema-draft.sh` creates a throwaway cluster (as the `postgres` OS user when run as root), applies `docs/data-model/schema_draft.sql`, runs the checks and deletes the cluster. Set `PG_BINDIR` if binaries are elsewhere.
+- Documentation checks: `scripts/check-docs.sh`.
 
 ## 3. Deployment procedure — to be written in Phase 2/3
 
