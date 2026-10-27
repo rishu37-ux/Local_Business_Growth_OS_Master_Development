@@ -45,7 +45,7 @@ A self-registered synthetic shop can be approved, completes setup with owner MFA
 
 ## Exit status (2026-10-27)
 
-**Exit criterion met:** the browser test (TR-0010 #3) runs a self-registered synthetic shop through approval, owner MFA, setup and go-live, and invites a Billing staff member who accepts. Every route is permission-checked: unknown keys, missing `:businessId` and misplaced platform permissions fail at registration (TR-0008 #4). Cross-tenant/non-member access returns 404 (TR-0008 #5, #10). CI was green on every increment through 3.7a. CI run #9 for 3.7b **failed** (Node engine floor; order-dependent browser test); both are fixed (TR-0010 addendum), and the result of the CI run on the fixed commit is recorded there.
+**Exit criterion met:** the browser test (TR-0010 #3) runs a self-registered synthetic shop through approval, owner MFA, setup and go-live, and invites a Billing staff member who accepts. Every route is permission-checked: unknown keys, missing `:businessId` and misplaced platform permissions fail at registration (TR-0008 #4). Cross-tenant/non-member access returns 404 (TR-0008 #5, #10). CI was green on every increment through 3.7a. CI run #9 for 3.7b **failed** (Node engine floor; order-dependent browser test); both are fixed (TR-0010 addendum), and CI run #11 on the fixed commit is green.
 
 | Increment | Evidence |
 |---|---|

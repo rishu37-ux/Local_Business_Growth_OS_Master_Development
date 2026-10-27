@@ -37,7 +37,8 @@ export function registerTenancyRoutes(app: FastifyInstance, s: AppServices): voi
     },
   );
 
-  app.get('/api/businesses', { config: { permission: AUTHENTICATED } }, async (request) => ({
+  // Reachable before MFA enrolment: a newly approved owner must still see their business (and the prompt to enrol).
+  app.get('/api/businesses', { config: { permission: AUTHENTICATED, allowWithoutMfa: true } }, async (request) => ({
     businesses: await myBusinesses(s.appDb, request.principal?.userId ?? ''),
   }));
 

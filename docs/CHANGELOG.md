@@ -9,8 +9,12 @@
 - RBAC with default roles and access modes; business lifecycle (apply → review → approve/reject/request changes → setup → activate → suspend/reinstate); audit log.
 - Setup wizard backend + web UI, GSTIN validation, invoice series per financial year, staff invitations, notifications, admin-created businesses, plan management.
 - React SPA served same-origin; Playwright + axe browser exit test.
-- GitHub Actions CI (SHA-pinned actions, Node 22.18 + 24).
+- GitHub Actions CI (SHA-pinned actions, Node 22 + 24).
 - Decisions D-023…D-031; test reports TR-0004…TR-0010.
+
+### Fixed
+- Home page of an approved owner before MFA enrolment listed no business (TR-0010 addendum 2).
+- `scripts/dev-local.sh` for a local look at the portal.
 
 ### Removed
 - `spikes/tenant-context` (ported to `@lbgos/db`; kept in git history).

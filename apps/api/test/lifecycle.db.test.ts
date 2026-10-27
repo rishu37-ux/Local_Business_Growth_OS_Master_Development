@@ -145,6 +145,10 @@ describe('platform review (BR-T2, BR-T3)', () => {
 
 describe('setup and activation (FR-ONB-2 AC3, D-011)', () => {
   it('once Owner, the applicant must enrol MFA before using the business', async () => {
+    // The business list stays reachable so the owner can find it and the enrolment prompt.
+    const list = await get(h, '/api/businesses', applicant.cookies);
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toMatchObject({ businesses: [{ businessId, status: 'APPROVED_SETUP_PENDING' }] });
     const res = await get(h, `/api/businesses/${businessId}`, applicant.cookies);
     expect(res.statusCode).toBe(403);
     expect(errorCode(res)).toBe('MFA_ENROLMENT_REQUIRED');

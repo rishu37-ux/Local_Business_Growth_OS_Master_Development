@@ -59,7 +59,8 @@ export function HomePage({ me }: { me: Me }) {
         <h2 id="biz-heading" className="mb-2 text-xl font-semibold">
           Your businesses
         </h2>
-        {list.length === 0 ? <p>You are not part of any business yet.</p> : null}
+        <Alert message={businesses.error ? errorText(businesses.error) : null} />
+        {businesses.isSuccess && list.length === 0 ? <p>You are not part of any business yet.</p> : null}
         <ul className="flex flex-col gap-2">
           {list.map((b) => (
             <li key={b.businessId} className="rounded border border-slate-300 bg-white p-3">

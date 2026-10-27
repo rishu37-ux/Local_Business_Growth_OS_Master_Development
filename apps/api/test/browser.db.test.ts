@@ -151,6 +151,11 @@ describe('Phase 3 exit: register → approve → MFA → setup → live → invi
   }, 60_000);
 
   it('the new owner is sent to MFA enrolment, enrols, completes setup and goes live', async () => {
+    // Before enrolling, the home page still lists the business and prompts for MFA
+    // (regression: the list used to be blocked until enrolment).
+    await owner.goto(`${ORIGIN}/`);
+    await owner.getByRole('link', { name: 'Exit Test Mobiles (synthetic)' }).waitFor();
+    await owner.getByRole('alert').getByText('Two-step verification is required').waitFor();
     await owner.goto(businessUrl);
     await owner.getByRole('link', { name: 'Set up two-step verification' }).click();
     await owner.getByLabel('Password').fill(PW);

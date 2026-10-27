@@ -259,3 +259,15 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 3. **Order-independence check:** the API DB suite was run with shuffled file order (`--sequence.shuffle.files`, seeds 1–4) → **78/78 passed each time**.
 
 This counts as a CI failure on 3.7b until a green run on the fixed commit is recorded below.
+
+**Result on the fixed commit:** [CI run #11](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40477809802) (commit `c589ab7`) **passed on both jobs** (Node 22 and Node 24).
+
+### TR-0010 addendum 2 — defect found while capturing screenshots
+
+While capturing screenshots of the portal for the user, a newly approved owner who had not yet enrolled MFA saw "You are not part of any business yet" on the home page. `GET /api/businesses` returned 403 (MFA required), and the home page treated the failure as an empty list. **Fix:** the endpoint (listing only the caller's own memberships) is reachable before MFA enrolment (`allowWithoutMfa`); the business's own pages still require MFA. The home page now shows the API error instead of an empty-list message.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Lifecycle DB test: an approved owner without MFA gets 200 with their `APPROVED_SETUP_PENDING` business; browser test: the home page lists the business and shows the MFA alert before enrolment | **Pass** — API DB 78/78 |
+| 2 | Negative control: fix reverted, tests re-run | **Detected** — the lifecycle tests fail; fix restored |
+| 3 | `scripts/dev-local.sh` (new local demo script) | **Pass** — `GET /` 200 HTML, `/sign-in` 200, `/api/me` 401; instructions printed |

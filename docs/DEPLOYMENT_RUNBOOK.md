@@ -2,13 +2,13 @@
 
 Status: **Plan only — nothing has been deployed, and no procedure here has been rehearsed.** The hosting target is the ADR-18 recommendation (DigitalOcean BLR1 + Cloudflare), pending user confirmation (Q2). Provider-specific steps must be checked against current provider documentation when the environment is created.
 
-Last updated: 2026-10-27 (Phase 2)
+Last updated: 2026-10-27 (Phase 3)
 
 ## 1. Environments
 
 | Environment | Purpose | Data | Status |
 |---|---|---|---|
-| local | Development | Synthetic only | Throwaway PostgreSQL harness exists (`scripts/with-throwaway-pg.sh`); app not yet built |
+| local | Development | Synthetic only | Throwaway PostgreSQL harness; `scripts/dev-local.sh` runs the portal locally |
 | ci | Automated tests | Synthetic, ephemeral | **Running** — GitHub Actions `ci.yml`, first run green (TR-0006) |
 | staging | Pre-release verification, restore drills | Synthetic / anonymised only | Not set up |
 | production | Pilot and customers | Real | Not set up |
@@ -23,7 +23,9 @@ pnpm check                      # lint, format, typecheck, build, unit, DB and b
 pnpm -F @lbgos/web build        # SPA → apps/web/dist (served by the API at /)
 ```
 
-Running the API locally against a database:
+**Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally.
+
+Running the API locally against a persistent database:
 1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store.
 2. Migrate: `LBGOS_MIGRATION_DATABASE_URL=postgres://lbgos_owner:...@host/db node packages/db/src/migrate-cli.ts`.
 3. Start: `SESSION_SECRET=<32+ random chars> PUBLIC_BASE_URL=http://localhost:3000 node apps/api/src/server.ts`. `DATABASE_URL_*` are optional locally (libpq `PG*` variables are used with the role names). Verification/invitation emails are printed to stdout by the development mailers.
