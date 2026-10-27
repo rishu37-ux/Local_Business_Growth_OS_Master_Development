@@ -1,0 +1,22 @@
+{
+  "name": "@lbgos/db",
+  "private": true,
+  "type": "module",
+  "description": "Database access: SQL migrations, role pools, transaction-local tenant context.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "migrate": "node src/migrate-cli.ts",
+    "test:db": "../../scripts/with-throwaway-pg.sh sh -c 'node src/migrate-cli.ts && psql -X -q -v ON_ERROR_STOP=1 -o /dev/null -f test/schema-checks.sql && vitest run --config vitest.db.config.ts'"
+  },
+  "dependencies": {
+    "kysely": "0.29.7",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "@lbgos/domain": "workspace:*"
+  }
+}

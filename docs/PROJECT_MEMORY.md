@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increment 3.1 (monorepo scaffold) done; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold) and 3.2 (migrations, tenant context) done; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,4 +60,4 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.2** (F-03/F-04): create `packages/db` with SQL migrations ported from the schema draft (plus the `auth` schema and `lbgos_auth` role), a Kysely Migrator runner, `withTenant()` and pools from the spike; run the 67 schema checks and the spike tests against the migrated DB. Then 3.3 CI.
+Phase 3 increment **3.3** (F-02): add `.github/workflows/ci.yml` (pinned action SHAs, `permissions: contents: read`) running `pnpm install --frozen-lockfile`, `pnpm check` (incl. DB tests via the throwaway harness, PostgreSQL installed on the runner), `scripts/check-docs.sh`, `pnpm audit` and a secret scan; push and check the run result. Then 3.4 API skeleton.

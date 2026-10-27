@@ -84,3 +84,28 @@ What the 12 spike tests cover: tenant isolation with 200 concurrent requests on 
 | 7 | — | `pnpm audit` and `pnpm audit --prod` | **No known vulnerabilities** |
 
 A lint finding on the first run (`no-misused-spread` on a string spread in a test) was fixed before commit. The DB/IMEI parity part of AC5 is covered in increment 3.2.
+
+---
+
+## TR-0005 · 2026-10-27 · Phase 3 increment 3.2 — migrations and tenant context
+
+**Environment:** cloud dev container; Node v22.22.0; pnpm 10.28.0; PostgreSQL 16.15 throwaway cluster (`scripts/with-throwaway-pg.sh`, bootstrap from `packages/db/bootstrap/bootstrap.sql`); kysely 0.29.7, pg 8.23.1; Vitest 5.0.5. Synthetic data only.
+
+| # | AC | Check | Result |
+|---|---|---|---|
+| 1 | AC1 | `node src/migrate-cli.ts` on an empty DB (as `lbgos_owner`) | **Pass** — `0001_foundation`, `0002_auth_schema` applied |
+| 2 | AC1 | Re-running the migrator (Vitest) | **Pass** — no results, no error; both names recorded in `lbg_migrations.kysely_migration` |
+| 3 | AC2 | `packages/db/test/schema-checks.sql` against the **migrated** DB | **Pass — 73/73** (the 67 Phase 1 checks + 6 new) |
+| 4 | AC4 | New checks T30–T30f: `lbgos_app`/`lbgos_platform` have no USAGE on schema `auth`; `lbgos_auth` has USAGE on `auth` but none on `lbg`; tenant role denied a table in `auth` (42501); default privileges give `lbgos_auth` access to tables the owner creates | **Pass** |
+| 5 | AC3 | Vitest DB suite: tenant isolation (200 concurrent / 3 connections), no leakage after commit/rollback + negative control, rollback, malformed context, cross-tenant write (42501), platform **and auth** pools denied tenant tables, gapless numbering (30 concurrent, 6 rollbacks), allocation locking (with/without locks), payment split | **Pass — 12/12** |
+| 6 | 3.1 AC5 | IMEI parity: `@lbgos/domain` `isValidImei` vs `lbg.is_valid_imei()` on all 10 shared vectors | **Pass — 10/10** |
+| 7 | — | Negative control: advisory lock removed from `packages/db/src/locking.ts` | **Detected** — 1 failed / 23 passed; file restored; re-run 24/24 |
+| 8 | — | `pnpm check` (lint, format, typecheck, unit, DB) + `pnpm audit` | **Pass**, exit 0; no known vulnerabilities |
+| 9 | — | Historical draft suite `scripts/test-schema-draft.sh` with the new bootstrap | **Pass** — still reproducible |
+
+**Defects found and fixed during this increment:**
+- Kysely 0.29 exports `Migrator` from `kysely/migration`, not the package root (boot failed with `does not provide an export named 'Migrator'`).
+- The T30f check first failed with `permission denied for schema t`: the test-helper schema had not been granted to `lbgos_auth`. This was a harness gap, not a product defect.
+- Lint flagged an unnecessary `Number()` conversion in `allocateInvoiceNumber` (int4 already arrives as a JS number).
+
+The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were ported; it remains in git history (commit `e4726a9`).

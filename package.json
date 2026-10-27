@@ -1,7 +1,7 @@
 {
   "name": "lbgos",
   "private": true,
-  "description": "Local Business Growth OS — multi-tenant SaaS for local businesses (modular monolith).",
+  "description": "Local Business Growth OS \u2014 multi-tenant SaaS for local businesses (modular monolith).",
   "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -13,7 +13,8 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test"
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm test:db",
+    "test:db": "pnpm -r --if-present test:db"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

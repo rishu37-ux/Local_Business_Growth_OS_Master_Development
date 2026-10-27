@@ -1,4 +1,6 @@
 -- Local Business Growth OS — logical schema DRAFT (Phase 1 design artifact)
+-- HISTORICAL: superseded by packages/db/migrations (Phase 3). Kept unchanged so
+-- TR-0002 stays reproducible (scripts/test-schema-draft.sh).
 --
 -- Purpose: make the Phase 1 data-model decisions concrete and mechanically
 -- testable (tenant isolation via RLS, append-only ledgers, IMEI rules,

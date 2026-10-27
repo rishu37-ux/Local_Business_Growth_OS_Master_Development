@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-scripts/with-throwaway-pg.sh bash -c '
+PGTEST_SCHEMA=draft scripts/with-throwaway-pg.sh bash -c '
   set -o pipefail
   echo "schema applied"
   psql -X -q -v ON_ERROR_STOP=1 -o /dev/null -f docs/data-model/schema_draft_test.sql 2>&1 \

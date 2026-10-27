@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# Starts a throwaway PostgreSQL cluster, creates the lbgos_* roles and
-# extensions, applies docs/data-model/schema_draft.sql, then runs the given
-# command with PGHOST/PGPORT/PGUSER/PGDATABASE exported. The cluster is deleted
-# on exit and the command's exit status is returned. Synthetic data only.
+# Starts a throwaway PostgreSQL cluster, runs packages/db/bootstrap/bootstrap.sql
+# (roles, extensions), optionally applies the Phase 1 schema draft, then runs the
+# given command with PGHOST/PGPORT/PGUSER/PGDATABASE exported. The cluster is
+# deleted on exit and the command's exit status is returned. Synthetic data only.
 #
 # Usage: scripts/with-throwaway-pg.sh <command> [args...]
+#   PGTEST_SCHEMA=draft applies docs/data-model/schema_draft.sql (default: none;
+#   the command is expected to run migrations itself).
 #   PG_BINDIR=/path/to/bin overrides binary discovery; PGTEST_PORT overrides the port.
 set -euo pipefail
 [[ $# -gt 0 ]] || { echo "usage: $0 <command> [args...]"; exit 2; }
@@ -48,16 +50,12 @@ as_pg "$bindir/pg_ctl" -D "$work/data" -o "-p $port -k $work -c listen_addresses
 export PGHOST=$work PGPORT=$port PGUSER=postgres PGDATABASE=postgres
 psql_q() { "$bindir/psql" -X -q -v ON_ERROR_STOP=1 "$@"; }
 
-# LOGIN without passwords is acceptable only because the cluster listens on a
-# private Unix socket and is deleted on exit.
-psql_q <<'SQL'
-create role lbgos_owner nologin bypassrls;
-create role lbgos_app login nobypassrls;
-create role lbgos_platform login nobypassrls;
-create extension pgcrypto;
-create extension citext;
-SQL
-psql_q -f "$repo/docs/data-model/schema_draft.sql"
+# LOGIN roles without passwords are acceptable only because the cluster listens
+# on a private Unix socket and is deleted on exit.
+psql_q -f "$repo/packages/db/bootstrap/bootstrap.sql"
+if [[ "${PGTEST_SCHEMA:-none}" == "draft" ]]; then
+  psql_q -f "$repo/docs/data-model/schema_draft.sql"
+fi
 
 set +e
 PATH="$bindir:$PATH" "$@"
