@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
+Last updated: 2026-10-27 (Phase 4, increment 4.2) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -26,12 +26,12 @@ Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | Implemented + tested (AC1–3) | migration 0007, `packages/modules/src/catalogue/`, `apps/api/src/routes/catalogue.ts` | TR-0011 #2–4 |
 | FR-INV-2 | Inventory | Phone attributes | 4 | Implemented + tested (AC1–4) | migration 0007, `packages/modules/src/catalogue/` | TR-0011 #2, #5 |
-| FR-INV-3 | Inventory | Serialized units and IMEI | 4 | In progress (DB layer + domain validation) | `packages/db/migrations/0001_foundation.sql`, `packages/domain/src/imei.ts` | TR-0002 T09–T11; TR-0005 (migrated DB) |
-| FR-INV-4 | Inventory | Stock ledger | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T12–T13b, T28, T28b; TR-0005 (migrated DB) |
-| FR-INV-5 | Inventory | Confirmed transactions only | 4 | Specified | — | — |
+| FR-INV-3 | Inventory | Serialized units and IMEI | 4 | Implemented + tested for purchasing (AC1–5); AC6 transitions in `@lbgos/domain` units.ts, used by reversal (more with 4.3/4.4) | migrations 0001/0008, `@lbgos/domain` imei.ts/units.ts, `modules/purchasing/problems.ts` | TR-0012 #3–5 |
+| FR-INV-4 | Inventory | Stock ledger | 4 | In progress (AC1–2 DB layer; projection maintained by trigger — reconciliation and adjustments in 4.3) | migrations 0001/0008, `modules/inventory/ledger.ts` | TR-0002 T12–T13b, T28; TR-0012 #6 |
+| FR-INV-5 | Inventory | Confirmed transactions only | 4–5 | In progress (AC1–2 for purchases tested; AC3 negative-stock refusal in the DB trigger tested via reversal; AC4 serialized sale race with POS in Phase 5) | migration 0008 trigger, `modules/purchasing/purchases.ts` | TR-0012 #2, #6, #9–10 |
 | FR-INV-6 | Inventory | Returns inspection | 4 | Specified | — | — |
 | FR-INV-7 | Inventory | Alerts and reports | 4 | Specified | — | — |
-| FR-INV-8 | Inventory | Suppliers and purchases | 4 | Specified | — | — |
+| FR-INV-8 | Inventory | Suppliers and purchases | 4 | Implemented + tested (AC1–4; attachments with 4.5 uploads) | migration 0008, `packages/modules/src/purchasing/`, `apps/api/src/routes/purchasing.ts` | TR-0012 #1–10 |
 | FR-INV-9 | Inventory | Barcode/QR scanning | 4 | Specified | — | — |
 | FR-OCR-1 | OCR | Capture and upload | 4 | Specified | — | — |
 | FR-OCR-2 | OCR | Confidence and evidence | 4 | Specified | — | — |

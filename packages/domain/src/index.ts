@@ -42,3 +42,21 @@ export {
   weightedAverageCost,
 } from './money.ts';
 export { effectiveVersion, periodsOverlap, type TaxRateVersion } from './tax-rates.ts';
+export {
+  lineCost,
+  purchaseLineAmounts,
+  purchaseTotals,
+  splitAmount,
+  unitCostFromLine,
+  type PurchaseLineAmounts,
+  type PurchaseLineInput,
+  type PurchaseTotals,
+} from './purchase.ts';
+export {
+  canUnitTransition,
+  isSellable,
+  UNIT_BUCKET,
+  UNIT_STATUSES,
+  UNIT_TRANSITIONS,
+  type UnitStatus,
+} from './units.ts';

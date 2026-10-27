@@ -34,6 +34,8 @@ const DB_ERRORS: Readonly<Record<string, Mapped>> = {
     code: 'SERIALIZED_LOCKED',
     message: 'Serial tracking cannot be changed after stock was recorded.',
   },
+  LB015: { status: 409, code: 'INSUFFICIENT_STOCK', message: 'There is not enough stock for this change.' },
+  LB016: { status: 409, code: 'NOT_DRAFT', message: 'Only a draft can be changed.' },
   '23505': { status: 409, code: 'CONFLICT', message: 'A record with these details already exists.' },
   '23503': { status: 422, code: 'INVALID_REFERENCE', message: 'A referenced record does not exist.' },
   '23514': { status: 422, code: 'CONSTRAINT_VIOLATION', message: 'The data violates a business rule.' },

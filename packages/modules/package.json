@@ -7,8 +7,10 @@
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
+    "./inventory": "./src/inventory/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./onboarding": "./src/onboarding/index.ts",
+    "./purchasing": "./src/purchasing/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

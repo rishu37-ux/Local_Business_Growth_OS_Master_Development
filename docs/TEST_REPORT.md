@@ -292,3 +292,26 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 10 | — | `pnpm check`: lint, format, typecheck, build; domain 51, eslint rules 11, API unit 37, DB schema checks + 54, auth drift ok, API DB 93 (incl. catalogue 15) | **Pass**, exit 0 |
 
 **Not covered yet:** re-authentication before tax-setting changes (FR-TAX-2 AC2, D-030); catalogue UI (increment 4.6).
+
+---
+
+## TR-0012 · 2026-10-27 · Phase 4 increment 4.2 — suppliers and purchases
+
+**Environment:** as TR-0011, migrations 0001–0008. Synthetic shops: one UNREGISTERED, one REGULAR (sample GSTIN used only as a checksum vector), one unrelated tenant.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-8 AC1 | Supplier GSTIN checksum rejected when wrong; lower-case GSTIN normalised; state taken from the GSTIN; GSTIN/state mismatch rejected | **Pass** |
+| 2 | FR-INV-8 AC2, FR-INV-5 AC1 | Draft totals computed by code (intra-state CGST/SGST); difference from the printed supplier total shown (−₹4.10); a draft writes no movements and no stock level | **Pass** |
+| 3 | FR-INV-3 AC2–4, FR-OCR-3 AC1 (shared checks) | Wrong check digit, duplicate IMEI within the purchase, IMEI1 = IMEI2 and unit-count mismatch reported per line/position/field; the wrong IMEI is stored exactly as entered; posting refused (422) | **Pass** |
+| 4 | FR-INV-3 AC3, AC5 | After posting, the same IMEI on a new draft is a blocking `IMEI_EXISTS` with the existing unit ID; the same IMEI is accepted and posted in another business, with only a "no tax rate" warning | **Pass** |
+| 5 | — | IMEIs on non-serialized lines flagged; non-digit IMEIs and another tenant's variant or supplier rejected (422) | **Pass** |
+| 6 | FR-INV-5 AC2, FR-INV-8 AC4 | Posting: units IN_STOCK with IMEIs, 3 PURCHASE movements, stock levels 2 and 10, unit cost incl. tax for an unregistered shop (D-033), supplier payable = document total, `purchase.post` audit | **Pass** |
+| 7 | FR-INV-8 AC4 | Posted purchase cannot be edited (409 `NOT_DRAFT`) or posted again; the DB refuses line changes even for the owner role (LB016) | **Pass** |
+| 8 | FR-INV-8 AC3 | Same supplier invoice number (different case) blocks posting (409); override reason < 10 chars rejected; with a reason, posts and stores it | **Pass** |
+| 9 | D-017, D-033 | Weighted average cost after a second purchase equals the formula; a REGULAR registrant's cost excludes tax; inter-state supplier → IGST only | **Pass** |
+| 10 | FR-INV-5 AC2 (atomicity) | Two drafts sharing an IMEI posted concurrently: exactly one 200; the other 409/422 and left no units, no movements and stayed DRAFT | **Pass** |
+| 11 | WORKFLOWS §5 | Reversal: units REVERSED, IMEIs released (re-entry no longer flagged), 2 REVERSAL movements, payable reduced by the document total; second reversal 409; reversal refused when a unit is SOLD (`REVERSAL_BLOCKED`) or non-serialized stock is short (`INSUFFICIENT_STOCK`, DB trigger LB015) | **Pass** |
+| 12 | FR-RBAC-1, NFR-4 | Inventory staff create drafts but cannot post (403); Billing cannot see purchases/suppliers (403); another tenant gets 404 on purchase, post, supplier and ledger routes | **Pass** |
+| 13 | — | Negative controls: (a) negative-stock check removed from the trigger → the insufficient-stock test fails; (b) existing-IMEI lookup disabled → the `IMEI_EXISTS` test fails (the concurrent test still passed: the IMEI primary key is the last line of defence). Both restored | **Detected** both |
+| 14 | — | `pnpm check`: domain 56, API DB 109 (incl. purchasing 16, catalogue 15, browser exit test), DB 54 + schema checks | **Pass**, exit 0 |
