@@ -541,3 +541,21 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 3 | First run after the redesign failed: the pending-application page no longer showed the text "Application status:" and the overview no longer showed "Status:" that the test (and screen-reader users) rely on; both labels restored | **Defect found and fixed** |
 | 4 | Visual review: screenshots of sign-in, home, overview, catalogue, stock, purchases, suppliers, staff at 1440 px and overview/stock at 390 px taken from the running app with synthetic data and shared with the user (not stored in the repository) | Done |
 | 5 | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 209 | **Pass**, exit 0 |
+
+## TR-0023 · 2026-10-27 · Phase 5 increment 5.6 — print and PDF
+
+**Environment:** as TR-0011, migrations 0001–0016; headless Chromium (Playwright 1.63) for PDFs; `pdftotext` (poppler-utils) to read PDF text.
+
+| # | Requirement / AC | Check (`print.db.test.ts`, `amount-words.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-PRN-1 AC1 | Owner saves default size 80 mm, address, phone (normalised to +919800011122), email and terms; Billing 403; invalid phone 422 | **Pass** |
+| 2 | FR-PRN-1 AC2, FR-TAX-4 AC2 | Inter-state B2B sale (phone with IMEI + 2 cables, part-paid by UPI) printed in A4, A5, 80 mm and 58 mm: each shows title, shop name, address, phone, seller GSTIN, buyer name/GSTIN/state, place of supply, HSN codes, IMEI, total ₹16,000.00, "Rupees Sixteen Thousand Only", UPI payment and reference, balance due ₹6,000.00, terms; IGST and no CGST; no `<script>`; print CSP `default-src 'none'`; a customer name containing markup is shown escaped; no e-invoice/IRN/QR/digital-signature wording | **Pass** |
+| 3 | FR-PRN-1 AC1–2, D-044 | Without `size` the business default is used; after changing the shop address the reprint still shows the address as issued; the default follows the settings | **Pass** |
+| 4 | FR-TAX-1 AC4, FR-TAX-3 | Bill of Supply has no tax summary or GST column; a credit note prints "Credit Note" and "Against invoice"; a cancelled invoice prints "CANCELLED" | **Pass** |
+| 5 | FR-PRN-1 AC3 | PDF for each size: `application/pdf`, starts `%PDF-`, attachment filename from the number; every word of the print page (without the screen-only toolbar) appears in the PDF text (case-insensitive: headings are uppercased by CSS) | **Pass** |
+| 6 | NFR tenancy | Other businesses 404 (print, PDF); Inventory role 403; unknown size 400 | **Pass** |
+| 7 | FR-PRN-1 AC2 | Amount in words, Indian system (thousand/lakh/crore, paise), boundaries and a property test over 0…10¹³ paise; state names for all GST codes | **Pass** |
+| 8 | — | **Defect found by test 5 and fixed:** on A5 the line table was wider than the page and the Amount column was cut off in the PDF. The discount column now appears only when a line has a discount, A5 uses tighter cells, and amounts do not wrap; an A5 invoice with a discount was rendered and inspected as an image and fits | **Fixed** |
+| 9 | — | Negative control: HTML escaping disabled → test 2 fails. Restored | **Detected** |
+| 10 | FR-PRN-1 AC4 | Manual printing on Chrome (Android/desktop), Safari (iOS), Firefox and an 80 mm thermal printer | **Not done** (needs real devices) |
+| 11 | — | `pnpm check`: domain 134, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 215 | **Pass**, exit 0 |

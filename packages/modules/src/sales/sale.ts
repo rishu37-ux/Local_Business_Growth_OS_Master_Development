@@ -591,7 +591,11 @@ export async function issueSale(
           registrationType: priced.seller.registrationType,
           gstin: priced.seller.gstin,
           stateCode: priced.seller.stateCode,
+          address: priced.seller.address,
+          phone: priced.seller.phone,
+          email: priced.seller.email,
         },
+        terms: priced.seller.terms,
         buyer: customer
           ? {
               name: customer.name,

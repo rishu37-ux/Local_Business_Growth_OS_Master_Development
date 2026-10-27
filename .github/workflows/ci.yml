@@ -44,6 +44,9 @@ jobs:
           fi
           ls -d /usr/lib/postgresql/*/bin
 
+      - name: Ensure pdftotext (PDF text checks in the print tests)
+        run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils)
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

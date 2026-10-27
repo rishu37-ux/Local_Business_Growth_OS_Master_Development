@@ -7,6 +7,7 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
+import { chromiumPdfRenderer } from '../src/pdf.ts';
 import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
 import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
@@ -75,10 +76,12 @@ export async function startHarness(
     isolation: { adapterUrl: DEFAULT_ADAPTER_URL, structurerUrl: null, timeoutMs: 15_000, maxMemoryMb: 128 },
     staleSeconds: 600,
   };
+  // Real Chromium, started on the first PDF request only.
+  const pdf = chromiumPdfRenderer();
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr },
+    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr, pdf },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
@@ -106,6 +109,7 @@ export async function startHarness(
     },
     async close() {
       await app.close();
+      await pdf.close();
       await Promise.all([authDb, appDb, platformDb, admin].map((db) => db.destroy()));
     },
   };

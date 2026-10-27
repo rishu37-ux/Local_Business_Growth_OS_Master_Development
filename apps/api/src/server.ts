@@ -3,6 +3,7 @@ import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
 import { DevConsoleMailer } from '@lbgos/modules/notifications';
+import { chromiumPdfRenderer } from './pdf.ts';
 import { DEFAULT_ADAPTER_URL, LocalFileStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
 import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { existsSync } from 'node:fs';
@@ -56,13 +57,16 @@ const ocr: OcrConfig = {
   staleSeconds: Math.ceil(config.OCR_TIMEOUT_MS / 1000) * 4,
 };
 
+// PDFs of printed documents (ADR-12): headless Chromium, started on first use.
+const pdf = chromiumPdfRenderer();
+
 // Serve the built web app when present (pnpm -F @lbgos/web build).
 const webRoot = path.resolve(import.meta.dirname, '../../web/dist');
 
 const app = buildApp({
   config,
   ...(existsSync(path.join(webRoot, 'index.html')) ? { webRoot } : {}),
-  services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL, ocr },
+  services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL, ocr, pdf },
   readiness: {
     database: async () => {
       await sql`select 1`.execute(appDb);
@@ -92,6 +96,7 @@ async function shutdown(signal: string) {
   app.log.info({ signal }, 'shutting down');
   clearInterval(ocrTimer);
   await app.close();
+  await pdf.close();
   await Promise.all(pools.map((db) => db.destroy()));
 }
 process.once('SIGTERM', () => void shutdown('SIGTERM'));

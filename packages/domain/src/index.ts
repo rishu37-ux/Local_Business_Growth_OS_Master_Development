@@ -127,3 +127,5 @@ export {
 export { METRICS, type MetricKey } from './metrics.ts';
 export { normalizeMobile, placeOfSupply } from './customers.ts';
 export { discountWithinLimit } from './discount-limits.ts';
+export { amountInWords } from './amount-words.ts';
+export { GST_STATES, stateLabel } from './gst-states.ts';

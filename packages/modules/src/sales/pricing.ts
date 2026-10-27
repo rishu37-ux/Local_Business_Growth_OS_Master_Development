@@ -153,6 +153,11 @@ export interface SellerFacts {
   readonly timezone: string;
   readonly roundOff: boolean;
   readonly allowNegativeStock: boolean;
+  /** Printed on documents (D-044). */
+  readonly address: string | null;
+  readonly phone: string | null;
+  readonly email: string | null;
+  readonly terms: string | null;
 }
 
 export function toDiscount(kind: string | null, value: string | number | null): Discount | null {
@@ -182,9 +187,14 @@ export async function sellerFacts(trx: Trx, ctx: TenantContext): Promise<SellerF
     timezone: string;
     round_off: boolean | null;
     allow_negative_stock: boolean | null;
+    business_address: string | null;
+    business_phone: string | null;
+    business_email: string | null;
+    invoice_terms: string | null;
   }>`
     select b.legal_name, b.display_name, t.registration_type, t.gstin, coalesce(t.state_code, b.state_code) as state_code,
-           b.timezone, s.round_off, s.allow_negative_stock
+           b.timezone, s.round_off, s.allow_negative_stock, s.business_address, s.business_phone,
+           s.business_email::text as business_email, s.invoice_terms
       from lbg.businesses b
       left join lbg.tax_profiles t on t.business_id = b.id
       left join lbg.business_settings s on s.business_id = b.id
@@ -200,6 +210,10 @@ export async function sellerFacts(trx: Trx, ctx: TenantContext): Promise<SellerF
     timezone: r.timezone,
     roundOff: r.round_off ?? true,
     allowNegativeStock: r.allow_negative_stock ?? false,
+    address: r.business_address,
+    phone: r.business_phone,
+    email: r.business_email,
+    terms: r.invoice_terms,
   };
 }
 

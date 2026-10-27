@@ -46,6 +46,8 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC3 FR-TAX-4: no e-invoice, IRN/QR or digital-signature claims; no text saying every GST invoice needs a digital signature (test on templates).
 - AC4 FR-PRN-1 AC4 (manual printer and cross-browser tests) is **recorded as not done** unless actually performed; it needs real devices.
 
+**Status (5.6):** done — TR-0023, D-044. AC4 (manual tests on real browsers, phones and a thermal printer) **not done**. Print buttons in the web app come with the POS screens (5.8).
+
 ## Increment 5.7 — Reports and exports (P-08, P-09, FR-RPT-1…4)
 - AC1 FR-RPT-1 (Phase 5 subset): sales summary (day/week/month/year with previous period), sales by brand/model/variant, margin (`reports.financial.view`), receivables ageing (0–30/31–60/61–90/90+), payment-method summary (cash received), returns, tax summary (labelled "not a filing"), stock valuation; **exact values on a seeded dataset**.
 - AC2 FR-RPT-2 / FR-LED-3: every metric carries its §7 definition; nothing labels sales as profit or cash.

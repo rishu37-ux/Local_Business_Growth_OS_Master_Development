@@ -17,19 +17,26 @@ import {
   discardSale,
   getInvoice,
   getNumbering,
+  getPrintSettings,
   getSale,
   issueSale,
   listHeldSales,
   listInvoices,
   NumberingSettingsError,
+  PAPER_SIZES,
+  PrintSettingsError,
+  renderDocumentHtml,
   requestDiscountApproval,
   SaleError,
   saveNumbering,
+  savePrintSettings,
   updateSaleDraft,
   type IssueInput,
+  type PaperSize,
   type SaleDraftInput,
   type SellerAccess,
 } from '@lbgos/modules/sales';
+import { PdfBusyError } from '../pdf.ts';
 import type { AppServices } from '../services.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
@@ -124,6 +131,7 @@ export function sendSalesError(err: unknown, request: FastifyRequest, reply: Fas
     return send(422, { code: err.code, message: err.message });
   }
   if (err instanceof NumberingSettingsError) return send(422, { code: err.code, message: err.message });
+  if (err instanceof PrintSettingsError) return send(422, { code: err.code, message: err.message });
   if (err instanceof SaleError) {
     if (err.code === 'NOT_FOUND') return send(404, { code: 'NOT_FOUND', message: 'Not found.' });
     return send(SALE_STATUS[err.code], {
@@ -359,6 +367,96 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
         canSeeCost: request.access?.permissions.has('catalogue.cost.view') === true,
       });
       return invoice ? { invoice } : notFound(request, reply);
+    },
+  );
+
+  // Printed documents (FR-PRN-1, ADR-12). The print page has its own CSP: no
+  // scripts at all, only its inline stylesheet.
+  const PRINT_CSP =
+    "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
+  const paperQuery = z.strictObject({ size: z.enum(PAPER_SIZES).optional() });
+  const printable = async (request: FastifyRequest) => {
+    const ctx = ctxOf(request);
+    const invoice = await getInvoice(s.appDb, ctx, idOf(request), { canSeeCost: false });
+    const size = (request.query as { size?: PaperSize }).size ?? (await getPrintSettings(s.appDb, ctx)).printSize;
+    return { invoice, size };
+  };
+
+  app.get(
+    '/api/businesses/:businessId/print-settings',
+    { config: { permission: 'business.settings.view' }, schema: { params: businessParams } },
+    async (request) => ({ settings: await getPrintSettings(s.appDb, ctxOf(request)) }),
+  );
+
+  app.put(
+    '/api/businesses/:businessId/print-settings',
+    {
+      config: { permission: 'business.settings.manage' },
+      schema: {
+        params: businessParams,
+        body: z.strictObject({
+          printSize: z.enum(PAPER_SIZES),
+          address: optionalText(500),
+          phone: z.string().trim().max(20).nullable().optional(),
+          email: z.email().max(200).nullable().optional(),
+          terms: optionalText(1000),
+        }),
+      },
+    },
+    guarded(async (request) => ({
+      settings: await savePrintSettings(
+        s.appDb,
+        ctxOf(request),
+        request.body as Parameters<typeof savePrintSettings>[2],
+        request.id,
+      ),
+    })),
+  );
+
+  app.get(
+    '/api/businesses/:businessId/invoices/:id/print',
+    { config: { permission: 'customers.view' }, schema: { params: idParams, querystring: paperQuery } },
+    async (request, reply) => {
+      const { invoice, size } = await printable(request);
+      if (!invoice) return notFound(request, reply);
+      const base = `/api/businesses/${ctxOf(request).businessId}/invoices/${invoice.id}`;
+      const html = renderDocumentHtml(invoice, {
+        size,
+        toolbar: { pdfHref: `${base}/pdf?size=${size}`, sizeHref: (p) => `${base}/print?size=${p}` },
+      });
+      return reply.header('content-security-policy', PRINT_CSP).type('text/html; charset=utf-8').send(html);
+    },
+  );
+
+  app.get(
+    '/api/businesses/:businessId/invoices/:id/pdf',
+    { config: { permission: 'customers.view' }, schema: { params: idParams, querystring: paperQuery } },
+    async (request, reply) => {
+      if (!s.pdf) {
+        return reply.status(503).send({
+          error: { code: 'PDF_UNAVAILABLE', message: 'PDF download is not available.', requestId: request.id },
+        });
+      }
+      const { invoice, size } = await printable(request);
+      if (!invoice) return notFound(request, reply);
+      let pdf: Buffer;
+      try {
+        pdf = await s.pdf.render(renderDocumentHtml(invoice, { size }), size);
+      } catch (err) {
+        if (err instanceof PdfBusyError) {
+          return reply
+            .status(503)
+            .header('retry-after', '5')
+            .send({ error: { code: 'PDF_BUSY', message: err.message, requestId: request.id } });
+        }
+        throw err;
+      }
+      const filename = `${(invoice.number ?? 'document').replace(/[^A-Za-z0-9-]/g, '-')}-${size}.pdf`;
+      return reply
+        .type('application/pdf')
+        .header('content-disposition', `attachment; filename="${filename}"`)
+        .header('x-content-type-options', 'nosniff')
+        .send(pdf);
     },
   );
 }
