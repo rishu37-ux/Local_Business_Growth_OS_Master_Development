@@ -10,9 +10,9 @@ Each entry: context → options considered → decision → consequences → how
 
 ## ADR-01 Runtime: Node.js LTS
 - **Options:** Node.js, Bun, Deno.
-- **Decision:** Node.js. Production and CI target the current Active LTS line (Node 24 at the time of writing); code must also run on Node ≥ 22.18 (the dev container has 22.22.0, and `graphile-worker` requires ≥ 22.18).
+- **Decision:** Node.js. Production and CI target the current Active LTS line (Node 24 at the time of writing); code must also run on Node ≥ 22.22 (the dev container has 22.22.0; `react-router` 8.5 requires ≥ 22.22, found by CI run #9, which raised the earlier ≥ 22.18 floor).
 - **Why:** widest library support (pg, Fastify, Playwright), predictable LTS schedule. Node 22 leaves maintenance in 2027, during the pilot window, so it is not the production target. (Release-schedule dates are from general knowledge; confirm on nodejs.org when setting up CI.)
-- **Verify:** CI matrix runs on Node 22.18+ and 24.
+- **Verify:** CI matrix runs on the newest Node 22 and Node 24.
 
 ## ADR-02 Language and tooling
 - **Decision:** TypeScript **6.0.x** (pinned), `strict`. pnpm workspaces. ESLint 10 + typescript-eslint 8 (flat config). Prettier.

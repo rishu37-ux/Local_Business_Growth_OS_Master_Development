@@ -69,8 +69,14 @@ describe('platform review (BR-T2, BR-T3)', () => {
     expect((await get(h, '/api/platform/applications', applicant.cookies)).statusCode).toBe(403);
     const queue = await get(h, '/api/platform/applications', admin);
     expect(queue.statusCode).toBe(200);
-    expect(queue.json()).toMatchObject({
-      applications: [{ businessId, status: 'PENDING_APPROVAL', applicants: [{ email: 'applicant@example.test' }] }],
+    // Other test files share this database, so look for this application rather than an exact queue.
+    const mine = queue
+      .json<{ applications: { businessId: string }[] }>()
+      .applications.find((a) => a.businessId === businessId);
+    expect(mine).toMatchObject({
+      businessId,
+      status: 'PENDING_APPROVAL',
+      applicants: [{ email: 'applicant@example.test' }],
     });
   });
 

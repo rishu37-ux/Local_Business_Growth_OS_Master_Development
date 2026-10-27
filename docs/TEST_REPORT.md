@@ -249,3 +249,13 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 | 7 | — | `pnpm check` (now including `pnpm build`): eslint rules 11, domain 42, web build, API unit 37, DB 81 + 54, auth drift ok, API DB 78 (auth 32 + lifecycle 24 + onboarding 17 + browser 5); `pnpm audit` no known vulnerabilities; secretlint clean | **Pass** |
 
 **Not covered yet:** Firefox/WebKit and real mobile devices (NFR-16); keyboard-only operation of the full flow and screen-reader testing (manual, NFR-1); performance (NFR-14).
+
+### TR-0010 addendum — CI run #9 failed; causes and fixes
+
+[CI run #9](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40476371368) (commit `12efaee`, increment 3.7b) **failed on both jobs**:
+
+1. **Node 22.18 job:** `pnpm install` stopped with `ERR_PNPM_UNSUPPORTED_ENGINE`, because `react-router@8.5.0` requires Node ≥ 22.22 and the repo uses `engine-strict`. **Fix:** engines floor raised to `>=22.22` (the dev container runs 22.22.0); the CI matrix now tests the newest Node 22 and Node 24. ADR-01 updated.
+2. **Node 24 job:** the browser test failed with a Playwright strict-mode violation: two "Approve" buttons. In CI it shares the throwaway DB with the other API DB test files, which had left another pending application in the review queue; local runs happened to use a different file order. **Fix:** the test acts on its own application's card, and seeds a decoy pending application in `beforeAll` so the condition is reproduced on every run. With the decoy and the old selector, the exact CI error reproduced locally; with the fix, 5/5 pass. The lifecycle test had the same exact-queue assumption, which surfaced once the decoy existed; it now looks for its own application.
+3. **Order-independence check:** the API DB suite was run with shuffled file order (`--sequence.shuffle.files`, seeds 1–4) → **78/78 passed each time**.
+
+This counts as a CI failure on 3.7b until a green run on the fixed commit is recorded below.

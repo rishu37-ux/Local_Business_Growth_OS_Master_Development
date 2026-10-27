@@ -80,6 +80,20 @@ beforeAll(async () => {
   const admin = await newUser(h, 'exit-admin@example.test', PW);
   await sql`insert into lbg.platform_admins (user_id) values (${admin.id})`.execute(h.admin);
   adminSecret = (await enrolMfa(h, admin.cookies, PW)).secret;
+  // A second pending application, so the review queue never holds only ours
+  // (CI run #9 failed when other test files left applications behind).
+  const decoy = await newUser(h, 'exit-decoy@example.test', PW);
+  await h.app.inject({
+    method: 'POST',
+    url: '/api/applications',
+    payload: { legalName: 'Decoy Shop (synthetic)', category: 'MOBILE_ELECTRONICS', stateCode: '27' },
+    headers: {
+      origin: ORIGIN,
+      cookie: Object.entries(decoy.cookies)
+        .map(([k, v]) => `${k}=${v}`)
+        .join('; '),
+    },
+  });
 }, 60_000);
 
 afterAll(async () => {
@@ -124,10 +138,15 @@ describe('Phase 3 exit: register → approve → MFA → setup → live → invi
     const admin = await ctx.newPage();
     await signInViaUi(admin, 'exit-admin@example.test', adminSecret);
     await admin.getByRole('link', { name: 'Review' }).click();
-    await admin.getByRole('heading', { name: 'Exit Test Mobiles (synthetic)' }).waitFor();
+    // Other test files share this database and may leave applications in the
+    // queue, so act on this application's own card only.
+    const card = admin
+      .getByRole('listitem')
+      .filter({ has: admin.getByRole('heading', { name: 'Exit Test Mobiles (synthetic)' }) });
+    await card.waitFor();
     await auditAllWidths(admin, 'platform review');
-    await admin.getByRole('button', { name: 'Approve' }).click();
-    await admin.getByText('No applications waiting.').waitFor();
+    await card.getByRole('button', { name: 'Approve' }).click();
+    await card.waitFor({ state: 'detached' });
     await ctx.close();
   }, 60_000);
 

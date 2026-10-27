@@ -5,7 +5,7 @@ Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–3 are complete. PR #1 (through increment 3.6) was merged into `main` by the repository owner; increments 3.7a/3.7b were rebased onto the merged `main` on the working branch.
+- Phases 0–3 are complete. PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
   - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
   - `@lbgos/db`: SQL migrations 0001–0006, `withTenant`, locking helpers.
@@ -47,7 +47,7 @@ Scripts: `scripts/check-docs.sh` (memory docs present, secret-pattern screen, re
 
 Accepted: D-001 greenfield · D-002 repo memory · D-007 native PostgreSQL locally · D-008 IMEI unique per tenant · D-009 suspension = owner read-only + export · D-010 separate subscription states, read-only after grace · D-011 MFA mandatory for platform admins and owners · D-012 gapless invoice numbers ≤16 chars per FY · D-013 deterministic tax rules (paise, CGST/SGST split, inclusive pricing) · D-014 FIFO payment allocation, remainder = advance · D-015 separate DB role for platform admin · D-016 invoice cancellation window, else credit note · D-017 actual cost (serialized) / weighted average (non-serialized).
 Phase 2: D-003…D-006 confirmed · D-018 TypeScript 6 pin (typescript-eslint doesn't support TS 7) · D-019 Better Auth self-hosted, `auth` schema + role, Argon2id override (conditional on Q3) · D-020 locking rules (UPDATE…RETURNING for numbers; FOR UPDATE invoice + advisory lock payment) · D-021 no Redis in pilot · D-022 DigitalOcean BLR1 + Cloudflare (proposed, needs Q2).
-Stack (ADR): Node 24 LTS target (≥22.18 supported) · pnpm workspaces · Fastify 5 + Zod 4 · React 19 + Vite 8 SPA, React Router, TanStack Query, Tailwind 4, React Aria Components · Kysely + pg, SQL migrations via Kysely Migrator · graphile-worker · Vitest, fast-check, Playwright + axe.
+Stack (ADR): Node 24 LTS target (≥22.22 supported) · pnpm workspaces · Fastify 5 + Zod 4 · React 19 + Vite 8 SPA, React Router, TanStack Query, Tailwind 4, React Aria Components · Kysely + pg, SQL migrations via Kysely Migrator · graphile-worker · Vitest, fast-check, Playwright + axe.
 
 ## Blockers / open questions
 
