@@ -25,7 +25,12 @@ describe('migrations', () => {
     const { rows } = await sql<{
       name: string;
     }>`select name from lbg_migrations.kysely_migration order by name`.execute(openSuperuser());
-    expect(rows.map((r) => r.name)).toEqual(['0001_foundation', '0002_auth_schema']);
+    expect(rows.map((r) => r.name)).toEqual([
+      '0001_foundation',
+      '0002_auth_schema',
+      '0003_auth_tables',
+      '0004_user_profiles',
+    ]);
   });
 });
 

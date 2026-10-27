@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import type { Writable } from 'node:stream';
 import helmet from '@fastify/helmet';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
+import type { AuthGate } from './auth-gate.ts';
+import { registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
 import { errorBody, INTERNAL, mapDatabaseError } from './errors.ts';
 import { zodValidatorCompiler } from './validation.ts';
@@ -28,6 +30,8 @@ export interface Readiness {
 export interface AppDeps {
   readonly config: Config;
   readonly readiness: Readiness;
+  /** Session resolution and /api/auth/*; without it every non-public route answers 401. */
+  readonly auth?: AuthGate;
   /** Test hook: where log lines go (default stdout). */
   readonly logStream?: Writable;
 }
@@ -143,6 +147,8 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   app.setNotFoundHandler((request, reply) =>
     reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Not found.', requestId: request.id } }),
   );
+
+  registerAuth(app, deps.auth, new URL(deps.config.PUBLIC_BASE_URL).origin);
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));
 

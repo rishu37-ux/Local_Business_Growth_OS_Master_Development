@@ -21,6 +21,8 @@ const schema = z
     DATABASE_URL_PLATFORM: postgresUrl,
     DATABASE_URL_AUTH: postgresUrl,
     SESSION_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
+    // Public origin of the app (cookies, auth links, CSRF origin check).
+    PUBLIC_BASE_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
     // Number of trusted reverse-proxy hops in front of the API (edge + platform router).
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   })
@@ -28,6 +30,9 @@ const schema = z
     if (env.NODE_ENV !== 'production') return;
     for (const key of ['DATABASE_URL_APP', 'DATABASE_URL_PLATFORM', 'DATABASE_URL_AUTH', 'SESSION_SECRET'] as const) {
       if (env[key] === undefined) ctx.addIssue({ code: 'custom', path: [key], message: 'required in production' });
+    }
+    if (!env.PUBLIC_BASE_URL.startsWith('https://')) {
+      ctx.addIssue({ code: 'custom', path: ['PUBLIC_BASE_URL'], message: 'must be https in production' });
     }
   });
 

@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 3, increment 3.4) · 100 requirements
+Last updated: 2026-10-27 (Phase 3, increment 3.5) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -14,11 +14,11 @@ Last updated: 2026-10-27 (Phase 3, increment 3.4) · 100 requirements
 | BR-T2 | Tenancy | Approval history | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T02, T02b; TR-0005 (migrated DB) |
 | BR-T3 | Tenancy | Reasons required | 3 | Specified | — | — |
 | BR-T4 | Tenancy | Suspension and read-only modes | 3 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T03; TR-0005 (migrated DB) |
-| FR-AUTH-1 | Auth | Sessions | 3 | Specified | — | — |
-| FR-AUTH-2 | Auth | Password reset and verification | 3 | Specified | — | — |
-| FR-AUTH-3 | Auth | MFA | 3 | Specified | — | — |
-| FR-AUTH-4 | Auth | Rate limiting | 3 | Specified | — | — |
-| FR-AUTH-5 | Auth | MFA recovery | 3 | Specified | — | — |
+| FR-AUTH-1 | Auth | Sessions | 3 | Implemented + tested (AC1–4, AC6; AC5 user part; AC2 privilege-change rotation pending 3.6) | `packages/modules/src/auth/`, `apps/api/src/auth-*.ts` | TR-0007 #1–6 |
+| FR-AUTH-2 | Auth | Password reset and verification | 3 | Implemented + tested (AC1–3, AC5; AC4 local list only — online breached check deferred) | `packages/modules/src/auth/` | TR-0007 #7–11 |
+| FR-AUTH-3 | Auth | MFA | 3 | Implemented + tested (AC1, AC2, AC4, AC5 encrypted not hashed — D-025; AC3 pending) | `packages/modules/src/auth/options.ts`, `apps/api/src/auth-plugin.ts` | TR-0007 #12–14 |
+| FR-AUTH-4 | Auth | Rate limiting | 3 | Implemented + tested (fixed window, not progressive — D-026) | `packages/modules/src/auth/options.ts` | TR-0007 #15–16 |
+| FR-AUTH-5 | Auth | MFA recovery | 3 | Not started (needs RBAC; AC2 operational process) | — | — |
 | FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Specified | — | — |
 | FR-ONB-2 | Onboarding | Setup wizard | 3 | Specified | — | — |
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Specified | — | — |
@@ -103,7 +103,7 @@ Last updated: 2026-10-27 (Phase 3, increment 3.4) · 100 requirements
 | NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness) | `apps/api/src/app.ts` | TR-0006 #7–8, #12–13 |
 | NFR-11 | Non-functional | Backups | 3–9 | Specified | — | — |
 | NFR-12 | Non-functional | Data protection | 3–9 | Specified | — | — |
-| NFR-13 | Non-functional | Password storage | 3–9 | Specified | — | — |
+| NFR-13 | Non-functional | Password storage | 3–9 | Implemented + tested | `packages/modules/src/auth/passwords.ts` | TR-0007 #11 |
 | NFR-14 | Non-functional | Performance (pilot) | 3–9 | Specified | — | — |
 | NFR-15 | Non-functional | Availability (pilot) | 3–9 | Specified | — | — |
 | NFR-16 | Non-functional | Browser support | 3–9 | Specified | — | — |

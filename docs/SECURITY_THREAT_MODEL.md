@@ -1,6 +1,6 @@
 # Security Threat Model
 
-Version: 0.3 (Phase 2 update) — 2026-10-27
+Version: 0.4 (Phase 3 update) — 2026-10-27
 Method: asset/trust-boundary analysis with STRIDE per boundary; verification against an OWASP ASVS-aligned checklist (to be created in Phase 3).
 
 **Status: design only — no application exists.** Some database-level controls have been prototyped in the schema draft and tested (TR-0002); that is evidence for the design, not for a deployed system. Each mitigation's status is tracked in §6.
@@ -104,7 +104,12 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | T24 tenant cannot self-approve status | Prototyped and tested | TR-0002: T02, T03, T23 |
 | T25 search_path pinning | Fixed in draft | TR-0002 (defect found and fixed) |
 | T28 per-tenant IMEI uniqueness | Prototyped and tested | TR-0002: T09–T11 |
-| All other threats (T2–T7, T9–T13, T16–T17, T19–T23, T27, T29–T32) | Specified in SRS / ADR; not implemented | — |
+| T2 credential stuffing / brute force | **Implemented + tested** (per-account lockout, per-IP limits, MFA) | TR-0007 #12–16 |
+| T3 session hijacking / fixation | **Implemented + tested** (HttpOnly/SameSite/Secure, rotation, server-side revocation, idle + absolute timeouts, token kept out of bodies) | TR-0007 #1–6 |
+| T4 CSRF | **Implemented + tested** (SameSite=Lax + Origin check on state-changing API requests; Better Auth's own origin check) | TR-0007 #17 |
+| T23 account enumeration | **Implemented + tested** (uniform sign-in failures, reset responses, lockout responses, duplicate sign-up) | TR-0007 #7, #9, #15 |
+| T32 auth credential exposure to tenant code | **Implemented + tested** (schema `auth` + role separation; no credential columns in `lbg`) | TR-0005 T30*, TR-0007 #19 |
+| All other threats (T5–T7, T9–T13, T16–T17, T19–T22, T27, T29–T31) | Specified in SRS / ADR; not implemented | — |
 
 ## 7. Known limitations and statements
 

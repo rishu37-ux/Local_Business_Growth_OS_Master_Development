@@ -138,3 +138,19 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 ### D-024 · 2026-10-27 · Accepted
 **Decision:** Phase 3 proceeds on the default auth choice (D-019, self-hosted Better Auth) without waiting for Q3, isolated in `modules/auth`.
 **Rationale:** the prompt says to make a documented choice and continue unless a decision is genuinely blocking; the wrapper keeps a later switch local to one module.
+
+### D-025 · 2026-10-27 · Accepted (deviation from FR-AUTH-3 AC5)
+**Decision:** MFA backup codes are stored **encrypted** (with the server secret), not hashed. TOTP secrets are also encrypted.
+**Rationale:** Better Auth 1.7.14's two-factor plugin supports only `plain`, `encrypted` or custom encrypt/decrypt for backup codes (checked in its published type definitions); hashing is not offered. Encrypted at rest is the strongest supported option. A test confirms neither the TOTP secret nor any backup code appears in plain text in the database.
+**Residual risk:** whoever holds both the database and `SESSION_SECRET` can decrypt them. Revisit if the plugin adds hashing, or replace the codes with a custom implementation.
+
+### D-026 · 2026-10-27 · Accepted
+**Decision:** Account lockout: 5 failed sign-ins for one email within 15 minutes block further attempts for that email until the window passes. Recorded per SHA-256 of the normalised email, whether or not the account exists, with an identical 429 response. Per-IP limits come from Better Auth's database-backed rate limiter (10/min sign-in, 10/hour sign-up, 5/hour reset requests, 10/min two-factor). The API strips all client-supplied forwarding headers and passes only Fastify's proxy-aware IP to Better Auth.
+**Deviation:** FR-AUTH-4 AC1 says "progressively delayed"; this is a fixed 15-minute window, not a growing delay.
+
+### D-027 · 2026-10-27 · Accepted
+**Decision:** The API removes the session token from Better Auth's JSON response bodies (sign-in/sign-up); the browser gets it only in the HttpOnly cookie.
+**Rationale:** a script-readable token would defeat HttpOnly if an XSS bug ever existed.
+
+### D-028 · 2026-10-27 · Accepted
+**Decision:** Better Auth's tables are created only by reviewed migrations (`0003`), generated with `packages/modules/scripts/generate-auth-schema.ts`. A drift check (`scripts/check-auth-schema.sh`, part of `pnpm test:db`) fails if the configured Better Auth version or plugins need schema changes that no migration provides.

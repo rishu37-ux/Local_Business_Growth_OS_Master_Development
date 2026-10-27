@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub) and 3.4 (API skeleton) done; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton) and 3.5 (auth, MFA, lockout) done; see `PHASE3_PLAN.md`
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -60,4 +60,14 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.5** (F-06…F-08): add Better Auth (D-019) in `packages/modules/auth`. Generate its tables as migration `0003` in schema `auth`, use the `lbgos_auth` pool and the Argon2id override, keep telemetry off, and mount it in the API. Then TOTP MFA (mandatory for platform admin/owner) and a PostgreSQL-backed rate limiter. First write a test per FR-AUTH-1…5 AC, or record a deferral with its reason.
+Phase 3 increment **3.6** (F-09…F-11):
+- Permission catalogue in `@lbgos/domain`.
+- RBAC in the session hook: resolve the membership for the requested business, effective permissions, and the business/subscription status gate.
+- Route enumeration test.
+- Business lifecycle endpoints: application submit/review, approve/reject/request-changes with reasons, suspend/reinstate.
+- Default role templates on approval.
+- Audit service.
+- Owner endpoints to revoke staff sessions and reset staff MFA (FR-AUTH-1 AC5, FR-AUTH-5 AC1).
+- Session rotation on privilege change.
+
+Deferred items from 3.5 are listed at the end of TR-0007.

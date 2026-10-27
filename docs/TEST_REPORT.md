@@ -139,3 +139,43 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 | 14 | — | `pnpm check` (all packages, unit + DB), `pnpm audit`, `pnpm secrets` | **Pass**; no known vulnerabilities |
 
 **Issues fixed during 3.4:** Fastify's types do not accept a hop count for `trustProxy`, so it became a hop-index function (now covered by test #11). Lint fixes: an unnecessary type assertion, and test functions marked `async` without `await`.
+
+---
+
+## TR-0007 · 2026-10-27 · Phase 3 increment 3.5 — authentication, MFA, rate limits
+
+**Environment:** cloud dev container; Node v22.22.0; PostgreSQL 16.15 throwaway cluster with migrations 0001–0004; better-auth 1.7.14 (two-factor plugin), @node-rs/argon2 2.2.2, fastify 5.12.7. All accounts synthetic (`@example.test`). Better Auth's database rate limiter is enabled in tests.
+
+| # | Requirement / AC | Check (apps/api/test/auth.db.test.ts unless noted) | Result |
+|---|---|---|---|
+| 1 | FR-AUTH-1 AC1 | Session cookie `lbgos.session_token` has HttpOnly, SameSite=Lax, Path=/; with secure cookies it is `__Secure-lbgos.session_token` with Secure; token absent from the JSON body | **Pass** |
+| 2 | FR-AUTH-1 AC2 | New token on every sign-in, ignoring a token the client already sends (no fixation); completing MFA enrolment issues a new session and kills the old cookie | **Pass** |
+| 3 | FR-AUTH-1 AC3 | `expiresAt − createdAt` = 604,800 s (absolute, no refresh); business user idle > 12 h → 401 and session row deleted; idle 11 h → still valid; platform admin idle > 30 min → 401 | **Pass** |
+| 4 | FR-AUTH-1 AC4 | After sign-out, the old cookie gets 401 | **Pass** |
+| 5 | FR-AUTH-1 AC5 | User lists 2 sessions and revokes the other; owner-side revocation exists as `AuthService.revokeAllSessions` (endpoint arrives with RBAC in 3.6) | **Pass** (user part) |
+| 6 | FR-AUTH-1 AC6 | Password change signs out other sessions even when the client sends `revokeOtherSessions: false`; password reset signs out all sessions | **Pass** |
+| 7 | FR-AUTH-2 AC1 | Reset request for a known vs unknown email: same status and byte-identical body | **Pass** |
+| 8 | FR-AUTH-2 AC2 | Raw reset token appears nowhere in `auth.verification` (hashed identifiers); expiry = 1,800 s; token single-use | **Pass** |
+| 9 | FR-AUTH-2 AC3 | Sign-in before email verification → 403 `EMAIL_NOT_VERIFIED`; duplicate sign-up returns the same status and response shape and sends no second email (no enumeration) | **Pass** |
+| 10 | FR-AUTH-2 AC4 | Rejected: 9-character, common (`password123`), contains email name, single repeated character | **Pass** (local list). Online breached-password check **not implemented** (needs network; deferred) |
+| 11 | FR-AUTH-2 AC5 / NFR-13 | Stored hash matches `$argon2id$v=19$m=19456,t=2,p=1$`; plaintext absent | **Pass** |
+| 12 | FR-AUTH-3 AC2 (+AC1 mechanism) | Owner (system Owner role) without MFA: `/api/me` reachable with `mfaRequired: true`; other routes → 403 `MFA_ENROLMENT_REQUIRED`; after enrolment → 200. Platform admin also reports `mfaRequired: true` | **Pass** |
+| 13 | FR-AUTH-3 AC4 | After enrolment, sign-in returns `twoFactorRedirect` with no usable session; wrong TOTP refused; correct TOTP (RFC 6238 generator in test) issues a session | **Pass** |
+| 14 | FR-AUTH-3 AC5 | 10 backup codes; a code works once; TOTP secret and codes not stored in plain text | **Pass** (stored encrypted, not hashed — D-025) |
+| 15 | FR-AUTH-4 AC1 | 5 failures → 429 even with the right password; after the 15-min window sign-in works; locked known vs unknown email → identical 429 body; per-IP limit 10/min (11th and 12th → 429) despite varying spoofed `X-Forwarded-For` / `x-lbgos-client-ip`; another IP unaffected | **Pass** |
+| 16 | FR-AUTH-4 AC3 | Lockout writes PLATFORM-scope audit event `auth.sign_in.locked` keyed by account hash; email not in the event | **Pass** |
+| 17 | T4 / session hook | Non-public route without session → 401; cross-origin POST with a valid cookie → 403 `ORIGIN_REJECTED`, same-origin → 200; business permissions fail closed (403) until RBAC | **Pass** |
+| 18 | D-019 | Every new identity gets an `lbg.users` profile (definer function); first session use repairs a missing profile | **Pass** |
+| 19 | Migrations | Schema checks after 0003/0004: 81/81 incl. T31–T31h (auth tables in `auth`; no credential columns in `lbg`; user cannot change own email; tenant role cannot read platform admins or call the profile function; auth role limited to `auth.*` audit actions) | **Pass** |
+| 20 | D-028 | Drift check: Better Auth needs no schema change after migrations; negative control (temporary migration dropping `twoFactor.lockedUntil`) → reports the exact `alter table`, exit 1 | **Pass** / **Detected** |
+| 21 | — | Negative controls on `auth.db.test.ts`: (a) forced `revokeOtherSessions` removed → AC6 fails; (b) lockout check disabled → 3 lockout tests fail; (c) token stripping removed → AC1 fails; (d) Better Auth pointed at `X-Forwarded-For` without stripping → rate-limit keying breaks (4+ failures). All restored; re-run 31/31 | **Detected** all |
+| 22 | — | Smoke: real server start — production refused (no email provider), missing `SESSION_SECRET` refused; dev server: `/api/me` 401, sign-up 200 with `token: null`, dev email printed | **Pass** |
+| 23 | — | `pnpm check` + drift check | **Pass** — domain 12, eslint rules 11, API unit 25, DB 81 SQL + 24, API DB 32 |
+
+**Defects found and fixed:**
+- Sign-up returned 500 because the profile hook cast to `citext` while the auth role's search path excludes `public`. It also left an identity without a profile (Better Auth's insert and after-hook are not one transaction); now repaired on first session use (#18).
+- Sign-in bodies exposed the session token (D-027).
+- The module-boundary rule caught the schema generator importing auth internals.
+- The drift check initially failed on a clean schema: the compiler prints `;` when nothing is pending.
+
+**Deferred, with reasons:** FR-AUTH-1 AC5 owner-revokes-staff endpoint and AC2 rotation on privilege change (need RBAC, 3.6); FR-AUTH-3 AC3 owner toggle "require MFA for staff" (needs business settings, 3.6/3.7); FR-AUTH-3 passkeys (should-have); FR-AUTH-2 AC4 online breached-password check (needs network access; the plugin exists); FR-AUTH-5 MFA recovery (AC1 needs RBAC, AC2 is an operational process to document before pilot). Production email provider not configured (Q6), so production start is refused by design.

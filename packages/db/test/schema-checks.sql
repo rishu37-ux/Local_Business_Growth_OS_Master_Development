@@ -386,8 +386,8 @@ select t.ok((select status = 'PENDING_APPROVAL' from lbg.businesses where id = :
   'T23 self-registration always creates PENDING_APPROVAL');
 insert into lbg.audit_events (scope, actor_type, action) values ('PLATFORM', 'PLATFORM_ADMIN', 'business.approve');
 select t.ok((select count(*) = 1 from lbg.audit_events), 'T25d platform sees only PLATFORM-scope audit events');
-select t.expect_error($$select password_hash from lbg.users$$, '42501',
-  'T29 platform role cannot read password hashes');
+select t.expect_error($$select password_hash from lbg.users$$, '42703',
+  'T29 password hashes are not stored in lbg.users at all (moved to schema auth, migration 0004)');
 reset role;
 
 -- Meta-check: every table in lbg has RLS enabled and forced, except plans
@@ -420,6 +420,33 @@ select t.ok((select count(*) = 1 from auth.t30_probe), 'T30f default privileges 
 reset role;
 set role lbgos_owner;
 drop table auth.t30_probe;
+reset role;
+
+-- Migration 0003/0004 checks (Phase 3 increment 3.5)
+select t.ok(to_regclass('auth.user') is not null and to_regclass('auth.session') is not null
+        and to_regclass('auth."twoFactor"') is not null and to_regclass('auth.sign_in_failures') is not null,
+  'T31 auth tables exist in schema auth');
+select t.ok(not exists (select 1 from information_schema.columns
+                         where table_schema = 'lbg' and column_name in ('password_hash', 'mfa_enabled')),
+  'T31b no credential or MFA columns in schema lbg');
+set role lbgos_app;
+select t.expect_error($$update lbg.users set email = 'x@example.test'$$, '42501',
+  'T31c a user cannot change their own email through the tenant role');
+select t.expect_error($$select * from lbg.platform_admins$$, '42501',
+  'T31d tenant role cannot read platform admins');
+select t.expect_error($$select auth.create_user_profile(gen_random_uuid(), 'x@example.test', 'X')$$, '42501',
+  'T31e tenant role cannot call auth.create_user_profile');
+reset role;
+set role lbgos_auth;
+select auth.create_user_profile('00000000-0000-0000-0000-0000000000f1', 'profile@example.test', 'Profile (synthetic)');
+select t.expect_error($$select auth.record_auth_event('business.approve', null, '{}')$$, '22023',
+  'T31f auth role can only write auth.* audit actions');
+reset role;
+select t.ok(exists (select 1 from lbg.users where id = '00000000-0000-0000-0000-0000000000f1'),
+  'T31g auth role creates profile rows only through the definer function');
+set role lbgos_app;
+select t.ok(lbg.user_requires_mfa('00000000-0000-0000-0000-000000000001') = false,
+  'T31h member without Owner role does not require MFA');
 reset role;
 
 \echo 'ALL SCHEMA CHECKS PASSED'

@@ -1,0 +1,20 @@
+{
+  "name": "@lbgos/modules",
+  "private": true,
+  "type": "module",
+  "description": "Business modules of the modular monolith; each module is imported only via its index.ts.",
+  "exports": {
+    "./auth": "./src/auth/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:db": "scripts/check-auth-schema.sh"
+  },
+  "dependencies": {
+    "@lbgos/db": "workspace:*",
+    "@node-rs/argon2": "2.2.2",
+    "better-auth": "1.7.14",
+    "kysely": "0.29.7",
+    "pg": "8.23.1"
+  }
+}
