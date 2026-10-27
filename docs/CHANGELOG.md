@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased] — Phase 4 (in progress)
+
+### Added
+- Phase 4 plan (`docs/PHASE4_PLAN.md`).
+- Migration 0007 and `@lbgos/modules/catalogue`: categories, brands, products, variants (archiving, cost visibility), versioned tax rates; catalogue API routes.
+- `@lbgos/domain` integer money arithmetic and tax-rate version helpers.
+
+## [0.3.0] — 2026-10-27 — Phase 3 (foundation)
+
+### Added
+- pnpm monorepo: `@lbgos/domain`, `@lbgos/db`, `@lbgos/modules` (auth, tenancy, onboarding, audit, notifications), `@lbgos/api`, `@lbgos/web`, `@lbgos/eslint-rules` (module boundaries).
+- SQL migrations 0001–0006 (foundation schema with RLS; `auth` schema; Better Auth tables; profiles/platform admins; lifecycle functions; onboarding, invitations, notifications, seed pilot plans).
+- Self-hosted Better Auth with Argon2id, mandatory MFA for owners/platform admins, per-account lockout, idle + absolute session timeouts, CSRF origin check.
+- RBAC with default roles and access modes; business lifecycle (apply → review → approve/reject/request changes → setup → activate → suspend/reinstate); audit log.
+- Setup wizard backend + web UI, GSTIN validation, invoice series per financial year, staff invitations, notifications, admin-created businesses, plan management.
+- React SPA served same-origin; Playwright + axe browser exit test.
+- GitHub Actions CI (SHA-pinned actions, Node 22 + 24).
+- Decisions D-023…D-031; test reports TR-0004…TR-0010.
+
+### Fixed
+- Home page of an approved owner before MFA enrolment listed no business (TR-0010 addendum 2).
+- `scripts/dev-local.sh` for a local look at the portal.
+
+### Removed
+- `spikes/tenant-context` (ported to `@lbgos/db`; kept in git history).
+
 ## [0.2.0] — 2026-10-27 — Phase 2
 
 ### Added

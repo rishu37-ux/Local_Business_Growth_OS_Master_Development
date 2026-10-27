@@ -14,6 +14,8 @@ export {
   type SubscriptionState,
   type SubscriptionStatus,
 } from './business-status.ts';
+export { financialYear, localYearMonth } from './fiscal.ts';
+export { gstinCheckChar, gstinProblem, type GstinProblem } from './gstin.ts';
 export { isValidImei, luhnCheckDigit } from './imei.ts';
 export {
   BUSINESS_PERMISSIONS,
@@ -29,3 +31,14 @@ export {
   type PlatformPermission,
   type RoleTemplate,
 } from './permissions.ts';
+export {
+  divRoundHalfUp,
+  exclusiveTax,
+  lineValue,
+  milliToQuantity,
+  quantityToMilli,
+  rateToBasisPoints,
+  splitIntraState,
+  weightedAverageCost,
+} from './money.ts';
+export { effectiveVersion, periodsOverlap, type TaxRateVersion } from './tax-rates.ts';

@@ -1,0 +1,26 @@
+{
+  "name": "@lbgos/web",
+  "private": true,
+  "type": "module",
+  "description": "Browser app (React SPA), served same-origin by the API (ADR-05).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.105.0",
+    "react": "19.3.1",
+    "react-aria-components": "1.22.1",
+    "react-dom": "19.3.1",
+    "react-router": "8.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.5"
+  }
+}

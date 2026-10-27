@@ -208,3 +208,87 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 **Issues found and fixed:** a rejected applicant originally had no access at all, so could not read the rejection reason; the new CLOSED mode fixes that. Lint: `Promise.reject` with a non-Error value; unnecessary type assertions.
 
 **Not done in 3.6 (moved to 3.7):** staff invitations (staff membership is seeded directly in tests); in-app/email notifications for decisions (FR-ONB-3 AC1); admin-created businesses with owner invitation (FR-ONB-1 AC2); approval requests and R3 (no self-approval) — need the approvals module; FR-SUP-1 support access.
+
+---
+
+## TR-0009 · 2026-10-27 · Phase 3 increment 3.7a — onboarding backend
+
+**Environment:** as TR-0008, plus migration 0006. Synthetic data only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-ONB-2 AC4 | Domain: two widely published sample GSTINs accepted; malformed, lower-case, wrong check character, state mismatch rejected; property test: the computed check character is accepted and every other character rejected | **Pass** |
+| 2 | FR-RPT-3 / D-012 | Domain: financial year at 31 Mar 23:30 IST vs 1 Apr 00:30 IST (and the same instant in UTC); January start; century wrap; label format property test | **Pass** (domain 42/42) |
+| 3 | FR-SUB-1 AC2 | Approval creates a 14-day TRIALING Starter subscription | **Pass** |
+| 4 | FR-ONB-3 AC1, BR-T3 AC2 | Applicant gets in-app notifications (changes requested, approved) and emails including the request-changes reason; users mark only their own notifications read (other user 404) | **Pass** |
+| 5 | FR-ONB-2 AC1–AC3 | Setup reports required steps (details, tax, mfa), with MFA done for an enrolled owner; unknown timezone 422; `Asia/Kolkata` accepted; bad GSTIN checksum 422 `GSTIN_INVALID`; other-state GSTIN 422; valid profile creates TAX_INVOICE/CREDIT_NOTE/DEBIT_NOTE series for the current FY; no remaining required steps; activation 204. Lifecycle test: activation without a tax profile 409 | **Pass** |
+| 6 | Invitations | Single-use token emailed; the stored row has only the hash; another user → 403 `INVITATION_EMAIL_MISMATCH`; invitee accepts and gets exactly Billing; reuse 410; inviting an existing member 409; expired 410; revoked 410; R2: delegated people admin cannot invite into Owner (403, no email sent) | **Pass** |
+| 7 | FR-AUTH-3 AC3 | Owner enables "require MFA for staff" → staff `/api/me` shows `mfaRequired: true` and business routes return 403 `MFA_ENROLMENT_REQUIRED` | **Pass** |
+| 8 | FR-ONB-1 AC2 | Platform admin creates a business; emailed owner invitation accepted; new owner must enrol MFA, then has Owner role in SETUP mode; non-admins 403 | **Pass** |
+| 9 | FR-SUB-2 | Seed plans STARTER 99,900 / GROWTH 199,900 / PRO 349,900 paise, all `pilotPricing`; price change 204 and audited; non-admin 403 | **Pass** |
+| 10 | — | Schema checks (incl. RLS meta-check over the four new tenant tables and notifications) and migration list | **Pass** — 81 SQL checks; DB package 54 |
+| 11 | — | Negative controls on `onboarding.db.test.ts`: (a) email check removed from `accept_invitation` → 4 tests fail; (b) staff-MFA clause removed from `user_requires_mfa` → AC3 test fails; (c) invitation R2 check removed → R2 test fails; (d) expiry ignored → expiry test fails. All restored; 17/17 | **Detected** all |
+| 12 | — | `pnpm check`: eslint rules 11, domain 42, API unit 26, DB 81 + 54, auth drift ok, API DB 73 (auth 32 + lifecycle 24 + onboarding 17) | **Pass** |
+
+**Defect found and fixed:** the default timezone `Asia/Kolkata` was rejected by validation based on `Intl.supportedValuesOf` (D-030).
+
+---
+
+## TR-0010 · 2026-10-27 · Phase 3 increment 3.7b — web app and Phase 3 exit test
+
+**Environment:** cloud dev container; Node v22.22.0; Vite 8.3.5 production build of `apps/web`; Playwright 1.63.0 with the preinstalled Chromium (`/opt/pw-browsers`); @axe-core/playwright 4.14.0; API listening on 127.0.0.1:4317 against a migrated throwaway PostgreSQL 16.15. Synthetic accounts only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | ADR-05 / NFR-17 | Production build output has no inline scripts (only an external module script and stylesheet) | **Pass** |
+| 2 | Static serving | `apps/api/test/static.test.ts`: traversal attempts clamped inside the root or refused; dotfile/encoded-separator paths 404 with no file content; assets served with the correct type, immutable caching and security headers; client routes get `index.html`; `/api/unknown` and missing assets 404 | **Pass** (API unit 37/37 total) |
+| 3 | **Phase 3 exit criterion** | `apps/api/test/browser.db.test.ts` in Chromium. Applicant signs up in the UI and verifies via the emailed link, signs in and applies. Platform admin signs in with password + TOTP and approves in the review queue. The new owner is directed to MFA enrolment, enrols (TOTP from the displayed key), saves details and tax settings, and goes live. Owner invites `exit-staff@example.test` as Billing. Staff opens the invitation link, signs in (returned to the invitation) and accepts. The owner's member table shows the staff member with exactly **Billing** | **Pass** — 4 flow tests |
+| 4 | NFR-1 (partial) | axe (WCAG 2.0/2.1/2.2 A/AA) on 8 screens (sign-up, sign-in, home, platform review, MFA enrolment, setup wizard, members, invitation) × 3 widths (1280/768/360 px) = 24 audits: **0 serious/critical violations**; no horizontal overflow at any width | **Pass** |
+| 5 | NFR-17 | No CSP violation and no page error during the whole flow | **Pass**. The first run failed with 8 CSP violations: React Aria injects one `<style>`; fixed by allowing its exact hash (D-031), not `'unsafe-inline'` |
+| 6 | — | Negative controls: (a) `<select>` label association removed → flow tests fail (selectors rely on labels); (b) form hint changed to low contrast → only the audit test fails, with 3 `color-contrast` violations (one per width). Both restored and rebuilt | **Detected** both |
+| 7 | — | `pnpm check` (now including `pnpm build`): eslint rules 11, domain 42, web build, API unit 37, DB 81 + 54, auth drift ok, API DB 78 (auth 32 + lifecycle 24 + onboarding 17 + browser 5); `pnpm audit` no known vulnerabilities; secretlint clean | **Pass** |
+
+**Not covered yet:** Firefox/WebKit and real mobile devices (NFR-16); keyboard-only operation of the full flow and screen-reader testing (manual, NFR-1); performance (NFR-14).
+
+### TR-0010 addendum — CI run #9 failed; causes and fixes
+
+[CI run #9](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40476371368) (commit `12efaee`, increment 3.7b) **failed on both jobs**:
+
+1. **Node 22.18 job:** `pnpm install` stopped with `ERR_PNPM_UNSUPPORTED_ENGINE`, because `react-router@8.5.0` requires Node ≥ 22.22 and the repo uses `engine-strict`. **Fix:** engines floor raised to `>=22.22` (the dev container runs 22.22.0); the CI matrix now tests the newest Node 22 and Node 24. ADR-01 updated.
+2. **Node 24 job:** the browser test failed with a Playwright strict-mode violation: two "Approve" buttons. In CI it shares the throwaway DB with the other API DB test files, which had left another pending application in the review queue; local runs happened to use a different file order. **Fix:** the test acts on its own application's card, and seeds a decoy pending application in `beforeAll` so the condition is reproduced on every run. With the decoy and the old selector, the exact CI error reproduced locally; with the fix, 5/5 pass. The lifecycle test had the same exact-queue assumption, which surfaced once the decoy existed; it now looks for its own application.
+3. **Order-independence check:** the API DB suite was run with shuffled file order (`--sequence.shuffle.files`, seeds 1–4) → **78/78 passed each time**.
+
+This counts as a CI failure on 3.7b until a green run on the fixed commit is recorded below.
+
+**Result on the fixed commit:** [CI run #11](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40477809802) (commit `c589ab7`) **passed on both jobs** (Node 22 and Node 24).
+
+### TR-0010 addendum 2 — defect found while capturing screenshots
+
+While capturing screenshots of the portal for the user, a newly approved owner who had not yet enrolled MFA saw "You are not part of any business yet" on the home page. `GET /api/businesses` returned 403 (MFA required), and the home page treated the failure as an empty list. **Fix:** the endpoint (listing only the caller's own memberships) is reachable before MFA enrolment (`allowWithoutMfa`); the business's own pages still require MFA. The home page now shows the API error instead of an empty-list message.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Lifecycle DB test: an approved owner without MFA gets 200 with their `APPROVED_SETUP_PENDING` business; browser test: the home page lists the business and shows the MFA alert before enrolment | **Pass** — API DB 78/78 |
+| 2 | Negative control: fix reverted, tests re-run | **Detected** — the lifecycle tests fail; fix restored |
+| 3 | `scripts/dev-local.sh` (new local demo script) | **Pass** — `GET /` 200 HTML, `/sign-in` 200, `/api/me` 401; instructions printed |
+
+---
+
+## TR-0011 · 2026-10-27 · Phase 4 increment 4.1 — catalogue and tax rates
+
+**Environment:** cloud dev container; Node v22.22.0; PostgreSQL 16.15 throwaway cluster (`scripts/with-throwaway-pg.sh`, migrations 0001–0007); API through `app.inject` with real sessions. Synthetic shops created through the real onboarding API (`apps/api/test/shop-fixture.ts`).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | NFR-8, D-013, D-017 | `packages/domain/test/money.test.ts`: half-up rounding, exact rate/quantity parsing (malformed text rejected), line value and exclusive tax, odd-paisa CGST/SGST split (property), precision-loss guard, weighted average cost incl. negative stock, average bounded by old/incoming cost (property), tax-rate version selection and overlap | **Pass** — domain 51/51 |
+| 2 | FR-INV-1 AC1–2, FR-INV-2 AC1–3 | `apps/api/test/catalogue.db.test.ts`: category → brand → product → variants; serialized products counted in pieces; warranty text stored as entered; strict validation (unknown field, HSN format, min price > selling price) | **Pass** |
+| 3 | FR-INV-2 AC1 | SKU and barcode unique per business with the field named in the 409; the same SKU/barcode accepted in another business | **Pass** |
+| 4 | FR-INV-1 AC3 | Archived products hidden from the default list; unused products deleted; with a stock movement, product/variant/category deletion returns 409 `IN_USE` and the serialized flag is locked (`SERIALIZED_LOCKED`) | **Pass** |
+| 5 | FR-INV-2 AC4 | Billing role sees no `purchasePricePaise`/`avgCostPaise`; owner does; Inventory role (catalogue.manage without cost.view) cannot write a purchase price (403 `COST_FORBIDDEN`) but can create the variant without it | **Pass** |
+| 6 | FR-TAX-2 AC1 | No rates seeded; overlapping versions (case-insensitive name) rejected with 409; `lbg.effective_tax_rate` picks the version in force on boundary dates | **Pass** |
+| 7 | FR-TAX-2 AC2 (part) | Versions immutable: the app role has no UPDATE on `rate_percent` (42501) and even the owner role is stopped by the trigger (LB013); closing a version works; rate management needs `tax.settings.manage` and writes `tax.rate.create` audit events; out-of-range/over-precise rates rejected | **Pass** |
+| 8 | NFR-4 | Cross-tenant: another business's owner gets 404 on every product route under our business ID, and 404 when using their own business ID with our product ID; references to another tenant's category fail (422, composite FK) | **Pass** |
+| 9 | — | Negative controls: (a) cost hiding disabled → the AC4 test fails; (b) overlap check disabled in the trigger → 3 tax-rate tests fail. Both restored; 15/15 pass | **Detected** both |
+| 10 | — | `pnpm check`: lint, format, typecheck, build; domain 51, eslint rules 11, API unit 37, DB schema checks + 54, auth drift ok, API DB 93 (incl. catalogue 15) | **Pass**, exit 0 |
+
+**Not covered yet:** re-authentication before tax-setting changes (FR-TAX-2 AC2, D-030); catalogue UI (increment 4.6).

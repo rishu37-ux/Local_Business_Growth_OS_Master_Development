@@ -174,3 +174,33 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - Owners' MFA cannot be reset and their sessions cannot be revoked by staff (FR-AUTH-5 AC2: platform process).
 - Reinstatement returns a suspended business to the status it had before suspension.
 - Status changes the tenant role is not granted run through narrow SECURITY DEFINER functions (migration 0005). The platform role provisions default roles via `lbg.provision_business` without any grant on tenant tables.
+
+### D-030 · 2026-10-27 · Accepted
+**Decision (onboarding details, increment 3.7a):**
+- **Invitations:** 256-bit random tokens, emailed as a link; only SHA-256 hashes are stored; single use; 72 h expiry; revocable. Accepting requires being signed in with the invited email. Unusable invitations (not found, expired, used, revoked) all return the same 410, so a token reveals nothing.
+- **Trials:** approval (or platform creation) starts a **14-day TRIALING subscription on the Starter plan**. The trial length is a code constant for now (`TRIAL_DAYS`), to become a platform setting.
+- **Seed plans:** Starter ₹999, Growth ₹1,999, Pro ₹3,499 per month, flagged `pilot_pricing` with a "to be validated" note. Plan **limits are intentionally empty**: the user/invoice/AI/storage limits are product decisions not yet made, and are not invented here.
+- **Activation:** requires a tax profile in addition to the state code and owner MFA.
+- **Tax setup:** creates invoice series (sale document by registration type, plus credit and debit notes) for the current financial year in the business timezone. GSTIN format/checksum/state are validated; registration is not verified (no GST portal integration).
+- **Timezones:** validated by constructing an `Intl.DateTimeFormat`, because `Intl.supportedValuesOf('timeZone')` lists `Asia/Calcutta` but not `Asia/Kolkata` (found by a failing test).
+- **Re-authentication deferred:** FR-TAX-2 AC2's re-authentication for tax-setting changes is not yet enforced for the initial setup step; it is due with tax configuration in Phase 5.
+
+### D-031 · 2026-10-27 · Accepted
+**Decision (web app, increment 3.7b):**
+- **Static serving:** the API serves the built SPA through its own small static route instead of `@fastify/static`. Paths resolve strictly inside the build directory; dot segments, dotfiles and encoded separators get 404; `/api/*` never falls back to the app shell; fingerprinted `/assets/*` are cached immutably and `index.html` is `no-cache`. A plugin route would also bypass our mandatory `public` declaration.
+- **CSP:** stays `script-src 'self'` and `style-src 'self'`, plus **the exact SHA-256 hash of the one stylesheet React Aria Components 1.22 injects** (`touch-action` for pressable elements). No `'unsafe-inline'`. The browser test fails on any CSP violation, so a library change that alters the injected CSS is caught.
+- **Browser tests:** run Playwright as a library inside Vitest DB tests, reusing the in-process API harness (captured emails, throwaway DB) instead of a separate test runner. `playwright` is pinned to 1.63.0 to match the browsers preinstalled in the dev container; CI installs the matching Chromium.
+- **Accessibility gate:** axe-core with WCAG 2.0/2.1/2.2 A/AA tags; any *serious* or *critical* violation fails. Every screen in the exit flow is audited at 1280, 768 and 360 px, with a horizontal-overflow check.
+- **Scope of browser support verified so far:** Chromium only. Firefox/WebKit and real devices are not yet tested (NFR-16).
+
+---
+## Phase 4 decisions (2026-10-27)
+
+### D-032 · 2026-10-27 · Accepted
+**Decision (catalogue and tax rates, increment 4.1):**
+- **Tax-rate versions** share a name (case-insensitive). Periods of one name must not overlap (trigger with an advisory lock, error LB012). A version is immutable except for setting `effective_to` (column grant + trigger, LB013); a rate change is a new version. Variants reference a version; `lbg.effective_tax_rate(rate, date)` resolves the version of that name in force on a date. Names therefore cannot be renamed.
+- **No rates are seeded**, not even common GST rates: rates must be entered by the business and verified by a tax professional (FR-TAX-2 AC3, Q5).
+- **Deleting vs archiving:** delete is allowed only for records nothing refers to; the database's foreign keys (movements, units, purchase/invoice lines) decide, and the API answers 409 `IN_USE` with "archive instead".
+- **Serialized flag** cannot change once any variant has stock movements (trigger, LB014); serialized variants must use the unit `pcs`.
+- **Cost visibility:** `purchasePricePaise`/`avgCostPaise` are removed from catalogue responses without `catalogue.cost.view`, and writing a purchase price without it is refused (403). The Inventory role therefore manages the catalogue without seeing costs; it still enters unit costs on purchases (`purchases.create`), where the cost is part of the document.
+- **Money arithmetic:** paise as integers, rates as basis points, quantities as thousandths; BigInt intermediates; half-up rounding (`@lbgos/domain` money.ts).

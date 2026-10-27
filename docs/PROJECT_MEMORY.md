@@ -1,13 +1,21 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton), 3.5 (auth, MFA, lockout) and 3.6 (RBAC, lifecycle, audit) done; 3.7 remaining; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 4 in progress — increment 4.1 (catalogue, tax rates) done; see PHASE4_PLAN.md**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–2 are complete and committed: inspection; SRS, workflows, roles and data model; architecture decision record, cost model, deployment/backup plan and backlog.
-- **No application code exists yet.** Executable artifacts so far: the design-level schema draft with 67 passing checks (TR-0002), the tenant-context spike with 12 passing tests (TR-0003, `spikes/tenant-context`), the throwaway-PostgreSQL harness, and documentation checks.
-- No CI, deployment or integration exists. Every integration is `planned`. Nothing has been purchased or provisioned.
+- Phases 0–3 are complete. Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011).
+- Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
+- **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
+  - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
+  - `@lbgos/db`: SQL migrations 0001–0006, `withTenant`, locking helpers.
+  - `@lbgos/modules`: auth on Better Auth, tenancy, onboarding, audit, notifications.
+  - `@lbgos/api`: Fastify app with sessions, RBAC, lifecycle, setup, invitations, platform admin.
+  - `@lbgos/web`: React SPA served same-origin.
+- **CI** on GitHub Actions runs lint, format, typecheck, build, unit, DB and browser tests, audit and secret scan.
+- **Phase 3 exit test:** passes in Chromium (TR-0010): register → approve → owner MFA → setup → live → invite Billing staff.
+- **Not done yet:** nothing is deployed and no external integration is connected. The production start is refused because no email provider is configured (Q6).
 
 ## Document index
 
@@ -24,6 +32,8 @@ Branch: `claude/quirky-dirac-vm3o46`
 | `ARCHITECTURE_DECISION_RECORD.md` | ADR-01…19: runtime, tooling, layout, API, web, DB, tenant context, jobs, auth, authz, storage, PDF, secrets, edge, observability, testing, CI, hosting, providers |
 | `COST_MODEL.md` | Indicative hosting costs (third-party prices; vendor sites blocked here), scenarios for 1/10/100 shops |
 | `BACKLOG.md` | Ordered Phase 3–5 backlog with SRS references and definition of done |
+| `PHASE3_PLAN.md` | Phase 3 increments, acceptance criteria and exit status/deferrals |
+| `PHASE4_PLAN.md` | Phase 4 increments 4.1–4.6 and acceptance criteria |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
 | `SECURITY_THREAT_MODEL.md` | Assets, boundaries, threats T1–T31, per-workflow data flows, mitigation status |
@@ -39,7 +49,7 @@ Scripts: `scripts/check-docs.sh` (memory docs present, secret-pattern screen, re
 
 Accepted: D-001 greenfield · D-002 repo memory · D-007 native PostgreSQL locally · D-008 IMEI unique per tenant · D-009 suspension = owner read-only + export · D-010 separate subscription states, read-only after grace · D-011 MFA mandatory for platform admins and owners · D-012 gapless invoice numbers ≤16 chars per FY · D-013 deterministic tax rules (paise, CGST/SGST split, inclusive pricing) · D-014 FIFO payment allocation, remainder = advance · D-015 separate DB role for platform admin · D-016 invoice cancellation window, else credit note · D-017 actual cost (serialized) / weighted average (non-serialized).
 Phase 2: D-003…D-006 confirmed · D-018 TypeScript 6 pin (typescript-eslint doesn't support TS 7) · D-019 Better Auth self-hosted, `auth` schema + role, Argon2id override (conditional on Q3) · D-020 locking rules (UPDATE…RETURNING for numbers; FOR UPDATE invoice + advisory lock payment) · D-021 no Redis in pilot · D-022 DigitalOcean BLR1 + Cloudflare (proposed, needs Q2).
-Stack (ADR): Node 24 LTS target (≥22.18 supported) · pnpm workspaces · Fastify 5 + Zod 4 · React 19 + Vite 8 SPA, React Router, TanStack Query, Tailwind 4, React Aria Components · Kysely + pg, SQL migrations via Kysely Migrator · graphile-worker · Vitest, fast-check, Playwright + axe.
+Stack (ADR): Node 24 LTS target (≥22.22 supported) · pnpm workspaces · Fastify 5 + Zod 4 · React 19 + Vite 8 SPA, React Router, TanStack Query, Tailwind 4, React Aria Components · Kysely + pg, SQL migrations via Kysely Migrator · graphile-worker · Vitest, fast-check, Playwright + axe.
 
 ## Blockers / open questions
 
@@ -60,7 +70,6 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.7** (F-12…F-14):
-- **Backend:** staff invitations (token, 72 h expiry, accept flow); setup wizard backend (tax profile, invoice series, preferences, progress); notifications for lifecycle decisions (in-app + email adapter); admin-created businesses with owner invitation; plans/subscriptions admin endpoints with pilot seed plans.
-- **Web:** React + Vite SPA shell with auth screens, business switcher and wizard, served same-origin; Playwright + axe at 360/768/1280 px.
-- Then the Phase 3 exit test: register → approve → setup with owner MFA → invite limited staff.
+Phase 4, increment **4.2 suppliers and purchases** (PHASE4_PLAN.md §4.2): migration 0008 (supplier fields, purchase lines, draft IMEIs, supplier ledger), purchasing module (draft → post → reverse, WAC, duplicate supplier-invoice check), API routes and DB tests. Then 4.3–4.6.
+
+Carry the Phase 3 deferrals listed in `PHASE3_PLAN.md` §Exit.

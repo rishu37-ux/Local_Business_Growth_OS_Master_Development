@@ -8,10 +8,13 @@ import { createAuthGate } from './auth-gate.ts';
 import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
 import { AUTHENTICATED, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
+import { registerCatalogueRoutes } from './routes/catalogue.ts';
 import { registerMemberRoutes } from './routes/members.ts';
+import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
 import type { AppServices } from './services.ts';
+import { registerWeb } from './static.ts';
 import { errorBody, INTERNAL, mapDatabaseError } from './errors.ts';
 import { zodValidatorCompiler } from './validation.ts';
 
@@ -37,6 +40,8 @@ export interface AppDeps {
   readonly readiness: Readiness;
   /** Databases and auth. Without them every non-public route answers 401 and no business routes exist. */
   readonly services?: AppServices;
+  /** Built web app (apps/web/dist) to serve at /; omitted in API-only tests. */
+  readonly webRoot?: string;
   /** Test hook: where log lines go (default stdout). */
   readonly logStream?: Writable;
 }
@@ -64,6 +69,9 @@ export const REDACT_PATHS = [
   '*.apiKey',
   '*.otp',
 ];
+
+/** SHA-256 of the stylesheet React Aria Components 1.22 injects (D-031). */
+export const REACT_ARIA_STYLE_HASH = "'sha256-38RhXrc7EdReTKsOm23ZPOCUgniTUUcjky8QOOrQx6o='";
 
 // Accept an upstream request ID only if it looks like one; otherwise mint our
 // own, so attacker-controlled text never becomes a log correlation key.
@@ -119,7 +127,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'"],
+        // React Aria Components injects one fixed <style> (touch-action for
+        // pressable elements). It is allowed by its exact hash, not by
+        // 'unsafe-inline'; the browser test fails if the hash ever stops matching.
+        styleSrc: ["'self'", REACT_ARIA_STYLE_HASH],
         imgSrc: ["'self'", 'data:'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
@@ -171,10 +182,14 @@ export function buildApp(deps: AppDeps): FastifyInstance {
   if (services) {
     registerTenancyRoutes(app, services);
     registerMemberRoutes(app, services);
+    registerOnboardingRoutes(app, services);
     registerPlatformRoutes(app, services);
+    registerCatalogueRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));
+
+  if (deps.webRoot) registerWeb(app, deps.webRoot);
 
   app.get('/readyz', { config: { public: true } }, async (request, reply) => {
     try {

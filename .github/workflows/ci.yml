@@ -23,7 +23,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['22.18', '24']
+        # 22.x floor is 22.22 (react-router 8 engines); test the newest 22 and 24 LTS.
+        node: ['22', '24']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,7 +47,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint, format, typecheck, unit and DB tests
+      - name: Install Chromium for browser tests (version pinned by the playwright dependency)
+        run: pnpm --filter @lbgos/api exec playwright install --with-deps chromium
+
+      - name: Lint, format, typecheck, build, unit, DB and browser tests
         run: pnpm check
 
       - name: Project-memory and traceability checks

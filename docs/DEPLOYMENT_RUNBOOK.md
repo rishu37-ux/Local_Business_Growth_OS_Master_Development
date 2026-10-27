@@ -2,25 +2,37 @@
 
 Status: **Plan only — nothing has been deployed, and no procedure here has been rehearsed.** The hosting target is the ADR-18 recommendation (DigitalOcean BLR1 + Cloudflare), pending user confirmation (Q2). Provider-specific steps must be checked against current provider documentation when the environment is created.
 
-Last updated: 2026-10-27 (Phase 2)
+Last updated: 2026-10-27 (Phase 3)
 
 ## 1. Environments
 
 | Environment | Purpose | Data | Status |
 |---|---|---|---|
-| local | Development | Synthetic only | Throwaway PostgreSQL harness exists (`scripts/with-throwaway-pg.sh`); app not yet built |
+| local | Development | Synthetic only | Throwaway PostgreSQL harness; `scripts/dev-local.sh` runs the portal locally |
 | ci | Automated tests | Synthetic, ephemeral | **Running** — GitHub Actions `ci.yml`, first run green (TR-0006) |
 | staging | Pre-release verification, restore drills | Synthetic / anonymised only | Not set up |
 | production | Pilot and customers | Real | Not set up |
 
 Staging and production are separate projects/accounts with separate credentials, databases, buckets and KEKs. Production data is never copied to staging.
 
-## 2. Local development (current facts)
+## 2. Local development (verified in the dev container)
 
-- Node.js 22.22 and pnpm 10 in the cloud dev session (production target: Node 24 LTS, ADR-01).
-- PostgreSQL 16 server binaries at `/usr/lib/postgresql/16/bin`; `scripts/with-throwaway-pg.sh <cmd>` starts a throwaway cluster (as the `postgres` OS user when run as root), creates the `lbgos_*` roles, applies the schema draft, runs the command and deletes the cluster.
-- Checks: `scripts/check-docs.sh`, `scripts/test-schema-draft.sh`, `cd spikes/tenant-context && npm ci && npm test`.
-- The Docker daemon is not available in the cloud session; Docker Compose for developer machines comes in Phase 3.
+```
+pnpm install --frozen-lockfile
+pnpm check                      # lint, format, typecheck, build, unit, DB and browser tests (throwaway PostgreSQL)
+pnpm -F @lbgos/web build        # SPA → apps/web/dist (served by the API at /)
+```
+
+**Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally.
+
+Running the API locally against a persistent database:
+1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store.
+2. Migrate: `LBGOS_MIGRATION_DATABASE_URL=postgres://lbgos_owner:...@host/db node packages/db/src/migrate-cli.ts`.
+3. Start: `SESSION_SECRET=<32+ random chars> PUBLIC_BASE_URL=http://localhost:3000 node apps/api/src/server.ts`. `DATABASE_URL_*` are optional locally (libpq `PG*` variables are used with the role names). Verification/invitation emails are printed to stdout by the development mailers.
+4. Grant a platform admin (operator action, owner role): `insert into lbg.platform_admins (user_id) select id from lbg.users where email = '<admin email>';` — the admin must then enrol MFA.
+5. `NODE_ENV=production` start is refused until an email provider is configured (Q6).
+
+Notes: the Docker daemon is unavailable in the cloud session. Server code runs on Node type stripping (D-023); TypeScript is typecheck-only.
 
 ## 3. Deployment design
 

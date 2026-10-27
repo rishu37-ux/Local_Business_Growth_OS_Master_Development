@@ -23,6 +23,17 @@ const DB_ERRORS: Readonly<Record<string, Mapped>> = {
   LB007: { status: 409, code: 'INVALID_STATE', message: 'This action is not possible in the current status.' },
   LB008: { status: 403, code: 'FORBIDDEN', message: 'You do not have access to this resource.' },
   LB009: { status: 409, code: 'ALREADY_PROVISIONED', message: 'This business has already been set up.' },
+  LB012: { status: 409, code: 'TAX_RATE_OVERLAP', message: 'Another version of this tax rate covers these dates.' },
+  LB013: {
+    status: 409,
+    code: 'TAX_RATE_IMMUTABLE',
+    message: 'A tax-rate version cannot be changed; add a new version.',
+  },
+  LB014: {
+    status: 409,
+    code: 'SERIALIZED_LOCKED',
+    message: 'Serial tracking cannot be changed after stock was recorded.',
+  },
   '23505': { status: 409, code: 'CONFLICT', message: 'A record with these details already exists.' },
   '23503': { status: 422, code: 'INVALID_REFERENCE', message: 'A referenced record does not exist.' },
   '23514': { status: 422, code: 'CONSTRAINT_VIOLATION', message: 'The data violates a business rule.' },

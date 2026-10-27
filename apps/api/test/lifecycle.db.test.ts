@@ -69,8 +69,14 @@ describe('platform review (BR-T2, BR-T3)', () => {
     expect((await get(h, '/api/platform/applications', applicant.cookies)).statusCode).toBe(403);
     const queue = await get(h, '/api/platform/applications', admin);
     expect(queue.statusCode).toBe(200);
-    expect(queue.json()).toMatchObject({
-      applications: [{ businessId, status: 'PENDING_APPROVAL', applicants: [{ email: 'applicant@example.test' }] }],
+    // Other test files share this database, so look for this application rather than an exact queue.
+    const mine = queue
+      .json<{ applications: { businessId: string }[] }>()
+      .applications.find((a) => a.businessId === businessId);
+    expect(mine).toMatchObject({
+      businessId,
+      status: 'PENDING_APPROVAL',
+      applicants: [{ email: 'applicant@example.test' }],
     });
   });
 
@@ -139,6 +145,10 @@ describe('platform review (BR-T2, BR-T3)', () => {
 
 describe('setup and activation (FR-ONB-2 AC3, D-011)', () => {
   it('once Owner, the applicant must enrol MFA before using the business', async () => {
+    // The business list stays reachable so the owner can find it and the enrolment prompt.
+    const list = await get(h, '/api/businesses', applicant.cookies);
+    expect(list.statusCode).toBe(200);
+    expect(list.json()).toMatchObject({ businesses: [{ businessId, status: 'APPROVED_SETUP_PENDING' }] });
     const res = await get(h, `/api/businesses/${businessId}`, applicant.cookies);
     expect(res.statusCode).toBe(403);
     expect(errorCode(res)).toBe('MFA_ENROLMENT_REQUIRED');
@@ -151,7 +161,16 @@ describe('setup and activation (FR-ONB-2 AC3, D-011)', () => {
     });
   });
 
-  it('the owner activates the business; activating again is refused', async () => {
+  it('the owner activates the business once tax is set up; activating again is refused', async () => {
+    const early = await post(h, `/api/businesses/${businessId}/activate`, {}, owner);
+    expect(early.statusCode).toBe(409); // migration 0006: tax profile required first
+    const tax = await put(
+      h,
+      `/api/businesses/${businessId}/setup/tax`,
+      { registrationType: 'UNREGISTERED', invoicePrefix: 'SM' },
+      owner,
+    );
+    expect(tax.statusCode).toBe(200);
     expect((await post(h, `/api/businesses/${businessId}/activate`, {}, owner)).statusCode).toBe(204);
     expect((await get(h, `/api/businesses/${businessId}`, owner)).json()).toMatchObject({
       business: { status: 'ACTIVE' },

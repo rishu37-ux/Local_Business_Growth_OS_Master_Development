@@ -6,6 +6,7 @@ import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
+import { CapturingMailer } from '@lbgos/modules/notifications';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
@@ -17,8 +18,11 @@ export const SECRET = 'test-only-secret-0123456789abcdef0123456789';
 export interface Harness {
   readonly app: FastifyInstance;
   readonly emails: CapturingEmailSender;
+  readonly mail: CapturingMailer;
   readonly logs: LogCapture;
   readonly authDb: Db;
+  /** Tenant role pool (RLS applies), for probing database-level rules. */
+  readonly appDb: Db;
   readonly admin: Db;
   close(): Promise<void>;
 }
@@ -30,7 +34,9 @@ export function freshIp(): string {
   return `10.77.${Math.floor(ipCounter / 250)}.${(ipCounter % 250) + 1}`;
 }
 
-export async function startHarness(options: { secureCookies?: boolean; baseURL?: string } = {}): Promise<Harness> {
+export async function startHarness(
+  options: { secureCookies?: boolean; baseURL?: string; webRoot?: string } = {},
+): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
   const appDb = createDb('lbgos_app', { max: 3 });
   const platformDb = createDb('lbgos_platform', { max: 2 });
@@ -39,6 +45,7 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
     dialect: new PostgresDialect({ pool: new pg.Pool({ user: 'lbgos_owner', max: 2 }) }),
   });
   const emails = new CapturingEmailSender();
+  const mail = new CapturingMailer();
   const baseURL = options.baseURL ?? ORIGIN;
   const auth = createAuthService({
     baseURL,
@@ -51,8 +58,9 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth },
+    services: { appDb, platformDb, auth, mailer: mail, baseURL },
     logStream: logs,
+    ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
   // Test-only routes used to probe the session hook.
   app.get('/test/protected', { config: { permission: AUTHENTICATED } }, () => ({ ok: true }));
@@ -62,8 +70,10 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
   return {
     app,
     emails,
+    mail,
     logs,
     authDb,
+    appDb,
     admin,
     async close() {
       await app.close();
