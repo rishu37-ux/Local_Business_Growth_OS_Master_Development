@@ -3,6 +3,8 @@ import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
 import { DevConsoleMailer } from '@lbgos/modules/notifications';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { buildApp } from './app.ts';
 import { ConfigError, loadConfig, type Config } from './config.ts';
 
@@ -39,8 +41,12 @@ const auth = createAuthService({
   db: authDb,
 });
 
+// Serve the built web app when present (pnpm -F @lbgos/web build).
+const webRoot = path.resolve(import.meta.dirname, '../../web/dist');
+
 const app = buildApp({
   config,
+  ...(existsSync(path.join(webRoot, 'index.html')) ? { webRoot } : {}),
   services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL },
   readiness: {
     database: async () => {

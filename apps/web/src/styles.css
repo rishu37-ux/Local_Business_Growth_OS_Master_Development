@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+/* Visible focus for keyboard users everywhere (NFR-1). */
+:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}

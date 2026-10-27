@@ -13,9 +13,10 @@
     "format:check": "prettier --check .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
-    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm test:db",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm build && pnpm test && pnpm test:db",
     "test:db": "pnpm -r --if-present test:db",
-    "secrets": "secretlint --maskSecrets '**/*'"
+    "secrets": "secretlint --maskSecrets '**/*'",
+    "build": "pnpm -r --if-present build"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

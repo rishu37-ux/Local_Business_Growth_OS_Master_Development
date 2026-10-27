@@ -32,7 +32,9 @@ export function freshIp(): string {
   return `10.77.${Math.floor(ipCounter / 250)}.${(ipCounter % 250) + 1}`;
 }
 
-export async function startHarness(options: { secureCookies?: boolean; baseURL?: string } = {}): Promise<Harness> {
+export async function startHarness(
+  options: { secureCookies?: boolean; baseURL?: string; webRoot?: string } = {},
+): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
   const appDb = createDb('lbgos_app', { max: 3 });
   const platformDb = createDb('lbgos_platform', { max: 2 });
@@ -56,6 +58,7 @@ export async function startHarness(options: { secureCookies?: boolean; baseURL?:
     readiness: okReadiness,
     services: { appDb, platformDb, auth, mailer: mail, baseURL },
     logStream: logs,
+    ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
   // Test-only routes used to probe the session hook.
   app.get('/test/protected', { config: { permission: AUTHENTICATED } }, () => ({ ok: true }));
