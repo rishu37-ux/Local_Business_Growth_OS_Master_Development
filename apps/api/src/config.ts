@@ -25,6 +25,11 @@ const schema = z
     PUBLIC_BASE_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
     // Number of trusted reverse-proxy hops in front of the API (edge + platform router).
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+    // Private directory for uploaded scans (local file storage, ADR-11); outside the web root.
+    UPLOAD_DIR: z.string().min(1).default('.data/uploads'),
+    // OCR worker limits (FR-OCR-6 AC3).
+    OCR_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(30_000),
+    OCR_MAX_MEMORY_MB: z.coerce.number().int().min(32).max(4096).default(256),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

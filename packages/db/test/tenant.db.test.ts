@@ -39,10 +39,11 @@ async function insertIssuedInvoice(db: Db, id: string, number: string, totalPais
             values (${C.businessId}, ${id}, ${seriesId ?? null}, 'TAX_INVOICE', '2026-27', '2026-10-27', '09',
                     ${totalPaise}, ${totalPaise})`.execute(db);
   await sql`insert into lbg.invoice_lines (business_id, invoice_id, line_no, variant_id, description, quantity,
-                                           unit_price_paise, tax_rate_percent, taxable_paise, line_total_paise)
+                                           unit_price_paise, tax_rate_percent, taxable_paise, line_total_paise,
+                                           gross_paise)
             values (${C.businessId}, ${id}, 1, ${VARIANT_C}, 'Accessory (synthetic)', 1, ${totalPaise}, 0,
-                    ${totalPaise}, ${totalPaise})`.execute(db);
-  await sql`update lbg.invoices set status = 'ISSUED', invoice_number = ${number}, issued_at = now()
+                    ${totalPaise}, ${totalPaise}, ${totalPaise})`.execute(db);
+  await sql`update lbg.invoices set status = 'ISSUED', party_snapshot = '{}', invoice_number = ${number}, issued_at = now()
              where id = ${id}`.execute(db);
 }
 

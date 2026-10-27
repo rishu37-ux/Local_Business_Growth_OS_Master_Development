@@ -111,6 +111,10 @@ export async function saveTax(
                 values (${ctx.businessId}, ${doc}, ${fy}, ${input.invoicePrefix})
                 on conflict (business_id, document_type, financial_year, prefix) do nothing`.execute(trx);
     }
+    await sql`insert into lbg.business_settings (business_id, invoice_prefix) values (${ctx.businessId}, ${input.invoicePrefix})
+              on conflict (business_id) do update set invoice_prefix = excluded.invoice_prefix, updated_at = now()`.execute(
+      trx,
+    );
     await markStep(trx, ctx.businessId, 'tax');
     await recordTenantEvent(trx, ctx, {
       action: 'setup.tax',

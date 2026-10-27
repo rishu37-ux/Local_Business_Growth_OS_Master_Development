@@ -204,3 +204,90 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Serialized flag** cannot change once any variant has stock movements (trigger, LB014); serialized variants must use the unit `pcs`.
 - **Cost visibility:** `purchasePricePaise`/`avgCostPaise` are removed from catalogue responses without `catalogue.cost.view`, and writing a purchase price without it is refused (403). The Inventory role therefore manages the catalogue without seeing costs; it still enters unit costs on purchases (`purchases.create`), where the cost is part of the document.
 - **Money arithmetic:** paise as integers, rates as basis points, quantities as thousandths; BigInt intermediates; half-up rounding (`@lbgos/domain` money.ts).
+
+### D-033 · 2026-10-27 · Accepted (tax treatment requires professional verification)
+**Decision (purchases and stock, increment 4.2):**
+- **Inventory cost and GST:** for a REGULAR GST registrant, inventory cost is the tax-exclusive (taxable) value, since input tax is creditable; for COMPOSITION and UNREGISTERED businesses the tax is part of cost. Serialized units get the line cost split exactly across units (floor, remainder to the last); non-serialized stock uses moving weighted average (D-017).
+- **Purchase tax:** per line, `round_half_up(taxable × rate)`, CGST/SGST split per D-013; IGST when the supplier's state differs from the business state (unknown supplier state → intra-state). The rate is the version in force on the supplier invoice date.
+- **Stock buckets:** stock movements carry a bucket (AVAILABLE, INSPECTION, DAMAGED, REPAIR). Only AVAILABLE is sellable; RECLASSIFY pairs move stock between buckets. This lets returned goods be counted without being sellable (FR-INV-6).
+- **Stock levels:** a projection per variant and bucket, written only by a SECURITY DEFINER trigger on `stock_movements` (the app role can read it, not write it). The trigger's upsert row-locks the level, so concurrent decrements serialise; it refuses negative stock unless the business allows it, and never for serialized units or non-AVAILABLE buckets (LB015).
+- **Reversal:** allowed only while every unit is IN_STOCK and non-serialized stock suffices. Units become REVERSED and their IMEIs are released (a restrictive RLS delete policy allows deleting IMEIs of REVERSED units only), because reversal means the goods never entered stock as recorded. The weighted average cost is not recomputed on reversal.
+- **Duplicate supplier invoices** are checked case-insensitively among POSTED purchases of the same supplier; an override needs a reason of ≥ 10 characters and is stored and audited. The partial unique index remains the race-proof backstop.
+
+### D-034 · 2026-10-27 · Accepted
+**Decision (adjustments and approvals, increment 4.3):**
+- **Adjustment kinds:** QUANTITY (signed, non-serialized, AVAILABLE), DAMAGE (non-serialized write-off as damaged), UNIT_WRITE_OFF (IN_STOCK/DAMAGED unit → WRITTEN_OFF) and CORRECTION (REVERSAL of an adjustment-type movement without a unit). Purchase movements are corrected by reversing the purchase; unit status corrections are not offered yet.
+- **Who:** holders of `inventory.adjust.approve` execute directly (audited). Holders of only `inventory.adjust.request` create an approval request.
+- **Approvals module (generic):** stores the action payload as canonical JSON with its SHA-256; the decider must send the hash they reviewed. The owning module supplies an executor per action type; execution runs in the approving transaction inside a savepoint, so a failing execution is recorded as EXECUTION_FAILED with an error code while the decision is kept. Requests expire after 72 h (lazily marked EXPIRED on read/decision). The request row is immutable apart from its state machine (trigger, LB017).
+- **R3:** a requester cannot approve their own request while any other active member holds the required permission; a sole holder may, and the audit event says so.
+- **Cancel route** uses `inventory.adjust.request` because adjustments are the only approval action so far; it will move to a general permission when other action types arrive.
+
+### D-035 · 2026-10-27 · Accepted
+**Decision (inspection and stock reports, increment 4.4):**
+- **Inspection outcomes** move stock between buckets with RECLASSIFY pairs: RESTOCK → AVAILABLE, DAMAGED → DAMAGED, REPAIR → REPAIR, REPAIRED (back from repair) → INSPECTION; RETURN_TO_SUPPLIER is a PURCHASE_RETURN out of stock. Each outcome is an append-only `inspections` row referenced by its movements. A supplier credit for goods returned is **not** recorded yet (supplier returns as documents come later).
+- **Sales for reports** = SALE movements net of SALE_RETURN. Ages are counted from the last sale, or from the first receipt (PURCHASE/OPENING/positive ADJUSTMENT) if never sold.
+- **Reorder suggestion:** lead-time demand is computed as sold × lead ÷ window with one half-up rounding (not by rounding the daily average first); "on order" is 0 until purchase orders exist, and the report says so. Defaults: 30-day window, 7-day lead time, overridable per request.
+- **Lookup order:** exact barcode, then SKU (case-insensitive), then IMEI (only for callers with `inventory.view`).
+
+### D-036 · 2026-10-27 · Accepted (revisits ADR-08 for now)
+**Decision (uploads and OCR, increment 4.5):**
+- **Job runner:** OCR jobs are queued in `lbg.ocr_jobs` itself and claimed with `FOR UPDATE SKIP LOCKED` through one narrow SECURITY DEFINER function, processed one at a time by the API process (`server.ts`), with stale-job recovery and at most 3 retries. **graphile-worker (ADR-08) is deferred** until there are several job types (scheduled reports, campaigns, agents): the job row is needed anyway as the user-visible status, and one job type does not justify another schema and process yet. ADR-08's rules are kept: the job carries business and requester, and the requester's `ocr.scan` permission and business mode are re-checked when the job runs.
+- **Isolation:** each job's file checks, OCR adapter and parsing run in a `worker_threads` Worker with a heap limit (`OCR_MAX_MEMORY_MB`, default 256) and a wall-clock timeout (`OCR_TIMEOUT_MS`, default 30 s). This bounds memory and time; it is **not** an OS sandbox. A separate container with no egress is the target before real parsers/decoders are added (Phase 9 review).
+- **Uploads:** raw `application/octet-stream` bodies on one route with its own size limit (no multipart dependency); type by magic bytes only; dimensions and page counts read from headers without decoding; HEIC refused with guidance because no converter is configured.
+- **Storage:** `StorageAdapter` with a private local directory (`UPLOAD_DIR`, default `.data/uploads`, git-ignored) and an in-memory store for tests; S3-compatible storage with short-lived signed URLs when hosting is chosen (Q2). Downloads go through an authenticated route: images inline, PDFs as attachments, always with a sandbox CSP and `nosniff`.
+- **OCR adapter:** only a **mock** adapter exists (fixture text from PNG tEXt chunks or simple PDF strings). It is labelled as not being OCR everywhere it appears. A real engine needs a provider decision (Q4).
+- **Parsing and review:** deterministic parsers produce fields with confidence level and source line; values not in the text stay empty. Every field below high confidence, heuristic guesses (supplier name) and fields with problems must be confirmed: the server refuses "Create" until all of them are listed as confirmed. "Create" makes a DRAFT purchase in the same transaction that completes the job; posting stays separate.
+- **Structuring hook (for a future model):** output must pass a strict schema, may only fill fields the parser left empty, and only with values that appear verbatim in the OCR text; anything else is discarded and the job is marked for manual entry. OCR text is passed only as data and is not stored.
+
+### D-037 · 2026-10-27 · Accepted
+**Decision (web screens, increment 4.6):**
+- **`member` pseudo-permission:** routes any active member may call (so far only the business overview) declare `permission: 'member'`. Like business permissions it requires `:businessId`, answers 404 to non-members and is unavailable until the business is set up (APPLICATION/CLOSED modes keep their existing behaviour). It exists because staff roles without `business.settings.view` could not open their own business.
+- **Permission-aware screens:** the overview returns the member's usable permissions (role grants filtered by the business mode), and the web app shows only the screens and forms they can use. This is a convenience; every route still enforces its own permission.
+- **Wide tables** scroll inside a focusable, labelled region on small screens; selects and fieldsets are constrained to the page width.
+- **Scanner input:** scanner fields are ordinary text inputs submitted with Enter (USB/Bluetooth scanners type like keyboards). Camera scanning uses the browser's `BarcodeDetector` when it exists and is hidden otherwise; no third-party barcode library is added.
+
+---
+## Phase 5 decisions (2026-10-27)
+
+### D-038 · 2026-10-27 · Accepted (tax rules need professional verification)
+**Decision (engines, increment 5.1):**
+- **Invoice discount apportioning:** in proportion to each line's value *after its own line discount*; shares are floored and the leftover paise go to the last lines with room. A line never receives more discount than its value.
+- **Inclusive prices with cess:** taxable = round_half_up(net × 10000 / (10000 + GST bp + cess bp)); the tax is the rest of the net amount; GST = round_half_up(taxable × rate), capped at that tax, and cess takes the remainder. (D-013 did not cover cess; this is an assumption for review.)
+- **Round-off:** to the nearest rupee, half up (+50 paise rounds up), shown separately; range −49…+50 paise.
+- **Rate 0** covers nil-rated, exempt and zero-rated lines alike in the engine; their labelling on documents is a template matter for review.
+- **Number formats:** `{PREFIX}`, `{FY}` ("26-27"), `{FYLONG}` ("2026-27"), `{SEQ:n}` (n = 1–8). Default `{PREFIX}{FY}/{SEQ:4}`, e.g. `EX26-27/0042`. A format is refused when its longest possible rendering exceeds 16 characters; a sequence that outgrows its digits stops with SERIES_EXHAUSTED instead of producing a longer number.
+- **Coverage gate:** the domain package's test script enforces ≥ 95 % branch/line/function/statement coverage on the money modules (FR-TAX-1 AC5).
+
+### D-039 · 2026-10-27 · Accepted
+**Decision (customers, numbering, re-authentication, increment 5.2):**
+- **Re-authentication** = a session created by a sign-in less than **10 minutes** ago (`freshAuth` route option; FR-TAX-2 AC2). Applied to tax rates, the tax profile and number settings. Otherwise 403 `REAUTH_REQUIRED`, and the user signs in again (password + TOTP for owners).
+- **Numbering settings** (prefix, format) live in `business_settings`. A series takes them when it is created (first document of a type in a financial year). Saving new settings also updates series that have not issued a number; a series that has issued numbers keeps its format until the next financial year, so numbers within a series never change style.
+- **Customers:** mobile numbers are normalised to E.164 (Indian 10-digit, 0-, 91- and +91-prefixed forms; other countries with +) and unique per business; a duplicate returns the existing customer's ID so checkout can reuse it. A GSTIN's first two digits set the customer's state.
+- **Cancellation window and round-off** settings are stored now (`cancel_window_days` default 0 = same business day, `round_off` default on) for use from 5.3/5.5.
+
+### D-040 · 2026-10-27 · Accepted
+**Decision (selling and issuing, increment 5.3):**
+- **A draft invoice is the cart.** It stores what the cashier entered (items, units, quantities, prices, discounts, customer). Tax rate in force, place of supply, document type and all amounts are derived from current facts on every save and again inside the issuing transaction, so the issued document reflects the facts at issue time. Held carts do not reserve stock.
+- **Issuing is one transaction:** lock the draft; lock the customer (serialises use of their advance) and the units in ID order; re-price; refuse on any problem; check the total the cashier confirmed (`TOTAL_CHANGED` otherwise); write line snapshots with COGS; SALE movements in variant order (avoids deadlocks); units SOLD; take the number last (the series lock is held briefly); party snapshot; payments as entered; allocations (advance first, then new payments); ledger INVOICE and PAYMENT entries for a known customer; audit.
+- **Document type** follows the tax profile: REGULAR → TAX_INVOICE; composition/unregistered → BILL_OF_SUPPLY with no tax (FR-TAX-1 AC4). Composition-specific wording is part of printing (5.6).
+- **Discount limits** apply to the invoice's total discount (line + invoice discounts) against its value before discounts; both the percentage and the amount cap must hold. Over the limit, the cashier raises an approval request (`sales.discount`, required permission `pos.discount`); the approver's **own** limit must cover it. Approval binds to a SHA-256 of the cart content: any change clears it. The in-person "approver re-authenticates at the counter" variant (WORKFLOWS §5 step 2) is **not offered yet**; the approver uses the approvals screen on their own session.
+- **Minimum price** compares the line value after all discounts (including its share of the invoice discount) with min price × quantity; below it needs `pos.price_override`.
+- **Payments:** methods cash, UPI, card, bank transfer, other (fixed list; FR-POS-3 AC1 "configurable list" is deferred). A balance due or an overpayment needs a customer with a mobile (D-014); an overpayment becomes advance. Using advance cannot be combined with overpaying. References that look like card numbers are refused in the API and the DB.
+- **Invoices** are visible to holders of `customers.view`; line costs only with `catalogue.cost.view`. Any member may withdraw their own approval request (`member` + not read-only).
+
+### D-041 · 2026-10-27 · Accepted
+**Decision (payments, refunds, reversals, increment 5.4):**
+- **Every money movement of a customer locks the customer row first** (checkout, later payment, applying advance, refund, reversal), then invoice rows and payment advisory locks (D-020). The allocation bounds trigger now counts refunds too and stays the backstop.
+- **Later payments** belong to a customer (walk-ins pay at the counter only); they are allocated to the chosen invoices in the given order, else oldest first; the rest is advance (D-014). Applying advance is an explicit action as well as part of checkout.
+- **Refunds** pay out advance only, oldest payment first, as `payment_refunds` rows (method, reference, reason ≥ 10 characters) with REFUND ledger entries. They need `refunds.approve` (Manager, Owner). Refunds of invoiced amounts go through credit notes (5.5).
+- **Reversal** of a wrongly recorded payment also needs `refunds.approve` and a reason: a reversal payment row, negative allocations and a REVERSAL ledger entry; a payment with refunds, an already reversed payment or a reversal cannot be reversed.
+- **Statements** use business dates: a day runs from local midnight in the business's timezone.
+- Payment status of invoices (UNPAID / PARTIALLY_PAID / PAID) is derived, never stored; credit notes will count from 5.5.
+
+### D-042 · 2026-10-27 · Accepted
+**Decision (cancellation, credit and debit notes, increment 5.5):**
+- **Cancellation** (D-016) needs `invoices.cancel`, a reason, the business date ≤ invoice date + `cancel_window_days`, and no credit/debit notes on the invoice. The person states whether the goods never left (REVERSAL movements, units back IN_STOCK) or came back (SALE_RETURN into INSPECTION, units PENDING_INSPECTION). The INVOICE ledger entry is reversed; all payment allocations are released.
+- **Settlement** of released money: customer advance, or a refund (`refunds.approve`, refund rows linked to the cancelled invoice or credit note). A walk-in sale has nobody to hold advance, so it must be refunded.
+- **Credit notes** need `credit_notes.create`; lines and quantities of the original invoice; amounts are the original line snapshot × returned quantity / sold quantity (half up), and the return that completes a line takes exactly what is left, so notes never exceed the original. The note that completes the whole invoice also takes the rest of its round-off. Returned goods always go into INSPECTION (FR-INV-6). Paid money beyond what is still due is released (latest allocations first; an allocation is reversed whole and any remainder re-allocated, since an allocation can be reversed only once).
+- **Debit notes** need `credit_notes.create` and a customer: extra taxable value per original line at that line's rate (exclusive), place of supply of the invoice; they are payable documents like invoices.
+- Credit and debit notes use their own series with the shop's prefix and format, so a note can have the same visible number as an invoice; the printed title tells them apart. Per-document-type prefixes are a later option. Billing's `sales.return.create` (accepting a return for a manager to credit) is not used yet.

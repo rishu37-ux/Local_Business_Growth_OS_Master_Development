@@ -4,11 +4,17 @@
   "type": "module",
   "description": "Business modules of the modular monolith; each module is imported only via its index.ts.",
   "exports": {
+    "./approvals": "./src/approvals/index.ts",
     "./audit": "./src/audit/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
+    "./customers": "./src/customers/index.ts",
+    "./inventory": "./src/inventory/index.ts",
     "./notifications": "./src/notifications/index.ts",
+    "./ocr": "./src/ocr/index.ts",
     "./onboarding": "./src/onboarding/index.ts",
+    "./purchasing": "./src/purchasing/index.ts",
+    "./sales": "./src/sales/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {
@@ -21,6 +27,7 @@
     "@node-rs/argon2": "2.2.2",
     "better-auth": "1.7.14",
     "kysely": "0.29.7",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "zod": "4.6.7"
   }
 }

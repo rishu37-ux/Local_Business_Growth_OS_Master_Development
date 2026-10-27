@@ -42,3 +42,88 @@ export {
   weightedAverageCost,
 } from './money.ts';
 export { effectiveVersion, periodsOverlap, type TaxRateVersion } from './tax-rates.ts';
+export {
+  lineCost,
+  purchaseLineAmounts,
+  purchaseTotals,
+  splitAmount,
+  unitCostFromLine,
+  type PurchaseLineAmounts,
+  type PurchaseLineInput,
+  type PurchaseTotals,
+} from './purchase.ts';
+export {
+  canUnitTransition,
+  isSellable,
+  UNIT_BUCKET,
+  UNIT_STATUSES,
+  UNIT_TRANSITIONS,
+  type UnitStatus,
+} from './units.ts';
+export {
+  classifyAge,
+  REORDER_FORMULA,
+  reorderSuggestion,
+  type MovementAge,
+  type ReorderInput,
+  type ReorderSuggestion,
+} from './stock-reports.ts';
+export {
+  checkUpload,
+  DEFAULT_UPLOAD_LIMITS,
+  pdfPageCount,
+  sniffType,
+  type FileCheck,
+  type FileProblem,
+  type SniffedType,
+  type UploadLimits,
+} from './file-sniff.ts';
+export {
+  confidenceLevel,
+  HIGH_CONFIDENCE,
+  MEDIUM_CONFIDENCE,
+  parseInvoiceDate,
+  parseMoneyToPaise,
+  parseProductLabel,
+  parseSupplierInvoice,
+  type ConfidenceLevel,
+  type ExtractedField,
+  type FieldProblem,
+  type InvoiceLineExtraction,
+  type OcrLine,
+  type ProductLabelExtraction,
+  type SupplierInvoiceExtraction,
+} from './ocr-parse.ts';
+export {
+  apportion,
+  computeSale,
+  discountAmount,
+  TaxEngineError,
+  type Discount,
+  type SaleInput,
+  type SaleLineInput,
+  type SaleLineResult,
+  type SaleResult,
+} from './tax-engine.ts';
+export {
+  allocate,
+  AllocationError,
+  fifoOrder,
+  paymentStatus,
+  refundSources,
+  type Allocation,
+  type OpenInvoice,
+  type PaymentFunds,
+  type PaymentStatus,
+} from './allocation.ts';
+export {
+  DEFAULT_FORMAT,
+  formatProblem,
+  MAX_NUMBER_LENGTH,
+  NumberingError,
+  renderInvoiceNumber,
+  type FormatProblem,
+} from './numbering.ts';
+export { METRICS, type MetricKey } from './metrics.ts';
+export { normalizeMobile, placeOfSupply } from './customers.ts';
+export { discountWithinLimit } from './discount-limits.ts';

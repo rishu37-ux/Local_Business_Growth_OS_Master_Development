@@ -7,6 +7,8 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
+import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
+import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
 import { buildApp } from '../src/app.ts';
 import { loadConfig } from '../src/config.ts';
@@ -17,6 +19,8 @@ export const SECRET = 'test-only-secret-0123456789abcdef0123456789';
 
 export interface Harness {
   readonly app: FastifyInstance;
+  /** Public origin of this harness (sent as Origin by the request helpers). */
+  readonly origin: string;
   readonly emails: CapturingEmailSender;
   readonly mail: CapturingMailer;
   readonly logs: LogCapture;
@@ -24,14 +28,23 @@ export interface Harness {
   /** Tenant role pool (RLS applies), for probing database-level rules. */
   readonly appDb: Db;
   readonly admin: Db;
+  readonly storage: MemoryStorage;
+  readonly ocr: OcrConfig;
+  /** Processes queued OCR jobs until the queue is empty; returns their outcomes. */
+  runOcr(
+    config?: Partial<OcrConfig['isolation']>,
+  ): Promise<{ jobId: string; status: string; errorCode: string | null }[]>;
   close(): Promise<void>;
 }
 
-let ipCounter = 0;
+// Test files share one database, and with it the auth rate-limit counters, so
+// each file starts at a random point of 10.0.0.0/8 instead of reusing the same
+// addresses (a fixed start made sign-up limits collide across files).
+let ipCounter = Math.floor(Math.random() * 0xffff00);
 /** A fresh client IP per call, so per-IP rate limits never couple unrelated tests. */
 export function freshIp(): string {
-  ipCounter += 1;
-  return `10.77.${Math.floor(ipCounter / 250)}.${(ipCounter % 250) + 1}`;
+  ipCounter = (ipCounter + 1) % 0xffffff;
+  return `10.${String(ipCounter >> 16)}.${String((ipCounter >> 8) & 0xff)}.${String(ipCounter & 0xff)}`;
 }
 
 export async function startHarness(
@@ -55,10 +68,17 @@ export async function startHarness(
     db: authDb,
   });
   const logs = new LogCapture();
+  const storage = new MemoryStorage();
+  const ocr: OcrConfig = {
+    storage,
+    limits: DEFAULT_UPLOAD_LIMITS,
+    isolation: { adapterUrl: DEFAULT_ADAPTER_URL, structurerUrl: null, timeoutMs: 15_000, maxMemoryMb: 128 },
+    staleSeconds: 600,
+  };
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth, mailer: mail, baseURL },
+    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
@@ -69,12 +89,21 @@ export async function startHarness(
   await app.ready();
   return {
     app,
+    origin: new URL(baseURL).origin,
     emails,
     mail,
     logs,
     authDb,
     appDb,
     admin,
+    storage,
+    ocr,
+    async runOcr(isolation = {}) {
+      const cfg = { ...ocr, isolation: { ...ocr.isolation, ...isolation } };
+      const out: { jobId: string; status: string; errorCode: string | null }[] = [];
+      for (let r = await processNextOcrJob(appDb, cfg); r; r = await processNextOcrJob(appDb, cfg)) out.push(r);
+      return out;
+    },
     async close() {
       await app.close();
       await Promise.all([authDb, appDb, platformDb, admin].map((db) => db.destroy()));
@@ -117,7 +146,7 @@ export async function post(
     url,
     payload,
     remoteAddress: ip,
-    headers: { origin: ORIGIN, ...(Object.keys(cookies).length ? { cookie: cookieHeader(cookies) } : {}) },
+    headers: { origin: h.origin, ...(Object.keys(cookies).length ? { cookie: cookieHeader(cookies) } : {}) },
   });
 }
 
@@ -208,6 +237,6 @@ export async function put(h: Harness, url: string, payload: object, cookies: Rec
     url,
     payload,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }

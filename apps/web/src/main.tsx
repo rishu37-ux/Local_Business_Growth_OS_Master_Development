@@ -4,11 +4,17 @@ import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Link, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
 import { api, fetchMe, type Me } from './api.ts';
 import { MfaPage, SignInPage, SignUpPage } from './pages/auth.tsx';
+import { ApprovalsPage } from './pages/approvals.tsx';
 import { BusinessPage } from './pages/business.tsx';
+import { CataloguePage, ProductPage, TaxRatesPage } from './pages/catalogue.tsx';
 import { HomePage } from './pages/home.tsx';
 import { InvitePage } from './pages/invite.tsx';
 import { MembersPage } from './pages/members.tsx';
 import { PlatformPage } from './pages/platform.tsx';
+import { PurchaseEditorPage, PurchasesPage } from './pages/purchases.tsx';
+import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
+import { StockPage } from './pages/stock.tsx';
+import { SuppliersPage } from './pages/suppliers.tsx';
 import './styles.css';
 
 function useMe() {
@@ -73,6 +79,16 @@ const router = createBrowserRouter([
       { path: '/mfa', element: <Authed>{() => <MfaPage />}</Authed> },
       { path: '/b/:businessId', element: <Authed>{(me) => <BusinessPage me={me} />}</Authed> },
       { path: '/b/:businessId/members', element: <Authed>{() => <MembersPage />}</Authed> },
+      { path: '/b/:businessId/catalogue', element: <Authed>{() => <CataloguePage />}</Authed> },
+      { path: '/b/:businessId/catalogue/:productId', element: <Authed>{() => <ProductPage />}</Authed> },
+      { path: '/b/:businessId/tax-rates', element: <Authed>{() => <TaxRatesPage />}</Authed> },
+      { path: '/b/:businessId/suppliers', element: <Authed>{() => <SuppliersPage />}</Authed> },
+      { path: '/b/:businessId/purchases', element: <Authed>{() => <PurchasesPage />}</Authed> },
+      { path: '/b/:businessId/purchases/:purchaseId', element: <Authed>{() => <PurchaseEditorPage />}</Authed> },
+      { path: '/b/:businessId/stock', element: <Authed>{() => <StockPage />}</Authed> },
+      { path: '/b/:businessId/scans', element: <Authed>{() => <ScansPage />}</Authed> },
+      { path: '/b/:businessId/scans/:scanId', element: <Authed>{() => <ScanReviewPage />}</Authed> },
+      { path: '/b/:businessId/approvals', element: <Authed>{() => <ApprovalsPage />}</Authed> },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },
       { path: '/platform', element: <Authed>{() => <PlatformPage />}</Authed> },
     ],

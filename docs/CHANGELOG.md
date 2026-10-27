@@ -1,11 +1,36 @@
 # Changelog
 
-## [Unreleased] — Phase 4 (in progress)
+## [Unreleased] — Phase 5 (in progress)
+
+### Added
+- Phase 5 plan (`docs/PHASE5_PLAN.md`).
+- `@lbgos/domain`: sale tax engine (D-013/D-038), payment allocation (D-014), invoice number formats, metric definitions; coverage gate ≥ 95 % on money modules.
+- Migration 0012, `@lbgos/modules/customers` and `sales` numbering: customers (E.164 mobiles, GSTIN/state), invoice series with configurable format and FY rollover, numbering API; re-authentication (`freshAuth`) for tax settings.
+- Migration 0013 and `@lbgos/modules/sales` selling: draft sales (held carts), pricing from current tax rates and place of supply, discount limits with approval requests (`sales.discount`, approver's own limit checked), minimum-price override, atomic issue (number, line snapshots with COGS, SALE movements, units SOLD, payments, allocations, advance use, customer ledger, audit), invoice list/detail; sales API routes; `discountWithinLimit` in `@lbgos/domain`.
+- Migration 0014 and payments in `@lbgos/modules/sales`: later payments (selected invoices or oldest first), applying advance, advance refunds (`payment_refunds`), payment reversals, customer account (balance, receivable, advance, open invoices) and statement with opening/closing balance; payment status on invoices; payment API routes.
+- Migration 0015 and returns in `@lbgos/modules/sales`: invoice cancellation within the window (goods back to stock or into inspection; payments to advance or refunded), credit notes (partial/full, from line snapshots, returns into inspection, release or refund of paid money), debit notes; invoice credited amount and status; API routes.
+
+### Changed
+- Approvals: executors may add an approver check (`ApprovalAction.authorize`); the action map is shared (`apps/api/src/approval-actions.ts`); any member may withdraw their own request and list it (`/approvals/mine`).
+
+### Fixed
+- Test harness: synthetic client IPs no longer collide across test files (sign-up rate limits).
+
+## [0.4.0] — 2026-10-27 — Phase 4 (inventory, purchases, stock ledger, OCR review)
 
 ### Added
 - Phase 4 plan (`docs/PHASE4_PLAN.md`).
 - Migration 0007 and `@lbgos/modules/catalogue`: categories, brands, products, variants (archiving, cost visibility), versioned tax rates; catalogue API routes.
 - `@lbgos/domain` integer money arithmetic and tax-rate version helpers.
+- Migration 0008, `@lbgos/modules/purchasing` and `inventory`: suppliers, supplier ledger, purchases (draft → post → reverse) with IMEI checks, stock buckets and the `stock_levels` projection; purchasing API routes.
+- Migration 0009, `@lbgos/modules/approvals` and inventory adjustments: stock overview/units/movements/reconciliation APIs, adjustments, write-offs, corrections, approval requests (payload hash, expiry, R3).
+- Migration 0010: inspection records; inspection queue/outcomes, low/slow/dead stock and reorder-suggestion reports, code lookup API.
+- Migration 0011 and `@lbgos/modules/ocr`: scan uploads (magic bytes, limits), private storage adapter, OCR jobs in isolated worker threads with retries, mock OCR adapter (fixture text), deterministic field parsing, review with confirmations → draft purchase, structuring hook with strict schema.
+- Web screens: catalogue, tax rates, suppliers, purchases (IMEI entry, post, reverse), stock (scanner field, camera where supported, levels, reports, inspections, adjustments), scans and review, approvals; Phase 4 exit browser test.
+
+### Fixed
+- Staff without `business.settings.view` could not open their business overview (`member` pseudo-permission, D-037).
+- Wide tables were not keyboard-scrollable on small screens.
 
 ## [0.3.0] — 2026-10-27 — Phase 3 (foundation)
 

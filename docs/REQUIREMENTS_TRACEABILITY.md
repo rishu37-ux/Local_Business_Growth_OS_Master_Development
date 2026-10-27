@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
+Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -22,44 +22,44 @@ Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
 | FR-ONB-1 | Onboarding | Registration and admin creation | 3 | Implemented + tested (AC1–3) | `routes/tenancy.ts`, `onboarding/platform.ts` | TR-0008 #5, TR-0009 #8 |
 | FR-ONB-2 | Onboarding | Setup wizard | 3 | In progress (AC1–4 for details/tax/MFA/staff/preferences, API + web; products import and integrations steps later) | `onboarding/setup.ts`, `apps/web/src/pages/business.tsx` | TR-0009 #1, #5; TR-0010 #3 |
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Implemented + tested (backend; real email provider pending Q6) | `notifications/`, `tenancy/platform.ts` | TR-0008 #6, TR-0009 #4 |
-| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 pending approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts` | TR-0008 #1, #4, #9 |
+| FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 enforced by the approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts`, `modules/approvals/` | TR-0008 #1, #4, #9; TR-0013 #11 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
 | FR-INV-1 | Inventory | Hierarchy | 4 | Implemented + tested (AC1–3) | migration 0007, `packages/modules/src/catalogue/`, `apps/api/src/routes/catalogue.ts` | TR-0011 #2–4 |
 | FR-INV-2 | Inventory | Phone attributes | 4 | Implemented + tested (AC1–4) | migration 0007, `packages/modules/src/catalogue/` | TR-0011 #2, #5 |
-| FR-INV-3 | Inventory | Serialized units and IMEI | 4 | In progress (DB layer + domain validation) | `packages/db/migrations/0001_foundation.sql`, `packages/domain/src/imei.ts` | TR-0002 T09–T11; TR-0005 (migrated DB) |
-| FR-INV-4 | Inventory | Stock ledger | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T12–T13b, T28, T28b; TR-0005 (migrated DB) |
-| FR-INV-5 | Inventory | Confirmed transactions only | 4 | Specified | — | — |
-| FR-INV-6 | Inventory | Returns inspection | 4 | Specified | — | — |
-| FR-INV-7 | Inventory | Alerts and reports | 4 | Specified | — | — |
-| FR-INV-8 | Inventory | Suppliers and purchases | 4 | Specified | — | — |
-| FR-INV-9 | Inventory | Barcode/QR scanning | 4 | Specified | — | — |
-| FR-OCR-1 | OCR | Capture and upload | 4 | Specified | — | — |
-| FR-OCR-2 | OCR | Confidence and evidence | 4 | Specified | — | — |
-| FR-OCR-3 | OCR | Deterministic validation | 4 | Specified | — | — |
-| FR-OCR-4 | OCR | Review before posting | 4 | Specified | — | — |
-| FR-OCR-5 | OCR | Untrusted content | 4 | Specified | — | — |
-| FR-OCR-6 | OCR | File safety | 4 | Specified | — | — |
-| FR-POS-1 | POS | Fast selling | 5 | Specified | — | — |
-| FR-POS-2 | POS | Discounts within limits | 5 | Specified | — | — |
-| FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T24; TR-0005 (migrated DB) |
-| FR-POS-4 | POS | Invoice numbering | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T14–T14e; spike TR-0003 (concurrent gapless numbering); TR-0005 (migrated DB) |
-| FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
-| FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T15–T15c; TR-0005 (migrated DB) |
-| FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | In progress (AC1 and AC3 implemented + tested; AC2 audited and permission-gated, re-authentication pending — D-030) | migration 0007, `catalogue/tax-rates.ts`, `@lbgos/domain` tax-rates | TR-0011 #6–7 |
-| FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T16–T16g; TR-0005 (migrated DB) |
+| FR-INV-3 | Inventory | Serialized units and IMEI | 4 | Implemented + tested for purchasing (AC1–5); AC6 transitions in `@lbgos/domain` units.ts, used by reversal (more with 4.3/4.4) | migrations 0001/0008, `@lbgos/domain` imei.ts/units.ts, `modules/purchasing/problems.ts` | TR-0012 #3–5 |
+| FR-INV-4 | Inventory | Stock ledger | 4 | Implemented + tested (AC1–4: append-only ledger, REVERSAL corrections, trigger-maintained projection + reconciliation, adjustments/write-offs/corrections with reasons and approval requests) | migrations 0001/0008/0009, `modules/inventory/`, `modules/approvals/`, `routes/inventory.ts` | TR-0012 #6; TR-0013 #1–12 |
+| FR-INV-5 | Inventory | Confirmed transactions only | 4–5 | Implemented + tested (AC1–2 purchases and sales; AC3 negative stock refused incl. concurrent last-unit sale; AC4 concurrent sale of one IMEI: exactly one succeeds; issuing is atomic) | migration 0008 trigger, `modules/purchasing/`, `modules/inventory/`, `modules/sales/` | TR-0012 #2, #6, #10–11; TR-0013 #5, #8; TR-0019 #1, #6–9 |
+| FR-INV-6 | Inventory | Returns inspection | 4–5 | Implemented + tested (AC1 credit notes and cancellations with returned goods put units/quantities in INSPECTION via SALE_RETURN; AC2–3 outcomes, only RESTOCK makes them sellable) | migrations 0010, 0015; `modules/inventory/inspections.ts`, `modules/sales/returns.ts` | TR-0014 #1–6; TR-0021 #2, #4–5 |
+| FR-INV-7 | Inventory | Alerts and reports | 4 | Implemented + tested (AC1 low-stock list; AC2 slow/dead with configurable N/M; AC3 reorder suggestion with formula, period, label; optional notification not built; on-order counted as 0 until purchase orders exist) | `@lbgos/domain` stock-reports.ts, `modules/inventory/reports.ts` | TR-0014 #7–10 |
+| FR-INV-8 | Inventory | Suppliers and purchases | 4 | Implemented + tested (AC1–4; attachments with 4.5 uploads) | migration 0008, `packages/modules/src/purchasing/`, `apps/api/src/routes/purchasing.ts` | TR-0012 #1–10 |
+| FR-INV-9 | Inventory | Barcode/QR scanning | 4 | Implemented + tested in Chromium (AC1 keyboard-wedge input in the stock lookup and IMEI fields; AC2 camera button only when `BarcodeDetector` exists, manual field otherwise — headless Chromium has none; real scanners and phones not yet tested) | `modules/inventory/reports.ts`, `apps/web/src/pages/stock.tsx`, `purchases.tsx` | TR-0014 #11–12; TR-0016 #2, #6 |
+| FR-OCR-1 | OCR | Capture and upload | 4 | Implemented + tested (AC1–3: upload JPEG/PNG/WebP/PDF from the scan screen, HEIC rejected with guidance, two scan types, status polling and retry; camera capture relies on the browser's file picker — not yet tried on a real phone) | migration 0011, `modules/ocr/`, `routes/scans.ts`, `apps/web/src/pages/scans.tsx` | TR-0015 #1–3, #9; TR-0016 #4 |
+| FR-OCR-2 | OCR | Confidence and evidence | 4 | Implemented + tested (API: value, confidence level, source line per field; flagged fields must be confirmed before Create; image regions not available from the mock adapter) | `@lbgos/domain` ocr-parse.ts, `modules/ocr/jobs.ts` | TR-0015 #5, #7 |
+| FR-OCR-3 | OCR | Deterministic validation | 4 | Implemented + tested (IMEI Luhn/format flags, duplicates in scan and in business, money/date parsing, recomputed line amounts with mismatch flags) | `@lbgos/domain` ocr-parse.ts, `modules/ocr/jobs.ts` | TR-0015 #5–8 |
+| FR-OCR-4 | OCR | Review before posting | 4 | Implemented + tested (API and review screen: nothing created before Create, which stays disabled until every flagged field is confirmed; drafts only; match proposals with reasons) | `modules/ocr/jobs.ts`, `apps/web/src/pages/scans.tsx` | TR-0015 #6–8; TR-0016 #4 |
+| FR-OCR-5 | OCR | Untrusted content | 4 | Implemented + tested (no LLM configured; AC2 strict-schema structurer hook with discard → manual entry; AC3 injection corpus unit + end to end) | `modules/ocr/structuring.ts`, `@lbgos/domain` ocr-parse.ts | TR-0015 #12–15 |
+| FR-OCR-6 | OCR | File safety | 4 | In progress (AC1, AC2, AC3 worker thread with heap limit/timeout, AC5 tested; AC4 no scanner configured — stated; OS-level sandbox and S3 storage pending) | `@lbgos/domain` file-sniff.ts, `modules/ocr/` | TR-0015 #1–4, #9–11, #16 |
+| FR-POS-1 | POS | Fast selling | 5 | In progress (API: AC2 unit required/available, AC4 held carts without reservation; AC1 search speed and AC3 interactions with the POS screens in 5.8) | `modules/sales/`, `routes/sales.ts`, migration 0013 | TR-0019 #17–18 |
+| FR-POS-2 | POS | Discounts within limits | 5 | In progress (AC1–3 implemented + tested via approval requests; in-person approver re-authentication not offered yet, D-040) | `domain/discount-limits.ts`, `modules/sales/`, `modules/approvals/` | TR-0019 #13–16, #20, #22b |
+| FR-POS-3 | POS | Payments, partial payments, returns and refunds | 5 | In progress (AC1–4, AC6 at checkout tested; payment-method list fixed, not configurable; AC5 returns via credit notes, refunds with `refunds.approve` tested; later payments in TR-0020) | migrations 0001, 0013–0015; `modules/sales/` | TR-0002 T24; TR-0019 #10–12; TR-0021 #2, #5, #7 |
+| FR-POS-4 | POS | Invoice numbering | 5 | Implemented + tested (AC1–5: series per type and FY created on first use, number taken under the series lock, FY boundary in business timezone, format validation, concurrent issuers without gaps/duplicates) | `@lbgos/domain` numbering.ts, `modules/sales/numbering.ts`, migration 0012 | TR-0017 #7; TR-0018 #6–8 |
+| FR-POS-5 | POS | Customer capture | 5 | In progress (customer lookup by mobile, inline create with name + mobile, optional GSTIN/state with place of supply implemented + tested; checkout use in 5.3) | `modules/customers/`, `@lbgos/domain` customers.ts, `routes/sales.ts` | TR-0018 #1–4 |
+| FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (pure engine implemented + tested: AC2–AC5 incl. ≥95 % branch coverage measured — 100 % for the engine; AC1 per-line snapshots stored on issue; AC4 document type by tax profile) | `packages/domain/src/tax-engine.ts`, `modules/sales/pricing.ts` | TR-0017 #1–4; TR-0019 #1–4 |
+| FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | Implemented + tested (AC1, AC3; AC2 re-authentication: tax settings need a sign-in within 10 minutes) | migration 0007, `catalogue/tax-rates.ts`, `apps/api/src/auth-plugin.ts` (`freshAuth`) | TR-0011 #6–7; TR-0018 #9 |
+| FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | Implemented + tested (AC1 cancellation within the window with reversal movements and ledger, number kept; AC2 outside the window refused; AC3 full/partial credit notes from line snapshots, own series, returns into inspection; AC4 debit notes increase the amount due) — printed notes in 5.6 | migrations 0001, 0015; `modules/sales/returns.ts` | TR-0002 T16–T16g; TR-0005; TR-0021 #1–8 |
 | FR-TAX-4 | Tax | E-invoice / signature only where applicable | 5 | Specified | — | — |
 | FR-PRN-1 | Print | Print and PDF | 5 | Specified | — | — |
-| FR-CRM-1 | CRM | Customer profile | 6 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T27, T27b; TR-0005 (migrated DB) |
-| FR-CRM-2 | CRM | Data minimisation | 6 | Specified | — | — |
+| FR-CRM-1 | CRM | Customer profile | 5–6 | In progress (AC1 core fields: name, E.164 mobile unique per business, email, address, GSTIN, state, notes; consent, DOB, tags and the history view in Phase 6) | migration 0012, `modules/customers/` | TR-0018 #1–5 |
+| FR-CRM-2 | CRM | Data minimisation | 5–6 | In progress (AC1: only name and mobile required; export in Phase 6) | `modules/customers/` | TR-0018 #1 |
 | FR-PRV-1 | Privacy | Data subject requests | 6 | Specified | — | — |
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
-| FR-LED-1 | Ledger | Customer ledger | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T18–T18d; TR-0005 (migrated DB) |
-| FR-LED-2 | Ledger | Deterministic allocation | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T17–T17c; spike TR-0003 (allocation locking, D-020); TR-0005 (migrated DB) |
+| FR-LED-1 | Ledger | Customer ledger | 5 | In progress (INVOICE, PAYMENT, REFUND, REVERSAL entries written and tested; AC2 balance = Σ entries = receivable − advance; AC3 append-only and statement with opening/closing balance for any date range (business timezone) tested — printing/export of statements in 5.6/5.7; CREDIT_NOTE/DEBIT_NOTE in 5.5; ADJUSTMENT not offered yet) | migrations 0001, 0014; `modules/sales/sale.ts`, `modules/sales/payments.ts` | TR-0002 T18–T18d; TR-0005; TR-0019 #10–11; TR-0020 #1–9 |
+| FR-LED-2 | Ledger | Deterministic allocation | 5 | Implemented + tested (pure module AC1–2; in the database: FIFO and selected invoices, advance, advance applied, refund, reversal; parallel payments never over-allocate; status derived) | `packages/domain/src/allocation.ts`, `modules/sales/payments.ts`, migration 0014 | TR-0017 #5–6; TR-0020 #1–7 |
 | FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
 | FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
 | FR-RPT-1 | Reports | Report set | 5–6 | Specified | — | — |
-| FR-RPT-2 | Reports | Definitions shown | 5–6 | Specified | — | — |
+| FR-RPT-2 | Reports | Definitions shown | 5 | In progress (definitions module from SRS §7; shown in reports in 5.7) | `packages/domain/src/metrics.ts` | TR-0017 #8 |
 | FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Specified | — | — |
 | FR-RPT-4 | Reports | Export | 5–6 | Specified | — | — |
 | FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
@@ -83,7 +83,7 @@ Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
 | FR-AGT-1 | Agents | Initial agents | 8 | Specified | — | — |
 | FR-AGT-2 | Agents | Deterministic core | 8 | Specified | — | — |
 | FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Specified | — | — |
-| FR-AGT-4 | Agents | Human approval | 8 | Specified | — | — |
+| FR-AGT-4 | Agents | Human approval | 8 | In progress (generic approval requests with payload hash, expiry, R3 and idempotent execution exist for stock adjustments; agent actions in Phase 8) | `modules/approvals/` | TR-0013 #6–11 |
 | FR-AGT-5 | Agents | Reliability and budgets | 8 | Specified | — | — |
 | FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
 | FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | In progress (plans, TRIALING on approval, status gate; billing invoices/notifications later) | migration 0006, `tenancy/platform.ts` | TR-0008 #2, TR-0009 #3 |
@@ -91,13 +91,13 @@ Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
 | FR-AUD-1 | Audit | Audit log | 3 | In progress (append-only store + lifecycle/member/auth events; more actions as modules arrive) | `packages/modules/src/audit/` | TR-0005, TR-0007 #16, TR-0008 #12 |
 | FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |
-| NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | In progress (axe 0 serious/critical on 8 screens × 360/768/1280 px, no overflow; keyboard-only/screen-reader checks pending) | `apps/web` | TR-0010 #4, #6 |
+| NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | In progress (axe 0 serious/critical on 16 screens × 360/768/1280 px, no overflow; keyboard-only/screen-reader checks pending) | `apps/web` | TR-0010 #4, #6; TR-0016 #7 |
 | NFR-2 | Non-functional | Modular monolith | 3–9 | In progress | Monorepo + `tooling/eslint/module-boundaries.js` | TR-0004 #4–5 |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | In progress (TS strict; API validation pending) | `tsconfig.base.json` | TR-0004 #2 |
 | NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | In progress (DB layer + service-layer membership/permission gate; per-endpoint cross-tenant tests for routes so far) | migrations, `apps/api/src/auth-plugin.ts` | TR-0005, TR-0008 #5, #9–10 |
-| NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
-| NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
-| NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |
+| NFR-5 | Non-functional | Background jobs | 3–9 | In progress (OCR jobs: status, retries ≤3, SKIP LOCKED claiming, stale-job recovery, permission re-check; other job types later — D-036) | `modules/ocr/jobs.ts`, migration 0011 | TR-0015 #9–11 |
+| NFR-6 | Non-functional | Private storage | 3–9 | In progress (private local/in-memory storage, authenticated proxy downloads; signed-URL S3 storage pending hosting Q2) | `modules/ocr/storage.ts`, `routes/scans.ts` | TR-0015 #1, #4 |
+| NFR-7 | Non-functional | Swappable providers | 3–9 | In progress (OCR adapter interface; mock and test adapters swapped by configuration in tests) | `modules/ocr/isolate.ts`, `mock-adapter.ts` | TR-0015 #9–10 |
 | NFR-8 | Non-functional | Money correctness | 3–9 | In progress (integer paise/basis-point arithmetic in `@lbgos/domain` money.ts; bigint/numeric columns; lint/schema check pending) | `packages/domain/src/money.ts` | TR-0011 #1 |
 | NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
 | NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness) | `apps/api/src/app.ts` | TR-0006 #7–8, #12–13 |

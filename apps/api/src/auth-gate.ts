@@ -14,6 +14,8 @@ export interface Principal {
   /** Platform admin or business owner (D-011). */
   readonly mfaRequired: boolean;
   readonly platformAdmin: boolean;
+  /** When the session was created by a sign-in. */
+  readonly sessionCreatedAt: Date;
 }
 
 export interface AuthGate {
@@ -58,6 +60,7 @@ export function createAuthGate(deps: {
         twoFactorEnabled: session.twoFactorEnabled,
         mfaRequired: rows[0]?.required === true,
         platformAdmin,
+        sessionCreatedAt: session.createdAt,
       };
     },
 

@@ -1,8 +1,9 @@
 // Phase 4 test fixture: an ACTIVE synthetic shop driven through the real API
 // (apply → approve → owner MFA → setup → activate), plus staff with chosen
 // default roles. Synthetic data only.
+import { luhnCheckDigit } from '@lbgos/domain';
 import { sql } from 'kysely';
-import { cookieHeader, enrolMfa, freshIp, get, newUser, ORIGIN, post, put, type Harness } from './auth-harness.ts';
+import { cookieHeader, enrolMfa, freshIp, get, newUser, post, put, type Harness } from './auth-harness.ts';
 
 export const SHOP_PW = 'Shop-Fixture-2026';
 export type Session = Record<string, string>;
@@ -11,6 +12,9 @@ export interface Shop {
   readonly businessId: string;
   readonly owner: Session;
   readonly ownerId: string;
+  readonly ownerEmail: string;
+  /** TOTP secret of the owner (for signing in through the browser). */
+  readonly ownerSecret: string;
   readonly base: string;
 }
 
@@ -28,8 +32,16 @@ export function resetFixture(): void {
   adminSession = undefined;
 }
 
-/** stateCode defaults to Maharashtra (27). */
-export async function activeShop(h: Harness, prefix: string, stateCode = '27'): Promise<Shop> {
+/**
+ * stateCode defaults to Maharashtra (27). `gstin` makes the shop a REGULAR GST
+ * registrant (its first two digits must match the state); otherwise UNREGISTERED.
+ */
+export async function activeShop(
+  h: Harness,
+  prefix: string,
+  options: { readonly stateCode?: string; readonly gstin?: string } = {},
+): Promise<Shop> {
+  const stateCode = options.stateCode ?? '27';
   const admin = await platformAdmin(h, prefix);
   const o = await newUser(h, `${prefix}-owner@example.test`, SHOP_PW);
   const created = await post(
@@ -42,7 +54,8 @@ export async function activeShop(h: Harness, prefix: string, stateCode = '27'): 
   const businessId = created.json<{ businessId: string }>().businessId;
   const approved = await post(h, `/api/platform/businesses/${businessId}/approve`, {}, admin);
   if (approved.statusCode >= 300) throw new Error(`approve failed: ${approved.statusCode} ${approved.body}`);
-  const owner = (await enrolMfa(h, o.cookies, SHOP_PW)).session;
+  const mfa = await enrolMfa(h, o.cookies, SHOP_PW);
+  const owner = mfa.session;
   const base = `/api/businesses/${businessId}`;
   const steps = [
     await put(
@@ -51,11 +64,18 @@ export async function activeShop(h: Harness, prefix: string, stateCode = '27'): 
       { displayName: `${prefix} Mobiles`, timezone: 'Asia/Kolkata', fyStartMonth: 4 },
       owner,
     ),
-    await put(h, `${base}/setup/tax`, { registrationType: 'UNREGISTERED', invoicePrefix: 'T' }, owner),
+    await put(
+      h,
+      `${base}/setup/tax`,
+      options.gstin
+        ? { registrationType: 'REGULAR', gstin: options.gstin, invoicePrefix: 'T' }
+        : { registrationType: 'UNREGISTERED', invoicePrefix: 'T' },
+      owner,
+    ),
     await post(h, `${base}/activate`, {}, owner),
   ];
   for (const r of steps) if (r.statusCode >= 300) throw new Error(`setup failed: ${r.statusCode} ${r.body}`);
-  return { businessId, owner, ownerId: o.id, base };
+  return { businessId, owner, ownerId: o.id, ownerEmail: o.email, ownerSecret: mfa.secret, base };
 }
 
 /** A verified user who joined `shop` with the default role `roleName` (accepted invitation). */
@@ -84,7 +104,7 @@ export async function patch(h: Harness, url: string, payload: object, cookies: S
     url,
     payload,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }
 
@@ -93,10 +113,37 @@ export async function del(h: Harness, url: string, cookies: Session = {}) {
     method: 'DELETE',
     url,
     remoteAddress: freshIp(),
-    headers: { origin: ORIGIN, cookie: cookieHeader(cookies) },
+    headers: { origin: h.origin, cookie: cookieHeader(cookies) },
   });
 }
 
 export const errorCode = (res: { json: () => unknown }) => (res.json() as { error?: { code?: string } }).error?.code;
 
 export { get, post, put };
+
+/** A valid synthetic IMEI (Luhn check digit) from a small number; the 35-990 prefix keeps it obviously synthetic. */
+export function imei(n: number): string {
+  const body = `35990${String(n).padStart(9, '0')}`;
+  return body + String(luhnCheckDigit(body));
+}
+
+/** A product with one variant; returns the variant ID. */
+export async function variant(
+  h: Harness,
+  shop: Shop,
+  sku: string,
+  options: { readonly serialized: boolean; readonly taxRateId?: string },
+): Promise<string> {
+  const res = await post(
+    h,
+    `${shop.base}/products`,
+    {
+      modelName: `Model ${sku}`,
+      isSerialized: options.serialized,
+      variants: [{ sku, sellingPricePaise: 100_000, ...(options.taxRateId ? { taxRateId: options.taxRateId } : {}) }],
+    },
+    shop.owner,
+  );
+  if (res.statusCode !== 201) throw new Error(`product failed: ${res.statusCode} ${res.body}`);
+  return res.json<{ variantIds: string[] }>().variantIds[0] ?? '';
+}

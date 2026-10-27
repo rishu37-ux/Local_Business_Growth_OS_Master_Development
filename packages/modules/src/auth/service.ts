@@ -12,6 +12,8 @@ export interface AuthSession {
   readonly emailVerified: boolean;
   readonly twoFactorEnabled: boolean;
   readonly expiresAt: Date;
+  /** When this session was created by a sign-in (used for re-authentication, FR-TAX-2 AC2). */
+  readonly createdAt: Date;
 }
 
 export interface AuthService {
@@ -71,6 +73,7 @@ export function createAuthService(settings: AuthSettings): AuthService {
         emailVerified: user.emailVerified,
         twoFactorEnabled: user.twoFactorEnabled === true,
         expiresAt: new Date(result.session.expiresAt),
+        createdAt: new Date(result.session.createdAt),
       };
     },
 

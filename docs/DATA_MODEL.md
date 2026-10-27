@@ -63,6 +63,16 @@ Status: **Specified. Core tables exist as a design-level SQL draft that has been
 ### Specified but not yet in the SQL draft (Phase 3–8)
 `sessions`, `mfa_factors`, `recovery_codes`, `password_reset_tokens`, `invitations`, `business_settings`, `setup_progress`, `locations`, `purchase_lines`, `supplier_ledger_entries`, `stock_levels` (projection — see §3), `returns`/`inspections`, `expenses`, `uploads`, `ocr_jobs`, `ocr_extractions`, `integrations`, `integration_secrets` (encrypted; restricted role), `usage_records`, `offers`, `campaigns`, `generated_assets`, `messages`, `message_events`, `suppression_list`, `reminders`, `agent_runs`, `agent_tool_calls`, `notifications`, `support_grants`, `platform_invoices`, `jobs`.
 
+### Added in Phase 4 (migrations 0007–0008)
+| Table / change | Notes |
+|---|---|
+| `categories`/`brands`/`product_variants` `status` | ACTIVE/ARCHIVED; delete only when unreferenced |
+| `tax_rates` guard | Versions of one name never overlap; immutable except `effective_to` (D-032) |
+| `stock_movements.bucket` | AVAILABLE/INSPECTION/DAMAGED/REPAIR; new type RECLASSIFY (D-033) |
+| `stock_levels` | Projection per (variant, bucket), trigger-maintained; refuses negative stock (LB015) |
+| `supplier_ledger_entries` | Append-only payable entries (PURCHASE +, PURCHASE_REVERSAL −) |
+| `purchase_lines`, `purchase_line_units` | Draft-only edits (LB016); tax snapshot per line; IMEIs as entered, `unit_id` after posting |
+
 ## 3. Derived data
 
 - **Stock on hand** = Σ `stock_movements.quantity_delta` per variant (and status per unit). A `stock_levels` projection table will be maintained in the same transaction for fast reads and rebuilt/reconciled by a scheduled job (FR-INV-4 AC3). The projection is not a ledger and may be rebuilt; the ledger is the source of truth.

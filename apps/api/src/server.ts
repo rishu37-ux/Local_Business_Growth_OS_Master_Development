@@ -3,6 +3,8 @@ import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
 import { DevConsoleMailer } from '@lbgos/modules/notifications';
+import { DEFAULT_ADAPTER_URL, LocalFileStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
+import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { buildApp } from './app.ts';
@@ -41,13 +43,26 @@ const auth = createAuthService({
   db: authDb,
 });
 
+// Scans: private local storage and the mock OCR adapter until a provider is chosen (Q4).
+const ocr: OcrConfig = {
+  storage: new LocalFileStorage(path.resolve(config.UPLOAD_DIR)),
+  limits: DEFAULT_UPLOAD_LIMITS,
+  isolation: {
+    adapterUrl: DEFAULT_ADAPTER_URL,
+    structurerUrl: null,
+    timeoutMs: config.OCR_TIMEOUT_MS,
+    maxMemoryMb: config.OCR_MAX_MEMORY_MB,
+  },
+  staleSeconds: Math.ceil(config.OCR_TIMEOUT_MS / 1000) * 4,
+};
+
 // Serve the built web app when present (pnpm -F @lbgos/web build).
 const webRoot = path.resolve(import.meta.dirname, '../../web/dist');
 
 const app = buildApp({
   config,
   ...(existsSync(path.join(webRoot, 'index.html')) ? { webRoot } : {}),
-  services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL },
+  services: { appDb, platformDb, auth, mailer: new DevConsoleMailer(), baseURL: config.PUBLIC_BASE_URL, ocr },
   readiness: {
     database: async () => {
       await sql`select 1`.execute(appDb);
@@ -55,8 +70,27 @@ const app = buildApp({
   },
 });
 
+// One OCR job at a time per process (ADR-08 job rules; D-036). Each job runs
+// in its own worker thread with memory and time limits.
+let ocrBusy = false;
+const ocrTimer = setInterval(() => {
+  if (ocrBusy) return;
+  ocrBusy = true;
+  processNextOcrJob(appDb, ocr)
+    .then((r) => {
+      if (r) app.log.info({ jobId: r.jobId, status: r.status, errorCode: r.errorCode }, 'ocr job processed');
+    })
+    .catch((err: unknown) => {
+      app.log.error({ err }, 'ocr runner failed');
+    })
+    .finally(() => {
+      ocrBusy = false;
+    });
+}, 1000);
+
 async function shutdown(signal: string) {
   app.log.info({ signal }, 'shutting down');
+  clearInterval(ocrTimer);
   await app.close();
   await Promise.all(pools.map((db) => db.destroy()));
 }

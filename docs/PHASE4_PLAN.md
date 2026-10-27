@@ -56,3 +56,27 @@ Every new endpoint is covered by tests for: permission denied without the key, 4
 A synthetic shop owner creates a phone model with variants and a tax rate, records a supplier, receives a purchase with IMEIs (one entered manually, one from a scanned supplier invoice reviewed on the review screen), posts it and sees stock; a duplicate IMEI is rejected; a staff adjustment request is approved by the owner; stock on hand equals Σ movements (reconciliation clean); cross-tenant tests pass; CI is green.
 
 Not in Phase 4 (by design): POS sales, customer returns/credit notes (Phase 5); real OCR provider and malware scanner (need provider choice, Q4); S3-compatible storage (needs hosting, Q2); multi-location transfers (out of scope for pilot, SRS §15).
+
+
+## Exit status (2026-10-27)
+
+**Exit criterion met**, and CI run #21 on the exit commit is green (TR-0016): the browser test (TR-0016) runs a synthetic shop through tax rate → phone model and variant → supplier → purchase with scanner-typed IMEIs → posting; a duplicate IMEI is refused; a scanned supplier invoice is reviewed with every flagged field confirmed and becomes a draft that is posted; a staff adjustment request changes nothing until the owner approves it; stock reconciles with the ledger. Cross-tenant tests cover every new route (TR-0011…TR-0015).
+
+| Increment | Evidence |
+|---|---|
+| 4.1 catalogue, tax rates | TR-0011 |
+| 4.2 suppliers, purchases, stock levels | TR-0012 |
+| 4.3 stock ledger, adjustments, approvals | TR-0013 |
+| 4.4 inspection, reports, lookup | TR-0014 |
+| 4.5 uploads, OCR review (mock adapter) | TR-0015 |
+| 4.6 web screens, exit test | TR-0016 |
+
+**Deferred (explicit, not done):**
+- A real OCR engine and malware scanner (provider choice, Q4); the mock adapter does not recognise text.
+- S3-compatible storage with signed URLs (hosting, Q2); OS-level sandbox for file processing (Phase 9 review).
+- Customer returns creating inspection stock, purchase returns as supplier documents and supplier credit (Phase 5 with invoices/credit notes).
+- Purchase orders (so "on order" is 0 in reorder suggestions); opening-stock entry for serialized units other than as a purchase.
+- Appending several product-label scans to one draft (each label creates its own draft today).
+- Approval notifications to approvers (the Approvals screen lists them).
+- Re-authentication before tax-setting changes (FR-TAX-2 AC2, D-030).
+- Firefox/WebKit/real-device tests, real barcode scanners, keyboard-only and screen-reader passes (NFR-1, NFR-16).

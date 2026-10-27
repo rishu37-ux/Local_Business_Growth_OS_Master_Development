@@ -67,3 +67,36 @@ export const STATES: readonly (readonly [string, string])[] = [
   ['33', 'Tamil Nadu'],
   ['36', 'Telangana'],
 ];
+
+/** "1,500.50" or "1500.5" (rupees) → paise; null if not a valid amount. */
+export function rupeesToPaise(text: string): number | null {
+  const m = /^(\d{1,11})(?:\.(\d{1,2}))?$/.exec(text.replace(/,/g, '').trim());
+  if (!m) return null;
+  return Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
+}
+
+const inr = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Paise → "₹1,500.50" (Indian digit grouping). */
+export function formatPaise(paise: number | null | undefined): string {
+  if (paise === null || paise === undefined) return '—';
+  return `₹${inr.format(paise / 100)}`;
+}
+
+/** Trims "2.000" → "2", "1.500" → "1.5". */
+export const formatQty = (q: string): string => q.replace(/\.?0+$/, '') || '0';
+
+/** Uploads a file as the raw request body (the scan route's format). */
+export async function uploadFile<T>(path: string, file: Blob): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/octet-stream' },
+    body: file,
+  });
+  const data = (await res.json().catch(() => null)) as (T & ErrorShape) | null;
+  if (!res.ok) {
+    throw new ApiError(res.status, data?.error?.code ?? 'ERROR', data?.error?.message ?? 'The upload failed.');
+  }
+  return data as T;
+}

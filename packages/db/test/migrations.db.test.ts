@@ -33,6 +33,14 @@ describe('migrations', () => {
       '0005_lifecycle',
       '0006_onboarding',
       '0007_catalogue',
+      '0008_purchasing_stock',
+      '0009_approvals',
+      '0010_inspections',
+      '0011_ocr',
+      '0012_customers_series',
+      '0013_sales',
+      '0014_payments_ledger',
+      '0015_credit_notes',
     ]);
   });
 });

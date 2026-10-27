@@ -98,7 +98,7 @@ export function NativeSelect(props: {
         onChange={(e) => {
           props.onChange(e.target.value);
         }}
-        className="rounded border border-slate-400 bg-white px-3 py-2 text-base"
+        className="w-full max-w-full rounded border border-slate-400 bg-white px-3 py-2 text-base"
       >
         {props.options.map(([value, text]) => (
           <option key={value} value={value}>
@@ -111,3 +111,86 @@ export function NativeSelect(props: {
 }
 
 export const errorText = (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong.');
+
+export function Checkbox(props: {
+  label: string;
+  name: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const id = `check-${props.name}`;
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <input
+        id={id}
+        type="checkbox"
+        name={props.name}
+        checked={props.checked}
+        onChange={(e) => {
+          props.onChange(e.target.checked);
+        }}
+        className="h-5 w-5"
+      />
+      <label htmlFor={id}>{props.label}</label>
+    </div>
+  );
+}
+
+export function TextArea(props: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  description?: string;
+  rows?: number;
+}) {
+  const id = `textarea-${props.name}`;
+  const hint = `${id}-hint`;
+  return (
+    <div className="mb-3 flex flex-col gap-1">
+      <label htmlFor={id} className="font-medium">
+        {props.label}
+      </label>
+      <textarea
+        id={id}
+        name={props.name}
+        rows={props.rows ?? 3}
+        value={props.value}
+        onChange={(e) => {
+          props.onChange(e.target.value);
+        }}
+        {...(props.description ? { 'aria-describedby': hint } : {})}
+        className="rounded border border-slate-400 bg-white px-3 py-2 font-mono text-base"
+      />
+      {props.description ? (
+        <p id={hint} className="text-sm text-slate-700">
+          {props.description}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/** A plain data table with a caption (visually hidden) and header cells. */
+export function Table(props: { caption: string; headers: readonly string[]; children: ReactNode }) {
+  return (
+    // Focusable so keyboard users can scroll a wide table on small screens (WCAG 2.1.1).
+    <div className="mb-4 overflow-x-auto" tabIndex={0} role="region" aria-label={props.caption}>
+      <table className="w-full border-collapse bg-white text-left text-sm">
+        <caption className="sr-only">{props.caption}</caption>
+        <thead>
+          <tr>
+            {props.headers.map((h) => (
+              <th key={h} scope="col" className="border-b border-slate-300 p-2 font-semibold">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{props.children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+export const cell = 'border-b border-slate-200 p-2 align-top';

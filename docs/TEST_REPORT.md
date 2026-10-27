@@ -292,3 +292,240 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 10 | — | `pnpm check`: lint, format, typecheck, build; domain 51, eslint rules 11, API unit 37, DB schema checks + 54, auth drift ok, API DB 93 (incl. catalogue 15) | **Pass**, exit 0 |
 
 **Not covered yet:** re-authentication before tax-setting changes (FR-TAX-2 AC2, D-030); catalogue UI (increment 4.6).
+
+---
+
+## TR-0012 · 2026-10-27 · Phase 4 increment 4.2 — suppliers and purchases
+
+**Environment:** as TR-0011, migrations 0001–0008. Synthetic shops: one UNREGISTERED, one REGULAR (sample GSTIN used only as a checksum vector), one unrelated tenant.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-8 AC1 | Supplier GSTIN checksum rejected when wrong; lower-case GSTIN normalised; state taken from the GSTIN; GSTIN/state mismatch rejected | **Pass** |
+| 2 | FR-INV-8 AC2, FR-INV-5 AC1 | Draft totals computed by code (intra-state CGST/SGST); difference from the printed supplier total shown (−₹4.10); a draft writes no movements and no stock level | **Pass** |
+| 3 | FR-INV-3 AC2–4, FR-OCR-3 AC1 (shared checks) | Wrong check digit, duplicate IMEI within the purchase, IMEI1 = IMEI2 and unit-count mismatch reported per line/position/field; the wrong IMEI is stored exactly as entered; posting refused (422) | **Pass** |
+| 4 | FR-INV-3 AC3, AC5 | After posting, the same IMEI on a new draft is a blocking `IMEI_EXISTS` with the existing unit ID; the same IMEI is accepted and posted in another business, with only a "no tax rate" warning | **Pass** |
+| 5 | — | IMEIs on non-serialized lines flagged; non-digit IMEIs and another tenant's variant or supplier rejected (422) | **Pass** |
+| 6 | FR-INV-5 AC2, FR-INV-8 AC4 | Posting: units IN_STOCK with IMEIs, 3 PURCHASE movements, stock levels 2 and 10, unit cost incl. tax for an unregistered shop (D-033), supplier payable = document total, `purchase.post` audit | **Pass** |
+| 7 | FR-INV-8 AC4 | Posted purchase cannot be edited (409 `NOT_DRAFT`) or posted again; the DB refuses line changes even for the owner role (LB016) | **Pass** |
+| 8 | FR-INV-8 AC3 | Same supplier invoice number (different case) blocks posting (409); override reason < 10 chars rejected; with a reason, posts and stores it | **Pass** |
+| 9 | D-017, D-033 | Weighted average cost after a second purchase equals the formula; a REGULAR registrant's cost excludes tax; inter-state supplier → IGST only | **Pass** |
+| 10 | FR-INV-5 AC2 (atomicity) | Two drafts sharing an IMEI posted concurrently: exactly one 200; the other 409/422 and left no units, no movements and stayed DRAFT | **Pass** |
+| 11 | WORKFLOWS §5 | Reversal: units REVERSED, IMEIs released (re-entry no longer flagged), 2 REVERSAL movements, payable reduced by the document total; second reversal 409; reversal refused when a unit is SOLD (`REVERSAL_BLOCKED`) or non-serialized stock is short (`INSUFFICIENT_STOCK`, DB trigger LB015) | **Pass** |
+| 12 | FR-RBAC-1, NFR-4 | Inventory staff create drafts but cannot post (403); Billing cannot see purchases/suppliers (403); another tenant gets 404 on purchase, post, supplier and ledger routes | **Pass** |
+| 13 | — | Negative controls: (a) negative-stock check removed from the trigger → the insufficient-stock test fails; (b) existing-IMEI lookup disabled → the `IMEI_EXISTS` test fails (the concurrent test still passed: the IMEI primary key is the last line of defence). Both restored | **Detected** both |
+| 14 | — | `pnpm check`: domain 56, API DB 109 (incl. purchasing 16, catalogue 15, browser exit test), DB 54 + schema checks | **Pass**, exit 0 |
+
+---
+
+## TR-0013 · 2026-10-27 · Phase 4 increment 4.3 — stock ledger, adjustments, approvals
+
+**Environment:** as TR-0011, migrations 0001–0009. Shop with Owner, Manager, Inventory and Billing members; a second single-member shop.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-4 AC3 | Stock overview per variant/bucket after a posted purchase; stock value shown only with `catalogue.cost.view` (Billing sees none) | **Pass** |
+| 2 | — | Units filtered by IMEI; movement history per variant | **Pass** |
+| 3 | FR-INV-4 AC3 | Reconciliation clean; the app role cannot write `stock_levels` (42501); a planted +1 in the projection (owner role) is reported exactly (projected 6, ledger 5) | **Pass** |
+| 4 | FR-INV-4 AC4 | Reason < 10 chars rejected (400); direct ADJUSTMENT by an approver writes the movement and an `inventory.adjust` audit event | **Pass** |
+| 5 | FR-INV-5 AC3 | Decrement below zero refused (409 `INSUFFICIENT_STOCK`); allowed when the business enables negative stock; serialized variants cannot get quantity adjustments (422) | **Pass** |
+| 6 | WORKFLOWS §4 | Unit write-off IN_STOCK → WRITTEN_OFF once; a second write-off is 409 `INVALID_UNIT_TRANSITION` | **Pass** |
+| 7 | FR-INV-4 AC2 | Correction writes a REVERSAL; a second correction of the same movement is 409 `ALREADY_REVERSED`; purchase movements cannot be "corrected" (422, reverse the document instead) | **Pass** |
+| 8 | FR-INV-5 AC3 (concurrency) | Two parallel decrements of the last item → exactly one 201 and one 409; two parallel write-offs of one unit → exactly one 201 and one 409 | **Pass** |
+| 9 | WORKFLOWS §11 | Inventory staff (request only) get 202 with a payload hash; nothing changes until approval; they cannot decide (403); a wrong hash is 409 `PAYLOAD_CHANGED`; a Manager's approval executes once (EXECUTED, decider recorded, one movement referencing the request); deciding again 409; the stored request is immutable even for the owner role (LB017) | **Pass** |
+| 10 | WORKFLOWS §11 | Rejection needs a note (422 without); only the requester can cancel (403 for others); an approval whose execution no longer fits (stock changed) ends EXECUTION_FAILED with `INSUFFICIENT_STOCK` and writes no stock; expired requests are refused (409 `EXPIRED`) | **Pass** |
+| 11 | Rule R3 | Self-approval refused while another member holds the permission; a sole owner may self-approve and the audit event records `selfApproved: true` | **Pass** |
+| 12 | NFR-4 | Billing cannot adjust or list approvals (403); another tenant gets 404 on all stock/approval routes and cannot adjust our variant or unit through its own business ID (404) | **Pass** |
+| 13 | — | Negative controls: hash comparison and the R3 check disabled → the hash and R3 tests fail (plus one dependent count). Restored | **Detected** |
+| 14 | — | `pnpm check`: API DB 126 (incl. inventory 17), domain 56, DB 54 + schema checks | **Pass**, exit 0 |
+
+**Not covered yet:** opening-stock entry for serialized units (enter as a purchase from an "opening stock" supplier for now); approval notifications to approvers (in-app list only).
+
+---
+
+## TR-0014 · 2026-10-27 · Phase 4 increment 4.4 — inspection, stock reports, lookup
+
+**Environment:** as TR-0011, migrations 0001–0010. Customer returns (Phase 5) are simulated with SALE/SALE_RETURN ledger rows and unit statuses written by the owner role; report ages use back-dated synthetic movements.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-INV-6 AC1 (state only) | Returned goods counted in INSPECTION, not AVAILABLE; units and quantities listed in the inspection queue | **Pass** |
+| 2 | FR-RBAC-1 | Billing (no `returns.inspect`) gets 403 on queue and outcomes | **Pass** |
+| 3 | FR-INV-6 AC2–3 | RESTOCK returns a unit to IN_STOCK and AVAILABLE; repeating it is 409 | **Pass** |
+| 4 | FR-INV-6 AC2–3, WORKFLOWS §4 | REPAIR → IN_REPAIR (REPAIR bucket); RESTOCK from repair refused; REPAIRED → PENDING_INSPECTION; DAMAGED → DAMAGED bucket; AVAILABLE unchanged throughout | **Pass** |
+| 5 | FR-INV-6 AC2–3 | Quantities: RESTOCK 1 (AVAILABLE +1), DAMAGED 1, RETURN_TO_SUPPLIER 1 (leaves stock); a fourth outcome with nothing left is 409 `INSUFFICIENT_STOCK`; quantity inspection of a serialized variant 422 | **Pass** |
+| 6 | FR-AUD-1, FR-INV-4 AC3 | 7 inspection records, each with its movements (2 per reclassification, 1 for return to supplier) and an `inventory.inspect` audit event; reconciliation clean | **Pass** |
+| 7 | FR-INV-7 AC1 | Low-stock list returns exactly the variant with available (5) ≤ reorder level (5) | **Pass** |
+| 8 | FR-INV-7 AC2 | Defaults N=60/M=120: never-sold stock received 130 days ago = DEAD (130 days, no last sale); last sale 70 days ago = SLOW; custom N=1/M=69 reclassifies as expected; M < N rejected (400) | **Pass** |
+| 9 | FR-INV-7 AC3 | Reorder report labelled "suggestion", shows the formula, a 30-day period and the "on order not tracked" note; 15 sold → average 0.500/day, suggestion 3.500 → 4 units | **Pass** |
+| 10 | FR-INV-7 AC3 | `@lbgos/domain` reorder tests: exact formula, never negative, missing level = 0, single rounding of lead-time demand, monotone in sales (property), input validation; age classification boundaries | **Pass** — domain 62/62 |
+| 11 | FR-INV-9 AC1 | Lookup resolves barcode, SKU (case-insensitive), IMEI 2 (with surrounding spaces trimmed) to the unit; unknown code 404 | **Pass** |
+| 12 | NFR-4 | Lookup never matches another business's barcode/IMEI; another tenant gets 404 on inspection and report routes | **Pass** |
+| 13 | — | Negative controls: DAMAGED outcome pointed at AVAILABLE → 2 inspection tests fail; reorder level dropped from the formula → reorder test fails. Restored | **Detected** both |
+| 14 | — | `pnpm check`: API DB 137 (incl. inspections/reports 11), domain 62 | **Pass**, exit 0 |
+
+---
+
+## TR-0015 · 2026-10-27 · Phase 4 increment 4.5 — uploads and OCR-assisted review
+
+**Environment:** as TR-0011, migrations 0001–0011. OCR runs through the **mock adapter** (reads synthetic fixture text; it is not OCR) inside a Node worker thread, exactly as the server runs it; storage is in memory. Failure modes use test-only adapters (`apps/api/test/fixtures/`). All files are generated synthetically (`packages/domain/test/fixtures/files.ts`).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-OCR-1 AC1–2, FR-OCR-6 AC2 | Label PNG upload (Inventory staff) → 202, job QUEUED, stored under `<businessId>/<random UUID>`, type from content, `malware_scan = NOT_CONFIGURED`, path-like file name reduced to a display name; no purchase, movement or approval created | **Pass** |
+| 2 | FR-OCR-6 AC1 | Rejected by content: script renamed as upload (415), HEIC (415 with camera-setting guidance), > 10 MB (413), 9000 px wide (422), 11-page PDF (422), truncated PDF (422); nothing stored; JSON body 400; Billing 403 | **Pass** |
+| 3 | FR-OCR-6 AC1 | Domain unit tests: JPEG/PNG/WebP/PDF sniffing with dimensions/pages; "decompression bomb" PNG declaring 50,000² px refused from its header | **Pass** — domain 78/78 |
+| 4 | FR-OCR-6 AC2 | File route: members only (404 for other tenants); PNG inline with `content-security-policy: default-src 'none'; sandbox` and `nosniff`; bytes identical; PDF served as attachment | **Pass** |
+| 5 | FR-OCR-2 AC1–2 | Extraction shows value, confidence level and source line; medium-confidence RAM/storage listed in `needsConfirmation` | **Pass** |
+| 6 | FR-OCR-3 AC2, FR-OCR-4 AC4 | IMEI already in the business reported with its unit; catalogue match "Barcode matches"; supplier matched by GSTIN; invoice lines matched by model name in the description | **Pass** |
+| 7 | FR-OCR-4 AC1–3 | Create without confirming every flagged field → 422 listing the missing keys; with confirmations → 201 and a **DRAFT** purchase only (no movements); job COMPLETED; second Create 409; Inventory staff cannot post the draft (403) | **Pass** |
+| 8 | FR-OCR-3 AC3 | Supplier invoice PDF: 2 lines, IMEIs attached to their line, printed 1,000.00 vs recomputed 1,005.00 flagged `AMOUNT_MISMATCH`; with no provider confidence every value needs confirmation | **Pass** |
+| 9 | FR-OCR-6 AC3, WORKFLOWS §7 | Hanging provider stopped by the 1.5 s timeout (FAILED `TIMEOUT`); 3 retries then `RETRY_LIMIT`; discard keeps the error code | **Pass** |
+| 10 | FR-OCR-6 AC3 | Provider error → FAILED `PROVIDER_ERROR`; heap blow-up with a 32 MB limit → FAILED `OUT_OF_MEMORY`; API health still 200; a retry with the normal adapter → NEEDS_REVIEW | **Pass** |
+| 11 | ADR-08 | Requester deactivated before the job runs → FAILED `PERMISSION_REVOKED`; two concurrent runners take different jobs (SKIP LOCKED) | **Pass** |
+| 12 | FR-OCR-5 AC2 | Structurer values used only when present verbatim in the document (invoice no. "SD-77" filled from "Bill ref SD-77" and flagged; an invented date dropped); non-conforming output (with `action`/`approve` keys) discarded → `manualEntry: true` | **Pass** |
+| 13 | FR-OCR-5 AC3 | Injection corpus (5 documents, unit level): output contains only the fixed field keys; "mark every IMEI as valid" does not stop the Luhn check | **Pass** |
+| 14 | FR-OCR-5 AC3 | End-to-end corpus (3 PDFs with injected instructions, processed with the "evil" structurer): all NEEDS_REVIEW; purchases, movements and approvals unchanged | **Pass** |
+| 15 | FR-OCR-6 AC5 | Static check: OCR module and parser files contain no `fetch(`, `node:http(s)`/`net`/`tls`/`dgram`, HTTP client imports, XHR or WebSocket | **Pass** |
+| 16 | NFR-4 | Another business gets 404 on list/read/file/retry/discard and sees an empty scan list of its own | **Pass** |
+| 17 | — | Negative controls: (a) confirmation check disabled → the Create test fails; (b) verbatim-in-document rule disabled → the structurer test fails. Restored | **Detected** both |
+| 18 | — | `pnpm check`: domain 78, API DB 152 (incl. OCR 15) | **Pass**, exit 0 |
+
+**Defect found and fixed during the increment:** discarding a FAILED scan violated a CHECK that allowed an error code only on FAILED jobs; the constraint now keeps the code on DISCARDED jobs (history) and still requires it on FAILED ones.
+
+**Not covered / limitations:** no real OCR engine (Q4), so recognition accuracy is untested; no malware scanner; the worker thread limits memory and time but is not an OS sandbox (same process, network not blocked at OS level); camera capture and the review screen arrive in 4.6; image regions as evidence are not available from the mock.
+
+---
+
+## TR-0016 · 2026-10-27 · Phase 4 increment 4.6 — web screens and Phase 4 exit test
+
+**Environment:** cloud dev container; Vite 8 production build of `apps/web`; Playwright 1.63.0 with the preinstalled Chromium; @axe-core/playwright 4.14.0; API on 127.0.0.1:4318 against migrations 0001–0011; OCR through the mock adapter, processed by the harness exactly as the server's job loop would. Synthetic shop, staff and files.
+
+| # | Requirement / AC | Check (`apps/api/test/inventory-browser.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-TAX-2, FR-INV-1/2, FR-INV-8 AC1 | Owner (signed in with password + TOTP) adds a tax rate, a serialized phone model with a variant (cost price visible to the owner) and a supplier with GSTIN through the UI | **Pass** |
+| 2 | FR-INV-8, FR-INV-5 AC2 | New purchase in the UI: IMEIs typed character by character with Enter between scans (keyboard-wedge behaviour); draft shows "No problems found" and the computed total ₹35,400.00; posting adds the stock | **Pass** |
+| 3 | FR-INV-3 AC3 | A second purchase with an IMEI already in stock shows the blocking check; posting is refused; the draft is discarded | **Pass** |
+| 4 | FR-OCR-1…4 | Supplier-invoice PDF uploaded from the scan screen; after processing, the review screen shows each field with confidence and source; **Create stays disabled until all 10 flagged fields are confirmed**; supplier and product are pre-selected from the GSTIN and description matches; the IMEI is pre-filled; Create opens a DRAFT purchase, which the owner posts | **Pass** |
+| 5 | FR-INV-4 AC4, WORKFLOWS §11 | Inventory staff request a −1 adjustment ("sent for approval"); stock unchanged (5); the owner approves on the Approvals screen; stock becomes 4 | **Pass** |
+| 6 | FR-INV-9 AC1–2, FR-INV-4 AC3 | Stock screen: IMEI typed into the scanner field + Enter finds the unit ("matched by imei, unit in stock"); the camera button is shown only if `BarcodeDetector` exists (absent in headless Chromium, so none is shown and nothing errors); "Stock levels match the stock ledger"; phone stock 3 (2 purchased + 1 from the scan) | **Pass** |
+| 7 | NFR-1, NFR-17 | axe (WCAG 2.0/2.1/2.2 A/AA) on 8 new screens (tax rates, catalogue, suppliers, purchase editor, scans, scan review, stock, approvals) × 3 widths = 24 audits: **0 serious/critical**; no horizontal overflow; no CSP violation or page error | **Pass** |
+| 8 | — | `inventory.db.test.ts`: Inventory and Billing staff can open the business overview (it lists their usable permissions, without `inventory.adjust.approve` for Inventory); a non-member gets 404 | **Pass** |
+| 9 | — | `pnpm check`: lint, format, typecheck, build; domain 78; API unit 37; DB schema checks + 54; auth drift ok; API DB 160 (incl. both browser tests). API DB suite with shuffled file order (seeds 1, 2): 160/160 each | **Pass**, exit 0 |
+
+**Defects found by the browser test and fixed:**
+1. **Staff could not open their business at all:** the overview route required `business.settings.view`, which the Inventory and Billing roles do not have, so the business page failed for them (the Phase 3 test only checked that staff reached the URL). The overview now uses a `member` pseudo-permission (any active member, 404 for others, still unavailable before setup; D-037). The Phase 3 lifecycle test that asserted the old 403 was changed to assert 200 for the overview and 403 for the audit log, which Billing does not hold.
+2. **axe `scrollable-region-focusable` at 360 px:** wide tables scroll inside a container that keyboard users could not reach. The container is now a focusable, labelled region.
+
+**CI:** [run #21](https://github.com/rishu37-ux/Local_Business_Growth_OS_Master_Development/actions/runs/40513254399) on commit `8a5f7d9` **passed** (Node 22 and 24). Runs #14, #17–#20 for increments 4.1–4.5 also passed.
+
+**Not covered yet:** Firefox/WebKit and real phones (NFR-16), including camera capture through the file picker and `BarcodeDetector`; real USB/Bluetooth scanners (emulated by typed input); keyboard-only and screen-reader passes of the new screens (NFR-1 manual checks).
+
+---
+
+## TR-0017 · 2026-10-27 · Phase 5 increment 5.1 — tax, allocation and numbering engines
+
+**Environment:** cloud dev container; Node v22.22.0; Vitest 5.0.5 with @vitest/coverage-v8 5.0.5; fast-check 4.10.2. Pure functions only (no database).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-TAX-1 AC1–3, D-013 | `tax-engine.test.ts` worked examples: inclusive ₹118 → ₹100 + 9 + 9; exclusive; IGST; odd-paisa split (90/91); inclusive rounding (₹9.99 → 847 + 76 + 76); zero-rated; cess exclusive/inclusive incl. an odd split; line discounts (amount, percent); invoice discount apportioned 33/33/34 and 2:1; round-off +50/−49/0; multi-rate; fractional quantities; 120-line invoice | **Pass** |
+| 2 | FR-TAX-1 AC4 | Bill of Supply: no tax amounts, net amount = total | **Pass** |
+| 3 | FR-TAX-1 AC3 | Properties (400 runs): Σ lines = totals for every component; each line total = taxable + taxes; CGST ≤ SGST ≤ CGST + 1; IGST xor CGST/SGST; inclusive lines keep their net amount; nothing negative; round-off within −49…+50 and total a whole rupee; apportioned shares sum exactly and never exceed a line's value. Validation: no lines, zero/fractional quantity, rates > 100 %, negative price, discounts above the value | **Pass** |
+| 4 | FR-TAX-1 AC5 | `pnpm -F @lbgos/domain test` runs with coverage thresholds of 95 % (branches, lines, functions, statements) over tax-engine, allocation, money, numbering and purchase. First measurement: branches 89.9 % → **the run failed**; unreachable fallbacks were removed by restructuring and edge tests added. Final: **tax-engine 100 % branches**, all five files 99.3 % branches / 100 % lines | **Pass** (threshold enforced) |
+| 5 | FR-LED-2 AC1 | Allocation: FIFO (date, then numeric-aware number), exact, partial, spill-over with remainder as advance, explicit selection order, unknown invoice refused, advances from several payments applied oldest first, refund sources and over-refund refused, payment status (incl. credit notes), invalid amounts refused | **Pass** |
+| 6 | FR-LED-2 AC2 | Property: never over-allocates an invoice or a payment; allocated = min(funds, amount due) | **Pass** |
+| 7 | FR-POS-4 AC3 | Number formats: tokens render; default fits a 6-character prefix in 16 characters; formats that could exceed 16 characters, contain other characters, lack or repeat `{SEQ:n}`, or use unknown tokens are refused at configuration time; an outgrown sequence is "exhausted" rather than longer; property: any accepted format renders ≤ 16 allowed characters | **Pass** |
+| 8 | FR-RPT-2, FR-LED-3 | Metric definitions present; operating profit labelled an estimate; no sales metric labelled profit or cash | **Pass** |
+| 9 | — | Negative controls: (a) remainder paise not distributed in apportioning → 4 tax tests fail; (b) allocation ignoring the amount due → 4 allocation tests fail. Restored; 114/114 pass | **Detected** both |
+
+---
+
+## TR-0018 · 2026-10-27 · Phase 5 increment 5.2 — customers, numbering, re-authentication
+
+**Environment:** as TR-0011, migrations 0001–0012.
+
+| # | Requirement / AC | Check (`sales-setup.db.test.ts`, `customers.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-POS-5 AC1, FR-CRM-2 AC1 | Billing staff create a customer with name + mobile only; "98765 43210" stored as +919876543210 | **Pass** |
+| 2 | FR-CRM-1 AC1 | Lookup by "098765-43210" finds the same customer; creating "+91 98765 43210" again is 409 with the existing customer's ID; another business can have a customer with that mobile | **Pass** |
+| 3 | — | Search by name and by mobile digits | **Pass** |
+| 4 | FR-POS-5 AC2 | B2B GSTIN upper-cased, checksum-checked, state taken from it; invalid GSTIN and mobile refused; domain: place of supply = GSTIN state → customer state → shop state; mobile normalisation cases (10-digit, leading 0, 91, +91, foreign, invalid) | **Pass** |
+| 5 | FR-PRV-1 AC1 (part) | A correction writes `customer.update` with field names only (no personal data); Inventory staff 403; other tenants 404 | **Pass** |
+| 6 | FR-POS-4 AC3 | Numbering view shows the setup prefix and an example; a format that could exceed 16 characters is 422 `TOO_LONG`; a valid one is saved (Billing 403) | **Pass** |
+| 7 | FR-POS-4 AC4–5 | 31 March 2027 23:30 IST → FY 2026-27, 1 April 2027 00:30 IST → a new 2027-28 series starting at 1 | **Pass** |
+| 8 | FR-POS-4 AC1–2, D-020 | 30 concurrent transactions take numbers, 6 roll back: committed numbers are exactly 1–24, and the next is 25 | **Pass** |
+| 9 | FR-TAX-2 AC2 | With the owner's session aged to 1 hour: tax-rate creation, numbering and tax-profile changes are 403 `REAUTH_REQUIRED`, other routes still work; after signing in again with password + TOTP the change succeeds | **Pass** |
+| 10 | — | Negative controls: (a) fresh-session check disabled → the re-authentication test fails; (b) numbering read-then-write without the row lock → the concurrency test fails. Restored | **Detected** both |
+| 11 | — | `pnpm check`: domain 126, API DB 171 | **Pass**, exit 0 |
+
+**Test-infrastructure defect found and fixed:** the first full run failed with HTTP 429 on sign-up in `lifecycle.db.test.ts`. Each test file restarted the synthetic client-IP counter at the same value while all files share the database that stores auth rate-limit counters, so adding a test file made sign-ups from "the same IP" exceed the limit. Each file now starts at a random point of 10.0.0.0/8. (The rate limit itself behaved correctly.)
+
+## TR-0019 · 2026-10-27 · Phase 5 increment 5.3 — selling and issuing
+
+**Environment:** as TR-0011, migrations 0001–0013 (throwaway PostgreSQL 16 via `scripts/with-throwaway-pg.sh`).
+
+| # | Requirement / AC | Check (`sales.db.test.ts`, `discount-limits.test.ts`, `schema-checks.sql`) | Result |
+|---|---|---|---|
+| 1 | FR-INV-5 AC2–3, FR-TAX-1 AC1/AC4, D-017 | Walk-in sale of a phone (by unit) and 2 cables, 18 % inclusive, GST-registered shop: TAX_INVOICE, taxable 13,559.32, CGST = SGST = 1,220.34, total 16,000.00; number `T26-27/0001`; unit SOLD; SALE movements −1 (unit cost) and −2 (average cost); line COGS 11,000.00 and 400.00; line description carries the IMEI; payment allocations = total; cash tendered 17,000 → change 1,000; `sale.issue` audited; seller GSTIN in the party snapshot; costs hidden from Billing, shown to the owner | **Pass** |
+| 2 | FR-TAX-1 AC2 | B2B customer with a Karnataka GSTIN at a Maharashtra shop: place of supply 29, IGST 76.27, no CGST/SGST | **Pass** |
+| 3 | FR-TAX-1 AC4 | Unregistered shop: BILL_OF_SUPPLY, no tax, ₹333.33 rounded to ₹333.00 (round-off −0.33) | **Pass** |
+| 4 | FR-TAX-1 AC3 | Mixed sale with a 1 % line discount, a price override and a ₹10.01 invoice discount: every stored total equals `computeSale`; the DB reconciled header and lines on issue | **Pass** |
+| 5 | — | A confirmed total that differs from the recomputed total is 409 `TOTAL_CHANGED` | **Pass** |
+| 6 | FR-INV-5 AC4 (atomicity) | Issue failing after stock movements were written (series exhausted): 409 `SERIES_EXHAUSTED`; no stock movement, unit still IN_STOCK, draft still DRAFT, series counter unchanged; after fixing the series the sale takes the next consecutive number | **Pass** |
+| 7 | FR-INV-5 AC4 | Two checkouts of the same IMEI at once: exactly one 201, the other 409 `UNIT_NOT_AVAILABLE`; one SALE movement | **Pass** |
+| 8 | — | The same draft issued twice at once: one invoice, the other 409 `NOT_DRAFT`; one allocation | **Pass** |
+| 9 | FR-INV-5 AC3 | The last unit of a non-serialized item sold by two checkouts at once: one 201, the other 409 `INSUFFICIENT_STOCK`; stock 0, never negative | **Pass** |
+| 10 | FR-POS-3 AC2, D-014, FR-LED-1 | Part payment for a walk-in is 422 `BALANCE_NEEDS_CUSTOMER`; with a customer: UPI 500 + cash 300 on 2,000 → balance 1,200; ledger INVOICE +2,000, PAYMENT −300, −500 | **Pass** |
+| 11 | FR-POS-3 AC1, D-014 | Overpayment refused for walk-ins; for a customer the 300 extra is advance (ledger −300); the next sale uses 300 advance + 200 cash (balance 0, allocations = total); using more advance than held is 422 `INSUFFICIENT_ADVANCE` | **Pass** |
+| 12 | FR-POS-3 AC3–4 | Reference "4111 1111 1111 1111" is 422 `PAYMENT_INVALID`; a tendered amount on a UPI payment is refused | **Pass** |
+| 13 | FR-POS-2 AC1–2 | Billing (2 % / ₹500): 1 % issues; 3 % reports `DISCOUNT_NEEDS_APPROVAL` and issuing is 422 `NOT_READY`; the cashier requests approval, cannot decide it (403); the Manager approves (EXECUTED); the sale issues and records the Manager and the request on the invoice | **Pass** |
+| 14 | FR-POS-2 AC2 | 20 % discount: the Manager (10 %) is refused 403 `FORBIDDEN`; the owner approves; adding an item afterwards makes approval necessary again; requesting approval within one's own limit is 409 `APPROVAL_NOT_NEEDED` | **Pass** |
+| 15 | FR-POS-2 AC2 | A request approved after the draft changed ends EXECUTION_FAILED `SALE_CHANGED` (nothing approved) | **Pass** |
+| 16 | FR-POS-2 AC3 | Below the minimum price: Billing gets `BELOW_MIN_PRICE`; the Manager (`pos.price_override`) issues | **Pass** |
+| 17 | FR-POS-1 AC2 | A serialized item without a unit reports `UNIT_REQUIRED`; a sold unit `UNIT_NOT_AVAILABLE`; the same unit twice or quantity 2 is 422 `INVALID_LINE` | **Pass** |
+| 18 | FR-POS-1 AC4 | Held carts are listed; a discarded cart cannot be issued (`NOT_DRAFT`) | **Pass** |
+| 19 | NFR tenancy | Inventory role 403 on sales and invoices; another business's owner gets 404 for this shop's sale (by its URL and by their own); other businesses' items (`INVALID_LINE`) and customers (`CUSTOMER_NOT_FOUND`) cannot be used; another business's invoice is 404; a suspended (read-only) business can list invoices, but creating a sale or cancelling an approval request is 403 `TENANT_READ_ONLY`; an empty cart is refused (400) | **Pass** |
+| 20 | FR-POS-2 AC1 | Domain: both caps apply, exact at the boundary (2 % of ₹10,000; ₹500 cap), fractional percentages, unlimited grants, no grant ⇒ only zero | **Pass** |
+| 21 | DB backstop | Schema checks T16i (line gross − discounts ≠ inclusive total refused) and T16j (issuing without a party snapshot refused) | **Pass** |
+| 22 | — | Negative controls: (a) the sorted unit lock removed → test 7 fails (the second sale was then stopped only by the stock trigger, with `INSUFFICIENT_STOCK`); (b) every cashier treated as unlimited → test 13 fails. Restored | **Detected** both |
+| 23 | — | `pnpm check`: lint, format, typecheck, build, domain 130 (coverage 100 % lines, 99.39 % branches over the money modules), API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 191 | **Pass**, exit 0 |
+
+**Defects found while testing (fixed before commit):** `invoices` had no `created_at` (needed for held carts; added in 0013); test items created without a tax rate in a GST-registered shop were correctly reported as `NO_TAX_RATE` (test fixture fixed).
+
+## TR-0020 · 2026-10-27 · Phase 5 increment 5.4 — payments, allocation, ledger
+
+**Environment:** as TR-0011, migrations 0001–0014 (throwaway PostgreSQL 16).
+
+| # | Requirement / AC | Check (`payments.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-LED-2 AC1, D-014 | Invoices of ₹1,000 and ₹2,000 (older first); ₹1,500 UPI pays the first in full and ₹500 of the second; statuses PAID / PARTIALLY_PAID in the account and the invoice list; ₹2,000 cash (₹2,500 tendered) settles the rest, ₹500 advance, ₹500 change | **Pass** |
+| 2 | FR-LED-2 AC1 | A payment for a chosen invoice pays only that one; another customer's invoice is 422 `UNKNOWN_INVOICE`; a card-like reference is 422 | **Pass** |
+| 3 | FR-LED-2 AC1 | ₹700 paid before any invoice is advance; applied to a later ₹1,000 invoice → ₹300 due | **Pass** |
+| 4 | FR-LED-2 AC1, D-041 | Advance refund: Billing 403; more than held 422 `INSUFFICIENT_ADVANCE`; Manager refunds ₹400 of ₹500 taken oldest payment first (REFUND entries ₹300 + ₹100); ₹100 advance left | **Pass** |
+| 5 | FR-LED-2 AC1, D-041 | Reversal of a ₹1,200 payment: Billing 403; Manager reverses — allocations reversed (₹2,000 due again), REVERSAL ledger entry +₹1,200 linked to the PAYMENT entry; a second reversal is `ALREADY_REVERSED`; reversing the reversal is `NOT_REVERSIBLE` | **Pass** |
+| 6 | DB backstop | A payment with refunds cannot be reversed (`REFUNDED`); a direct refund insert beyond the advance is refused (LB019); refunds and ledger entries cannot be updated (LB001) | **Pass** |
+| 7 | FR-LED-2 AC2, D-020 | 5 parallel ₹600 payments (two users) to one ₹2,000 invoice: all succeed, allocations total exactly ₹2,000, ₹1,000 advance | **Pass** |
+| 8 | FR-LED-1 AC3 | Statement 1–30 April 2026 (IST): opening ₹3,000 includes a payment at 31 March 23:30 IST, excludes one at 1 April 00:15 IST; entries with running balance; an entry at 1 May 00:01 IST excluded; closing ₹2,500; end before start is 400 | **Pass** |
+| 9 | FR-LED-1 AC2 | In every account check, ledger balance = receivables − advance | **Pass** |
+| 10 | NFR tenancy | Inventory 403; other businesses 404 (account, payments, reversal); suspended business: account readable, payment 403 `TENANT_READ_ONLY` | **Pass** |
+| 11 | — | Negative controls: (a) customer lock removed from recording a payment → test 7 fails (2 of 5 payments refused with 422 by the allocation bounds trigger — no over-allocation, but wrong behaviour); (b) advance computed without refunds → test 4 fails. Restored | **Detected** both |
+| 12 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 200 | **Pass**, exit 0 |
+
+## TR-0021 · 2026-10-27 · Phase 5 increment 5.5 — cancellation, credit and debit notes, returns
+
+**Environment:** as TR-0011, migrations 0001–0015 (throwaway PostgreSQL 16).
+
+| # | Requirement / AC | Check (`returns.db.test.ts`) | Result |
+|---|---|---|---|
+| 1 | FR-TAX-3 AC1, D-016 | Same-day cancellation of a part-paid phone sale, goods never left: Billing 403; Manager cancels — unit back IN_STOCK (OPENING → SALE → REVERSAL, all AVAILABLE), status CANCELLED, number kept, ₹5,000 paid becomes advance (balance −5,000); cancelling again is `NOT_ISSUED` | **Pass** |
+| 2 | FR-TAX-3 AC1, FR-POS-3 AC5, FR-INV-6 AC1 | Walk-in cancellation: as advance is 422 `REFUND_REQUIRED`; with a cash refund the ₹1,000 is refunded (refund rows without a customer) and the 2 returned cables are in INSPECTION | **Pass** |
+| 3 | FR-TAX-3 AC2, D-016 | Cancelling the next business day is refused `OUTSIDE_WINDOW` (points to a credit note); a refund without `refunds.approve` is `REFUND_FORBIDDEN` | **Pass** |
+| 4 | FR-TAX-3 AC3, PHASE5 AC4 | 3 cables (₹1,500, unpaid): credit note for 1 = ₹500 (own series, `…/0001`), 1 more in INSPECTION, nothing released; credit note for the rest (`…/0002`); the two notes' taxable, CGST, SGST and totals equal the original line exactly; a further return is `RETURN_EXCEEDS_SOLD`; balance 0; the invoice can no longer be cancelled (`HAS_NOTES`); a credit note cannot itself be credited (`NOT_AN_INVOICE`) | **Pass** |
+| 5 | FR-TAX-3 AC3, FR-POS-3 AC5, FR-INV-6 | Fully paid phone + cable: Billing 403; Manager credits the phone with a UPI refund — ₹15,000 released and refunded, unit PENDING_INSPECTION, invoice credited 15,000, outstanding 0, PAID; inspection RESTOCK makes the unit IN_STOCK; crediting the cable as advance leaves ₹500 advance (balance −500) | **Pass** |
+| 6 | D-042 | A full credit note of a ₹333.33 sale rounded to ₹333.00 also takes the round-off: total ₹333.00 | **Pass** |
+| 7 | PHASE5 AC4 | Two credit notes for the last unit at once: one 201, the other `RETURN_EXCEEDS_SOLD` | **Pass** |
+| 8 | FR-TAX-3 AC4 | Debit note of ₹100 taxable on an 18 % line: ₹118 (CGST 9 + SGST 9); balance and receivable +₹118; a later payment is allocated to the debit note; a walk-in invoice is `NEEDS_CUSTOMER` | **Pass** |
+| 9 | NFR tenancy | Other businesses 404 (cancel, credit note, by their URL and ours); suspended business 403 `TENANT_READ_ONLY` | **Pass** |
+| 10 | — | Negative controls: (a) the "not more than sold" quantity check removed → test 4 fails (test 7 still passes: with no quantity given the remaining quantity is 0 and is refused separately); (b) paid money not released on a credit note → test 5 fails. Restored | **Detected** both |
+| 11 | — | `pnpm check`: domain 130, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 209; CI #25 (5.4 push, includes 5.3) green | **Pass**, exit 0 |

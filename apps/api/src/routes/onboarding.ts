@@ -86,7 +86,7 @@ export function registerOnboardingRoutes(app: FastifyInstance, s: AppServices): 
   app.put(
     '/api/businesses/:businessId/setup/tax',
     {
-      config: { permission: 'tax.settings.manage' },
+      config: { permission: 'tax.settings.manage', freshAuth: true },
       schema: {
         params: businessParams,
         body: z.strictObject({
