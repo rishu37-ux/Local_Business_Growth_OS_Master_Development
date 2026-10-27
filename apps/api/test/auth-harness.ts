@@ -21,6 +21,8 @@ export interface Harness {
   readonly mail: CapturingMailer;
   readonly logs: LogCapture;
   readonly authDb: Db;
+  /** Tenant role pool (RLS applies), for probing database-level rules. */
+  readonly appDb: Db;
   readonly admin: Db;
   close(): Promise<void>;
 }
@@ -71,6 +73,7 @@ export async function startHarness(
     mail,
     logs,
     authDb,
+    appDb,
     admin,
     async close() {
       await app.close();

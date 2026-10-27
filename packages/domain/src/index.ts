@@ -31,3 +31,14 @@ export {
   type PlatformPermission,
   type RoleTemplate,
 } from './permissions.ts';
+export {
+  divRoundHalfUp,
+  exclusiveTax,
+  lineValue,
+  milliToQuantity,
+  quantityToMilli,
+  rateToBasisPoints,
+  splitIntraState,
+  weightedAverageCost,
+} from './money.ts';
+export { effectiveVersion, periodsOverlap, type TaxRateVersion } from './tax-rates.ts';

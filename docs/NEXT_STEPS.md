@@ -1,16 +1,15 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (end of Phase 3)
+Last updated: 2026-10-27 (Phase 4, after increment 4.1)
 
-## Phase 4 — Inventory, suppliers/purchases, stock ledger, OCR review (next)
+## Phase 4 — Inventory, suppliers/purchases, stock ledger, OCR review (in progress)
 
-1. `docs/PHASE4_PLAN.md`: acceptance criteria per increment (BACKLOG I-01…I-09).
-2. I-01 Catalogue CRUD with versioned tax rates and cost-price visibility (`catalogue.cost.view`).
-3. I-02 IMEI already in `@lbgos/domain` — wire into catalogue/units with DB parity (done for validation).
-4. I-03 Suppliers and purchases (draft → post → reverse), weighted average cost (D-017), duplicate supplier-invoice check.
-5. I-04 Stock ledger service + `stock_levels` projection + reconciliation; adjustments via approval requests (needs a minimal approvals module).
-6. I-05…I-07 Returns inspection, stock reports, barcode input.
-7. I-08/I-09 Upload pipeline and OCR adapter (mock first), review screen, prompt-injection corpus.
+1. ~~`docs/PHASE4_PLAN.md`~~ (done) · ~~4.1 catalogue + tax rates~~ (done, TR-0011).
+2. 4.2 / I-03 Suppliers and purchases (draft → post → reverse), weighted average cost (D-017), duplicate supplier-invoice check.
+3. 4.3 / I-04 Stock ledger service + `stock_levels` projection + reconciliation; adjustments via approval requests (needs a minimal approvals module).
+4. 4.4 / I-05…I-07 Returns inspection, stock reports, barcode input.
+5. 4.5 / I-08, I-09 Upload pipeline and OCR adapter (mock first), review screen, prompt-injection corpus.
+6. 4.6 Web screens and the Phase 4 exit browser test.
 
 ## Carried from Phase 3
 

@@ -271,3 +271,24 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 1 | Lifecycle DB test: an approved owner without MFA gets 200 with their `APPROVED_SETUP_PENDING` business; browser test: the home page lists the business and shows the MFA alert before enrolment | **Pass** — API DB 78/78 |
 | 2 | Negative control: fix reverted, tests re-run | **Detected** — the lifecycle tests fail; fix restored |
 | 3 | `scripts/dev-local.sh` (new local demo script) | **Pass** — `GET /` 200 HTML, `/sign-in` 200, `/api/me` 401; instructions printed |
+
+---
+
+## TR-0011 · 2026-10-27 · Phase 4 increment 4.1 — catalogue and tax rates
+
+**Environment:** cloud dev container; Node v22.22.0; PostgreSQL 16.15 throwaway cluster (`scripts/with-throwaway-pg.sh`, migrations 0001–0007); API through `app.inject` with real sessions. Synthetic shops created through the real onboarding API (`apps/api/test/shop-fixture.ts`).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | NFR-8, D-013, D-017 | `packages/domain/test/money.test.ts`: half-up rounding, exact rate/quantity parsing (malformed text rejected), line value and exclusive tax, odd-paisa CGST/SGST split (property), precision-loss guard, weighted average cost incl. negative stock, average bounded by old/incoming cost (property), tax-rate version selection and overlap | **Pass** — domain 51/51 |
+| 2 | FR-INV-1 AC1–2, FR-INV-2 AC1–3 | `apps/api/test/catalogue.db.test.ts`: category → brand → product → variants; serialized products counted in pieces; warranty text stored as entered; strict validation (unknown field, HSN format, min price > selling price) | **Pass** |
+| 3 | FR-INV-2 AC1 | SKU and barcode unique per business with the field named in the 409; the same SKU/barcode accepted in another business | **Pass** |
+| 4 | FR-INV-1 AC3 | Archived products hidden from the default list; unused products deleted; with a stock movement, product/variant/category deletion returns 409 `IN_USE` and the serialized flag is locked (`SERIALIZED_LOCKED`) | **Pass** |
+| 5 | FR-INV-2 AC4 | Billing role sees no `purchasePricePaise`/`avgCostPaise`; owner does; Inventory role (catalogue.manage without cost.view) cannot write a purchase price (403 `COST_FORBIDDEN`) but can create the variant without it | **Pass** |
+| 6 | FR-TAX-2 AC1 | No rates seeded; overlapping versions (case-insensitive name) rejected with 409; `lbg.effective_tax_rate` picks the version in force on boundary dates | **Pass** |
+| 7 | FR-TAX-2 AC2 (part) | Versions immutable: the app role has no UPDATE on `rate_percent` (42501) and even the owner role is stopped by the trigger (LB013); closing a version works; rate management needs `tax.settings.manage` and writes `tax.rate.create` audit events; out-of-range/over-precise rates rejected | **Pass** |
+| 8 | NFR-4 | Cross-tenant: another business's owner gets 404 on every product route under our business ID, and 404 when using their own business ID with our product ID; references to another tenant's category fail (422, composite FK) | **Pass** |
+| 9 | — | Negative controls: (a) cost hiding disabled → the AC4 test fails; (b) overlap check disabled in the trigger → 3 tax-rate tests fail. Both restored; 15/15 pass | **Detected** both |
+| 10 | — | `pnpm check`: lint, format, typecheck, build; domain 51, eslint rules 11, API unit 37, DB schema checks + 54, auth drift ok, API DB 93 (incl. catalogue 15) | **Pass**, exit 0 |
+
+**Not covered yet:** re-authentication before tax-setting changes (FR-TAX-2 AC2, D-030); catalogue UI (increment 4.6).

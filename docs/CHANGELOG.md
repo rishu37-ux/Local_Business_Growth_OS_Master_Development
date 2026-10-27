@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased] — Phase 4 (in progress)
+
+### Added
+- Phase 4 plan (`docs/PHASE4_PLAN.md`).
+- Migration 0007 and `@lbgos/modules/catalogue`: categories, brands, products, variants (archiving, cost visibility), versioned tax rates; catalogue API routes.
+- `@lbgos/domain` integer money arithmetic and tax-rate version helpers.
+
 ## [0.3.0] — 2026-10-27 — Phase 3 (foundation)
 
 ### Added

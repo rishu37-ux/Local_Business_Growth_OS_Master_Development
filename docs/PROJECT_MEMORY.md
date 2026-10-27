@@ -1,11 +1,12 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 complete (exit criterion met; see PHASE3_PLAN.md §Exit) → Phase 4 next**
+Last updated: 2026-10-27 · Current phase: **Phase 4 in progress — increment 4.1 (catalogue, tax rates) done; see PHASE4_PLAN.md**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–3 are complete. PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
+- Phases 0–3 are complete. Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011).
+- Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
   - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
   - `@lbgos/db`: SQL migrations 0001–0006, `withTenant`, locking helpers.
@@ -32,6 +33,7 @@ Branch: `claude/quirky-dirac-vm3o46`
 | `COST_MODEL.md` | Indicative hosting costs (third-party prices; vendor sites blocked here), scenarios for 1/10/100 shops |
 | `BACKLOG.md` | Ordered Phase 3–5 backlog with SRS references and definition of done |
 | `PHASE3_PLAN.md` | Phase 3 increments, acceptance criteria and exit status/deferrals |
+| `PHASE4_PLAN.md` | Phase 4 increments 4.1–4.6 and acceptance criteria |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
 | `SECURITY_THREAT_MODEL.md` | Assets, boundaries, threats T1–T31, per-workflow data flows, mitigation status |
@@ -68,8 +70,6 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Start **Phase 4** (inventory, suppliers/purchases, stock ledger, OCR-assisted review):
-1. Write `docs/PHASE4_PLAN.md` with acceptance criteria per increment from BACKLOG I-01…I-09.
-2. Begin I-01: catalogue CRUD (categories, brands, products, variants, versioned tax rates, HSN, cost-price visibility).
+Phase 4, increment **4.2 suppliers and purchases** (PHASE4_PLAN.md §4.2): migration 0008 (supplier fields, purchase lines, draft IMEIs, supplier ledger), purchasing module (draft → post → reverse, WAC, duplicate supplier-invoice check), API routes and DB tests. Then 4.3–4.6.
 
 Carry the Phase 3 deferrals listed in `PHASE3_PLAN.md` §Exit.

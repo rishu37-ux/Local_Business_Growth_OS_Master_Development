@@ -8,6 +8,7 @@ import { createAuthGate } from './auth-gate.ts';
 import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
 import { AUTHENTICATED, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
+import { registerCatalogueRoutes } from './routes/catalogue.ts';
 import { registerMemberRoutes } from './routes/members.ts';
 import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
@@ -183,6 +184,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerMemberRoutes(app, services);
     registerOnboardingRoutes(app, services);
     registerPlatformRoutes(app, services);
+    registerCatalogueRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

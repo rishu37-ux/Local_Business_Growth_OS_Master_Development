@@ -192,3 +192,15 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Browser tests:** run Playwright as a library inside Vitest DB tests, reusing the in-process API harness (captured emails, throwaway DB) instead of a separate test runner. `playwright` is pinned to 1.63.0 to match the browsers preinstalled in the dev container; CI installs the matching Chromium.
 - **Accessibility gate:** axe-core with WCAG 2.0/2.1/2.2 A/AA tags; any *serious* or *critical* violation fails. Every screen in the exit flow is audited at 1280, 768 and 360 px, with a horizontal-overflow check.
 - **Scope of browser support verified so far:** Chromium only. Firefox/WebKit and real devices are not yet tested (NFR-16).
+
+---
+## Phase 4 decisions (2026-10-27)
+
+### D-032 · 2026-10-27 · Accepted
+**Decision (catalogue and tax rates, increment 4.1):**
+- **Tax-rate versions** share a name (case-insensitive). Periods of one name must not overlap (trigger with an advisory lock, error LB012). A version is immutable except for setting `effective_to` (column grant + trigger, LB013); a rate change is a new version. Variants reference a version; `lbg.effective_tax_rate(rate, date)` resolves the version of that name in force on a date. Names therefore cannot be renamed.
+- **No rates are seeded**, not even common GST rates: rates must be entered by the business and verified by a tax professional (FR-TAX-2 AC3, Q5).
+- **Deleting vs archiving:** delete is allowed only for records nothing refers to; the database's foreign keys (movements, units, purchase/invoice lines) decide, and the API answers 409 `IN_USE` with "archive instead".
+- **Serialized flag** cannot change once any variant has stock movements (trigger, LB014); serialized variants must use the unit `pcs`.
+- **Cost visibility:** `purchasePricePaise`/`avgCostPaise` are removed from catalogue responses without `catalogue.cost.view`, and writing a purchase price without it is refused (403). The Inventory role therefore manages the catalogue without seeing costs; it still enters unit costs on purchases (`purchases.create`), where the cost is part of the document.
+- **Money arithmetic:** paise as integers, rates as basis points, quantities as thousandths; BigInt intermediates; half-up rounding (`@lbgos/domain` money.ts).

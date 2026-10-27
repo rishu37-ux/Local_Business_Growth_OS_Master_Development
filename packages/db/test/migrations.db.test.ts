@@ -32,6 +32,7 @@ describe('migrations', () => {
       '0004_user_profiles',
       '0005_lifecycle',
       '0006_onboarding',
+      '0007_catalogue',
     ]);
   });
 });

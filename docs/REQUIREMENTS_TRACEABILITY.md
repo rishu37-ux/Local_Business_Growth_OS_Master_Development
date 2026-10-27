@@ -6,7 +6,7 @@ Test evidence must reference an entry in `TEST_REPORT.md`. "In progress (DB laye
 
 Generated from `SRS.md` headings; `scripts/check-docs.sh` fails if an SRS requirement is missing here.
 
-Last updated: 2026-10-27 (end of Phase 3) · 100 requirements
+Last updated: 2026-10-27 (Phase 4, increment 4.1) · 100 requirements
 
 | Req ID | Module | Summary | Phase | Status | Implementation | Test evidence |
 |---|---|---|---|---|---|---|
@@ -24,8 +24,8 @@ Last updated: 2026-10-27 (end of Phase 3) · 100 requirements
 | FR-ONB-3 | Onboarding | Notifications and history | 3 | Implemented + tested (backend; real email provider pending Q6) | `notifications/`, `tenancy/platform.ts` | TR-0008 #6, TR-0009 #4 |
 | FR-RBAC-1 | RBAC | Roles and permissions | 3 | Implemented + tested (AC1–4; R3 pending approvals module) | `@lbgos/domain` permissions, `apps/api/src/auth-plugin.ts`, `tenancy/members.ts` | TR-0008 #1, #4, #9 |
 | FR-SUP-1 | Support | Support access | 3 | Specified | — | — |
-| FR-INV-1 | Inventory | Hierarchy | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T07, T08; TR-0005 (migrated DB) |
-| FR-INV-2 | Inventory | Phone attributes | 4 | Specified | — | — |
+| FR-INV-1 | Inventory | Hierarchy | 4 | Implemented + tested (AC1–3) | migration 0007, `packages/modules/src/catalogue/`, `apps/api/src/routes/catalogue.ts` | TR-0011 #2–4 |
+| FR-INV-2 | Inventory | Phone attributes | 4 | Implemented + tested (AC1–4) | migration 0007, `packages/modules/src/catalogue/` | TR-0011 #2, #5 |
 | FR-INV-3 | Inventory | Serialized units and IMEI | 4 | In progress (DB layer + domain validation) | `packages/db/migrations/0001_foundation.sql`, `packages/domain/src/imei.ts` | TR-0002 T09–T11; TR-0005 (migrated DB) |
 | FR-INV-4 | Inventory | Stock ledger | 4 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T12–T13b, T28, T28b; TR-0005 (migrated DB) |
 | FR-INV-5 | Inventory | Confirmed transactions only | 4 | Specified | — | — |
@@ -45,7 +45,7 @@ Last updated: 2026-10-27 (end of Phase 3) · 100 requirements
 | FR-POS-4 | POS | Invoice numbering | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T14–T14e; spike TR-0003 (concurrent gapless numbering); TR-0005 (migrated DB) |
 | FR-POS-5 | POS | Customer capture | 5 | Specified | — | — |
 | FR-TAX-1 | Tax | Deterministic tax calculation | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T15–T15c; TR-0005 (migrated DB) |
-| FR-TAX-2 | Tax | Configurable, versioned rates | 5 | Specified | — | — |
+| FR-TAX-2 | Tax | Configurable, versioned rates | 4–5 | In progress (AC1 and AC3 implemented + tested; AC2 audited and permission-gated, re-authentication pending — D-030) | migration 0007, `catalogue/tax-rates.ts`, `@lbgos/domain` tax-rates | TR-0011 #6–7 |
 | FR-TAX-3 | Tax | Credit/debit notes and cancellations | 5 | In progress (DB layer) | `packages/db/migrations/0001_foundation.sql` | TR-0002 T16–T16g; TR-0005 (migrated DB) |
 | FR-TAX-4 | Tax | E-invoice / signature only where applicable | 5 | Specified | — | — |
 | FR-PRN-1 | Print | Print and PDF | 5 | Specified | — | — |
@@ -98,7 +98,7 @@ Last updated: 2026-10-27 (end of Phase 3) · 100 requirements
 | NFR-5 | Non-functional | Background jobs | 3–9 | Specified | — | — |
 | NFR-6 | Non-functional | Private storage | 3–9 | Specified | — | — |
 | NFR-7 | Non-functional | Swappable providers | 3–9 | Specified | — | — |
-| NFR-8 | Non-functional | Money correctness | 3–9 | Specified | — | — |
+| NFR-8 | Non-functional | Money correctness | 3–9 | In progress (integer paise/basis-point arithmetic in `@lbgos/domain` money.ts; bigint/numeric columns; lint/schema check pending) | `packages/domain/src/money.ts` | TR-0011 #1 |
 | NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
 | NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness) | `apps/api/src/app.ts` | TR-0006 #7–8, #12–13 |
 | NFR-11 | Non-functional | Backups | 3–9 | Specified | — | — |
