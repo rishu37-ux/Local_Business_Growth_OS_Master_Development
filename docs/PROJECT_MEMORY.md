@@ -1,6 +1,6 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 0 complete → Phase 1 next**
+Last updated: 2026-10-27 · Current phase: **Phase 1 in progress** (SRS, roles, workflows written; data model next)
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
@@ -41,6 +41,11 @@ None blocking Phase 1. Open inputs Q1–Q6 (pilot shop details, hosting budget, 
 ## Unverified items
 
 Everything in the threat model and blueprint is design only. No legal/tax compliance has been verified. No integration is connected.
+
+## Phase 1 progress (checkpoint)
+
+- Done: `SRS.md`, `ROLES_PERMISSIONS.md`, `WORKFLOWS.md`; decisions D-008…D-017.
+- Remaining: `DATA_MODEL.md` + validated schema draft, threat-model refinement, traceability update, test report.
 
 ## Exact next action
 
