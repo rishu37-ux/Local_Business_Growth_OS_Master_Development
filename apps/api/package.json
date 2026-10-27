@@ -1,0 +1,25 @@
+{
+  "name": "@lbgos/api",
+  "private": true,
+  "type": "module",
+  "description": "HTTP API (Fastify). Runs directly on Node type stripping (D-023).",
+  "scripts": {
+    "start": "node src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:db": "../../scripts/with-throwaway-pg.sh sh -c 'node ../../packages/db/src/migrate-cli.ts && vitest run --config vitest.db.config.ts'"
+  },
+  "dependencies": {
+    "@fastify/helmet": "13.2.0",
+    "@lbgos/db": "workspace:*",
+    "@lbgos/domain": "workspace:*",
+    "@lbgos/modules": "workspace:*",
+    "fastify": "5.12.7",
+    "kysely": "0.29.7",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "pg": "8.23.1"
+  }
+}
