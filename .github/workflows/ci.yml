@@ -1,0 +1,59 @@
+# Continuous integration (ADR-17, backlog F-02). Third-party actions are pinned
+# to full commit SHAs; the token is read-only; pnpm comes from npm at the exact
+# version in package.json "packageManager".
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (Node ${{ matrix.node }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.18', '24']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install pnpm
+        run: npm install --global pnpm@10.28.0
+
+      - name: Ensure PostgreSQL server binaries (for throwaway test clusters)
+        run: |
+          if ! ls /usr/lib/postgresql/*/bin/initdb >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql
+          fi
+          ls -d /usr/lib/postgresql/*/bin
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint, format, typecheck, unit and DB tests
+        run: pnpm check
+
+      - name: Project-memory and traceability checks
+        run: scripts/check-docs.sh
+
+      - name: Dependency audit (fails on high/critical)
+        run: pnpm audit --audit-level high
+
+      - name: Secret scan
+        run: pnpm secrets
