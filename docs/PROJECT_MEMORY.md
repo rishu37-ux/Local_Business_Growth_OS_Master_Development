@@ -1,13 +1,20 @@
 # Project Memory
 
-Last updated: 2026-10-27 · Current phase: **Phase 3 in progress** — increments 3.1 (scaffold), 3.2 (migrations, tenant context), 3.3 (CI, green on GitHub), 3.4 (API skeleton), 3.5 (auth, MFA, lockout) 3.6 (RBAC, lifecycle, audit) and 3.7a (onboarding backend) done; 3.7b (web app + exit test) remaining; see `PHASE3_PLAN.md`
+Last updated: 2026-10-27 · Current phase: **Phase 3 complete (exit criterion met; see PHASE3_PLAN.md §Exit) → Phase 4 next**
 Branch: `claude/quirky-dirac-vm3o46`
 
 ## Current state
 
-- Phases 0–2 are complete and committed: inspection; SRS, workflows, roles and data model; architecture decision record, cost model, deployment/backup plan and backlog.
-- **No application code exists yet.** Executable artifacts so far: the design-level schema draft with 67 passing checks (TR-0002), the tenant-context spike with 12 passing tests (TR-0003, `spikes/tenant-context`), the throwaway-PostgreSQL harness, and documentation checks.
-- No CI, deployment or integration exists. Every integration is `planned`. Nothing has been purchased or provisioned.
+- Phases 0–3 are complete. PR #1 (through increment 3.6) was merged into `main` by the repository owner; increments 3.7a/3.7b were rebased onto the merged `main` on the working branch.
+- **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
+  - `@lbgos/domain`: IMEI, GSTIN, financial years, permissions, access modes.
+  - `@lbgos/db`: SQL migrations 0001–0006, `withTenant`, locking helpers.
+  - `@lbgos/modules`: auth on Better Auth, tenancy, onboarding, audit, notifications.
+  - `@lbgos/api`: Fastify app with sessions, RBAC, lifecycle, setup, invitations, platform admin.
+  - `@lbgos/web`: React SPA served same-origin.
+- **CI** on GitHub Actions runs lint, format, typecheck, build, unit, DB and browser tests, audit and secret scan.
+- **Phase 3 exit test:** passes in Chromium (TR-0010): register → approve → owner MFA → setup → live → invite Billing staff.
+- **Not done yet:** nothing is deployed and no external integration is connected. The production start is refused because no email provider is configured (Q6).
 
 ## Document index
 
@@ -24,6 +31,7 @@ Branch: `claude/quirky-dirac-vm3o46`
 | `ARCHITECTURE_DECISION_RECORD.md` | ADR-01…19: runtime, tooling, layout, API, web, DB, tenant context, jobs, auth, authz, storage, PDF, secrets, edge, observability, testing, CI, hosting, providers |
 | `COST_MODEL.md` | Indicative hosting costs (third-party prices; vendor sites blocked here), scenarios for 1/10/100 shops |
 | `BACKLOG.md` | Ordered Phase 3–5 backlog with SRS references and definition of done |
+| `PHASE3_PLAN.md` | Phase 3 increments, acceptance criteria and exit status/deferrals |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
 | `SECURITY_THREAT_MODEL.md` | Assets, boundaries, threats T1–T31, per-workflow data flows, mitigation status |
@@ -60,8 +68,8 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 3 increment **3.7b**:
-- **Web app:** `apps/web` (React 19 + Vite 8 + React Router + TanStack Query + Tailwind 4 + React Aria Components) with screens for sign-up/verify notice, sign-in with TOTP step, MFA enrolment, my businesses, application form, platform review queue, setup wizard (details, tax, preferences, activate), members + invite, invitation accept.
-- **Serving:** built assets served same-origin by the API (`@fastify/static`, CSP-compatible: no inline scripts).
-- **Tests:** Playwright + axe at 360/768/1280 px.
-- **Exit test:** a browser-driven Phase 3 exit test (register → admin approves → owner enrols MFA → setup → activate → invite Billing staff → staff accepts).
+Start **Phase 4** (inventory, suppliers/purchases, stock ledger, OCR-assisted review):
+1. Write `docs/PHASE4_PLAN.md` with acceptance criteria per increment from BACKLOG I-01…I-09.
+2. Begin I-01: catalogue CRUD (categories, brands, products, variants, versioned tax rates, HSN, cost-price visibility).
+
+Carry the Phase 3 deferrals listed in `PHASE3_PLAN.md` §Exit.

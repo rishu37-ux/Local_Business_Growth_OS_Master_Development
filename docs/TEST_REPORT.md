@@ -231,3 +231,21 @@ The Phase 2 spike (`spikes/tenant-context`) was removed after its tests were por
 | 12 | — | `pnpm check`: eslint rules 11, domain 42, API unit 26, DB 81 + 54, auth drift ok, API DB 73 (auth 32 + lifecycle 24 + onboarding 17) | **Pass** |
 
 **Defect found and fixed:** the default timezone `Asia/Kolkata` was rejected by validation based on `Intl.supportedValuesOf` (D-030).
+
+---
+
+## TR-0010 · 2026-10-27 · Phase 3 increment 3.7b — web app and Phase 3 exit test
+
+**Environment:** cloud dev container; Node v22.22.0; Vite 8.3.5 production build of `apps/web`; Playwright 1.63.0 with the preinstalled Chromium (`/opt/pw-browsers`); @axe-core/playwright 4.14.0; API listening on 127.0.0.1:4317 against a migrated throwaway PostgreSQL 16.15. Synthetic accounts only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | ADR-05 / NFR-17 | Production build output has no inline scripts (only an external module script and stylesheet) | **Pass** |
+| 2 | Static serving | `apps/api/test/static.test.ts`: traversal attempts clamped inside the root or refused; dotfile/encoded-separator paths 404 with no file content; assets served with the correct type, immutable caching and security headers; client routes get `index.html`; `/api/unknown` and missing assets 404 | **Pass** (API unit 37/37 total) |
+| 3 | **Phase 3 exit criterion** | `apps/api/test/browser.db.test.ts` in Chromium. Applicant signs up in the UI and verifies via the emailed link, signs in and applies. Platform admin signs in with password + TOTP and approves in the review queue. The new owner is directed to MFA enrolment, enrols (TOTP from the displayed key), saves details and tax settings, and goes live. Owner invites `exit-staff@example.test` as Billing. Staff opens the invitation link, signs in (returned to the invitation) and accepts. The owner's member table shows the staff member with exactly **Billing** | **Pass** — 4 flow tests |
+| 4 | NFR-1 (partial) | axe (WCAG 2.0/2.1/2.2 A/AA) on 8 screens (sign-up, sign-in, home, platform review, MFA enrolment, setup wizard, members, invitation) × 3 widths (1280/768/360 px) = 24 audits: **0 serious/critical violations**; no horizontal overflow at any width | **Pass** |
+| 5 | NFR-17 | No CSP violation and no page error during the whole flow | **Pass**. The first run failed with 8 CSP violations: React Aria injects one `<style>`; fixed by allowing its exact hash (D-031), not `'unsafe-inline'` |
+| 6 | — | Negative controls: (a) `<select>` label association removed → flow tests fail (selectors rely on labels); (b) form hint changed to low contrast → only the audit test fails, with 3 `color-contrast` violations (one per width). Both restored and rebuilt | **Detected** both |
+| 7 | — | `pnpm check` (now including `pnpm build`): eslint rules 11, domain 42, web build, API unit 37, DB 81 + 54, auth drift ok, API DB 78 (auth 32 + lifecycle 24 + onboarding 17 + browser 5); `pnpm audit` no known vulnerabilities; secretlint clean | **Pass** |
+
+**Not covered yet:** Firefox/WebKit and real mobile devices (NFR-16); keyboard-only operation of the full flow and screen-reader testing (manual, NFR-1); performance (NFR-14).

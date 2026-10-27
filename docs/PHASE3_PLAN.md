@@ -41,3 +41,34 @@ Inputs still open: Q3 (auth approach). Per prompt guidance, Phase 3 proceeds on 
 
 ## Phase 3 exit
 A self-registered synthetic shop can be approved, completes setup with owner MFA, and invites a staff member with a limited role. Every route is permission-checked, cross-tenant tests pass, and CI is green.
+
+
+## Exit status (2026-10-27)
+
+**Exit criterion met:** the browser test (TR-0010 #3) runs a self-registered synthetic shop through approval, owner MFA, setup and go-live, and invites a Billing staff member who accepts. Every route is permission-checked: unknown keys, missing `:businessId` and misplaced platform permissions fail at registration (TR-0008 #4). Cross-tenant/non-member access returns 404 (TR-0008 #5, #10). CI is green on every increment through 3.7a; 3.7b's result is recorded in TR-0010/CHANGELOG once observed.
+
+| Increment | Evidence |
+|---|---|
+| 3.1 scaffold | TR-0004 |
+| 3.2 migrations + tenant context | TR-0005 |
+| 3.3 CI | TR-0006 |
+| 3.4 API skeleton | TR-0006 |
+| 3.5 auth / MFA / lockout | TR-0007 |
+| 3.6 RBAC / lifecycle / audit | TR-0008 |
+| 3.7a onboarding backend | TR-0009 |
+| 3.7b web app + exit test | TR-0010 |
+
+**Deferred to later phases (explicit, not done):**
+- Passkeys/WebAuthn (FR-AUTH-3 should-have).
+- Online breached-password check (FR-AUTH-2 AC4; needs network).
+- FR-AUTH-5 AC2 owner MFA recovery process (operational doc, before pilot).
+- Approval requests and rule R3 (approvals module, Phase 8).
+- FR-SUP-1 support access.
+- Re-authentication for tax-setting changes (FR-TAX-2 AC2, Phase 5).
+- Products-import and integrations wizard steps (Phases 4/7).
+- Real email provider (Q6).
+- Firefox/WebKit/real-device testing (NFR-16).
+- Keyboard-only and screen-reader manual checks (NFR-1).
+- Performance measurement (NFR-14).
+- BR-T4 AC3 job pausing (when jobs exist).
+- A UI for Billing-only staff: they can sign in and accept, but have no screens yet because Billing screens arrive with POS in Phase 5.

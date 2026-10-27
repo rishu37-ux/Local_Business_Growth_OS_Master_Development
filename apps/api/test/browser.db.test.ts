@@ -189,6 +189,6 @@ describe('Phase 3 exit: register → approve → MFA → setup → live → invi
     expect(problems).toEqual([]);
     const failing = a11y.filter((r) => r.violations.length > 0);
     expect(failing).toEqual([]);
-    expect(a11y.length).toBeGreaterThanOrEqual(21); // 7 screens × 3 widths
+    expect(a11y.length).toBe(24); // 8 screens × 3 widths
   });
 });

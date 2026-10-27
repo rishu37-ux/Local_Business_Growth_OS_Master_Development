@@ -1,19 +1,25 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (end of Phase 2)
+Last updated: 2026-10-27 (end of Phase 3)
 
-## Phase 3 — Foundation (next) — see `BACKLOG.md` F-01…F-14
+## Phase 4 — Inventory, suppliers/purchases, stock ledger, OCR review (next)
 
-1. F-01 Monorepo scaffold (ADR-03): pnpm workspaces, TS 6.0.x strict, ESLint 10 flat config + typescript-eslint 8 with the module-boundary rule, Prettier, Vitest 5.
-2. F-02 CI on GitHub Actions: lint, typecheck, unit, DB tests via the throwaway-PostgreSQL harness, `scripts/check-docs.sh`, dependency audit, secret scan, build; pinned action SHAs. Ask the owner to enable branch protection.
-3. F-03 Migrations: port `docs/data-model/schema_draft.sql` into SQL migrations (Kysely Migrator), add the `lbgos_auth` role/schema; carry over the 67 checks.
-4. F-04 `withTenant()` and the pools from the spike, with its tests.
-5. F-05…F-14 in order: app skeleton and security headers, auth (after Q3), MFA, rate limits, RBAC, business lifecycle, audit, setup wizard, web shell, plans/subscriptions.
-6. At Phase 3 exit, update traceability statuses from `Specified` to implemented/tested only where tests exist.
+1. `docs/PHASE4_PLAN.md`: acceptance criteria per increment (BACKLOG I-01…I-09).
+2. I-01 Catalogue CRUD with versioned tax rates and cost-price visibility (`catalogue.cost.view`).
+3. I-02 IMEI already in `@lbgos/domain` — wire into catalogue/units with DB parity (done for validation).
+4. I-03 Suppliers and purchases (draft → post → reverse), weighted average cost (D-017), duplicate supplier-invoice check.
+5. I-04 Stock ledger service + `stock_levels` projection + reconciliation; adjustments via approval requests (needs a minimal approvals module).
+6. I-05…I-07 Returns inspection, stock reports, barcode input.
+7. I-08/I-09 Upload pipeline and OCR adapter (mock first), review screen, prompt-injection corpus.
+
+## Carried from Phase 3
+
+See `PHASE3_PLAN.md` §Exit (deferred list).
 
 ## Inputs requested from the user
 
-- Q2: confirm hosting (D-022) and a monthly ceiling — needed before staging.
-- Q3: confirm self-hosted auth (D-019) or name a managed provider — needed before F-06.
-- Q1, Q4, Q5, Q6 as in `PHASE0_INSPECTION_REPORT.md` §5.
-- Optional: allow vendor pricing hosts in the environment's network settings to re-verify `COST_MODEL.md`.
+- Q2 hosting/budget (D-022) — needed before a staging environment.
+- Q3 confirm self-hosted auth (D-019/D-024 in use) or name a managed provider.
+- Q6 domain — needed for a real email provider (production start is refused until then).
+- Q1 pilot shop details, Q4 integration accounts, Q5 tax-professional review.
+- Repository owner: enable branch protection with the `CI` checks required on `main`.

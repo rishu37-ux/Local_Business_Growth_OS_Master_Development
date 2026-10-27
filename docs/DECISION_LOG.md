@@ -184,3 +184,11 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Tax setup:** creates invoice series (sale document by registration type, plus credit and debit notes) for the current financial year in the business timezone. GSTIN format/checksum/state are validated; registration is not verified (no GST portal integration).
 - **Timezones:** validated by constructing an `Intl.DateTimeFormat`, because `Intl.supportedValuesOf('timeZone')` lists `Asia/Calcutta` but not `Asia/Kolkata` (found by a failing test).
 - **Re-authentication deferred:** FR-TAX-2 AC2's re-authentication for tax-setting changes is not yet enforced for the initial setup step; it is due with tax configuration in Phase 5.
+
+### D-031 · 2026-10-27 · Accepted
+**Decision (web app, increment 3.7b):**
+- **Static serving:** the API serves the built SPA through its own small static route instead of `@fastify/static`. Paths resolve strictly inside the build directory; dot segments, dotfiles and encoded separators get 404; `/api/*` never falls back to the app shell; fingerprinted `/assets/*` are cached immutably and `index.html` is `no-cache`. A plugin route would also bypass our mandatory `public` declaration.
+- **CSP:** stays `script-src 'self'` and `style-src 'self'`, plus **the exact SHA-256 hash of the one stylesheet React Aria Components 1.22 injects** (`touch-action` for pressable elements). No `'unsafe-inline'`. The browser test fails on any CSP violation, so a library change that alters the injected CSS is caught.
+- **Browser tests:** run Playwright as a library inside Vitest DB tests, reusing the in-process API harness (captured emails, throwaway DB) instead of a separate test runner. `playwright` is pinned to 1.63.0 to match the browsers preinstalled in the dev container; CI installs the matching Chromium.
+- **Accessibility gate:** axe-core with WCAG 2.0/2.1/2.2 A/AA tags; any *serious* or *critical* violation fails. Every screen in the exit flow is audited at 1280, 768 and 360 px, with a horizontal-overflow check.
+- **Scope of browser support verified so far:** Chromium only. Firefox/WebKit and real devices are not yet tested (NFR-16).
