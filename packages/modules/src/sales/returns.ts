@@ -120,23 +120,23 @@ async function refundReleased(
   released: readonly { paymentId: string; amountPaise: number }[],
   s: Settlement,
   reason: string,
+  at: Date,
 ): Promise<number> {
   let total = 0;
   for (const r of released) {
     const { rows } = await sql<{ id: string }>`
       insert into lbg.payment_refunds (business_id, payment_id, customer_id, amount_paise, method, reference, reason,
-                                       recorded_by, invoice_id)
+                                       recorded_by, invoice_id, refunded_at)
       values (${ctx.businessId}, ${r.paymentId}, ${customerId}, ${r.amountPaise}, ${s.refundMethod ?? 'CASH'},
-              ${s.refundReference ?? null}, ${reason}, ${ctx.userId}, ${documentId})
+              ${s.refundReference ?? null}, ${reason}, ${ctx.userId}, ${documentId}, ${at})
       returning id`.execute(trx);
     const id = rows[0]?.id;
     if (!id) throw new Error('refund insert returned nothing');
     if (customerId) {
       await sql`insert into lbg.customer_ledger_entries (business_id, customer_id, entry_type, amount_paise,
-                                                         reference_type, reference_id, created_by)
-                values (${ctx.businessId}, ${customerId}, 'REFUND', ${r.amountPaise}, 'refund', ${id}, ${ctx.userId})`.execute(
-        trx,
-      );
+                                                         reference_type, reference_id, created_by, created_at)
+                values (${ctx.businessId}, ${customerId}, 'REFUND', ${r.amountPaise}, 'refund', ${id}, ${ctx.userId},
+                        ${at})`.execute(trx);
     }
     total += r.amountPaise;
   }
@@ -258,14 +258,15 @@ export async function cancelInvoice(
            and reference_id = ${invoiceId}`.execute(trx);
       for (const e of entries) {
         await sql`insert into lbg.customer_ledger_entries (business_id, customer_id, entry_type, amount_paise,
-                                                           reference_type, reference_id, reverses_entry_id, created_by)
+                                                           reference_type, reference_id, reverses_entry_id, created_by,
+                                                           created_at)
                   values (${ctx.businessId}, ${head.customer_id}, 'REVERSAL', ${-Number(e.amount_paise)}, 'invoice',
-                          ${invoiceId}, ${e.id}, ${ctx.userId})`.execute(trx);
+                          ${invoiceId}, ${e.id}, ${ctx.userId}, ${at})`.execute(trx);
       }
     }
     const refunded =
       input.settlement === 'REFUND'
-        ? await refundReleased(trx, ctx, head.customer_id, invoiceId, released, input, reason)
+        ? await refundReleased(trx, ctx, head.customer_id, invoiceId, released, input, reason, at)
         : 0;
     await sql`update lbg.invoices set status = 'CANCELLED', cancel_reason = ${reason}, cancelled_at = ${at}
                where business_id = ${ctx.businessId} and id = ${invoiceId}`.execute(trx);
@@ -494,14 +495,14 @@ export async function issueCreditNote(
     }
     if (head.customer_id) {
       await sql`insert into lbg.customer_ledger_entries (business_id, customer_id, entry_type, amount_paise,
-                                                         reference_type, reference_id, created_by)
+                                                         reference_type, reference_id, created_by, created_at)
                 values (${ctx.businessId}, ${head.customer_id}, 'CREDIT_NOTE', ${-note.totalPaise}, 'invoice',
-                        ${note.id}, ${ctx.userId})`.execute(trx);
+                        ${note.id}, ${ctx.userId}, ${at})`.execute(trx);
     }
     const released = await releaseAllocations(trx, ctx, invoiceId, release);
     const refunded =
       input.settlement === 'REFUND'
-        ? await refundReleased(trx, ctx, head.customer_id, note.id, released, input, reason)
+        ? await refundReleased(trx, ctx, head.customer_id, note.id, released, input, reason, at)
         : 0;
     await recordTenantEvent(trx, ctx, {
       action: 'credit_note.issue',
@@ -584,9 +585,9 @@ export async function issueDebitNote(
     });
     const note = await insertNote(trx, ctx, head, 'DEBIT_NOTE', reason, at, lines, 0);
     await sql`insert into lbg.customer_ledger_entries (business_id, customer_id, entry_type, amount_paise,
-                                                       reference_type, reference_id, created_by)
+                                                       reference_type, reference_id, created_by, created_at)
               values (${ctx.businessId}, ${head.customer_id}, 'DEBIT_NOTE', ${note.totalPaise}, 'invoice', ${note.id},
-                      ${ctx.userId})`.execute(trx);
+                      ${ctx.userId}, ${at})`.execute(trx);
     await recordTenantEvent(trx, ctx, {
       action: 'debit_note.issue',
       targetType: 'invoice',

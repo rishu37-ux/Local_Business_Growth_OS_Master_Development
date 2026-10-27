@@ -559,3 +559,25 @@ While capturing screenshots of the portal for the user, a newly approved owner w
 | 9 | — | Negative control: HTML escaping disabled → test 2 fails. Restored | **Detected** |
 | 10 | FR-PRN-1 AC4 | Manual printing on Chrome (Android/desktop), Safari (iOS), Firefox and an 80 mm thermal printer | **Not done** (needs real devices) |
 | 11 | — | `pnpm check`: domain 134, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 215 | **Pass**, exit 0 |
+
+## TR-0024 · 2026-10-28 · Phase 5 increment 5.7 — reports and exports
+
+**Environment:** as TR-0011, migrations 0001–0016; Chromium for PDFs and the browser test; `pdftotext`, `unzip` and Python's `zipfile`/`xml.dom` to read exports.
+
+Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A — 31 Mar 2026 23:30 IST, 1 cable ₹500 cash; B — 1 Apr 2026 00:15 IST, 2 cables ₹1,000 cash; C — 5 Oct 2026 23:30 IST, phone ₹15,000 (cost ₹11,000) + cable to customer X, ₹10,000 UPI; D — 6 Oct 2026 00:30 IST, 4 cables ₹2,000 card; E — 7 Oct, cable sold and cancelled the same day with a cash refund; credit note for C's cable on Sunday 11 Oct. Second shop: invoices 10, 45 and 100 days old (₹1,000 each, unpaid), one 70 days old part-paid (₹700 due), ₹500 advance, 6 items @ ₹400 with 2 moved to damaged, 1 phone @ ₹9,000.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-RPT-3 AC1 | Day reports: 31 Mar = ₹500, 1 Apr = ₹1,000, 5 Oct = ₹15,500, 6 Oct = ₹2,000 (each one invoice) | **Pass** |
+| 2 | FR-RPT-3 AC1, FR-RPT-1 AC2 | FY 2025-26 = ₹500; FY 2026-27: 3 invoices, gross ₹18,500, returns ₹500, net ₹18,000, taxable ₹15,254.24, tax ₹2,745.76 (exact); previous FY net ₹500; the cancelled sale E counts nowhere | **Pass** |
+| 3 | FR-RPT-1, FR-RPT-3 AC2 | October: 2 invoices, gross ₹17,500, returns ₹500, net ₹17,000, previous month 0; Monday weeks (5–11 Oct) include the Sunday credit note, with week start set to Sunday (4–10 Oct) they do not | **Pass** |
+| 4 | FR-RPT-2, FR-LED-3 | Definitions returned for every summary metric; no label calls sales profit or cash; inverted custom range 400 `INVALID_PERIOD` | **Pass** |
+| 5 | FR-RPT-1 AC2 | Sales by model (October): phone qty 1, net ₹15,000, taxable ₹12,711.86, cost ₹11,000, margin ₹1,711.86; cable qty 4, net ₹2,000, taxable ₹1,694.92, cost ₹800, margin ₹894.92; margin summary: taxable ₹14,406.78, cost ₹11,800, margin ₹2,606.78 (18.09 %); Billing 403; Accountant sees cost | **Pass** |
+| 6 | FR-RPT-1, FR-RPT-3 | Cash received in October: card ₹2,000, cash ₹500 received and ₹500 refunded (net 0), UPI ₹10,000; total net ₹12,000; by IST day the UPI payment is on 5 Oct, the card payment on 6 Oct | **Pass** |
+| 7 | FR-RPT-1 AC2 | Returns October ₹500 (1 credit note); tax summary: credit notes −₹423.73 taxable, −₹38.13 CGST, −₹38.14 SGST; tax invoices (2) ₹14,830.51, CGST ₹1,334.74, SGST ₹1,334.75; totals ₹14,406.78 / ₹1,296.61 / ₹1,296.61; note says it is not a GST return | **Pass** |
+| 8 | FR-RPT-1 AC2 | Ageing: Yash ₹1,000 in each of 0–30, 31–60 and 90+; Zara ₹700 in 61–90; totals ₹3,700; advances ₹500 shown separately. Stock valuation: item 4 sellable (₹1,600) + 2 other (₹800), phone ₹9,000; total ₹11,400 | **Pass** |
+| 9 | FR-RPT-4 AC1–2 | CSV: byte-order mark, header `Date,Invoices,Gross sales (₹),…`, day rows and total row equal the report; a customer named `=cmd|…` is written as `'=cmd|…`; 2 `report.export` audit events. XLSX: valid package (all parts parse as XML), numeric cell 14406.78. PDF: tax summary and customer statement; statement CSV closing balance ₹5,000.00; returns as PDF refused `FORMAT_UNAVAILABLE`; Billing and Inventory 403; other businesses 404 | **Pass** |
+| 10 | FR-RPT-2, NFR-1 | Browser (`reports-browser.db.test.ts`): the owner opens Reports from the side menu; net sales ₹1,500.00 with its definition, gross margin and tax note shown, no figure called profit, export links; axe (no serious/critical) at 1280/768/360 px, no overflow, no CSP violations; Billing has no Reports menu entry | **Pass** |
+| 11 | — | Negative controls: (a) cancelled invoices counted → 3 tests fail; (b) payment day boundaries in UTC instead of IST → test 6 fails; (c) CSV formula guard removed → test 9 fails. Restored | **Detected** all |
+| 12 | — | Defect found while writing the tests and fixed: credit-note, debit-note, cancellation and refund ledger entries were stamped with the clock time instead of the document time, so statements and cash reports could disagree with the documents' dates | **Fixed** |
+| 13 | — | `pnpm check`: domain 140, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 231 | **Pass**, exit 0 |

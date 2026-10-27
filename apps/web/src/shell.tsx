@@ -8,9 +8,10 @@ import { api, type Me } from './api.ts';
 import { useBusiness } from './business.ts';
 import { Badge, BrandMark, humanize, statusTone } from './ui.tsx';
 
-type IconName = 'home' | 'box' | 'layers' | 'cart' | 'scan' | 'truck' | 'check' | 'users';
+type IconName = 'home' | 'box' | 'layers' | 'cart' | 'scan' | 'truck' | 'check' | 'users' | 'chart';
 
 const ICON_PATHS: Readonly<Record<IconName, string>> = {
+  chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z',
   box: 'M21 8 12 3 3 8v8l9 5 9-5V8Zm-9 5L3.5 8.3M12 13l8.5-4.7M12 13v8',
   layers: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5',
@@ -49,6 +50,7 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['scans', 'Scans', 'ocr.scan', 'scan'],
   ['suppliers', 'Suppliers', 'suppliers.view', 'truck'],
   ['approvals', 'Approvals', 'approvals.decide', 'check'],
+  ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];
 

@@ -55,13 +55,13 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-PRV-2 | Privacy | Tenant data export | 6 | Specified | — | — |
 | FR-LED-1 | Ledger | Customer ledger | 5 | In progress (INVOICE, PAYMENT, REFUND, REVERSAL entries written and tested; AC2 balance = Σ entries = receivable − advance; AC3 append-only and statement with opening/closing balance for any date range (business timezone) tested — printing/export of statements in 5.6/5.7; CREDIT_NOTE/DEBIT_NOTE in 5.5; ADJUSTMENT not offered yet) | migrations 0001, 0014; `modules/sales/sale.ts`, `modules/sales/payments.ts` | TR-0002 T18–T18d; TR-0005; TR-0019 #10–11; TR-0020 #1–9 |
 | FR-LED-2 | Ledger | Deterministic allocation | 5 | Implemented + tested (pure module AC1–2; in the database: FIFO and selected invoices, advance, advance applied, refund, reversal; parallel payments never over-allocate; status derived) | `packages/domain/src/allocation.ts`, `modules/sales/payments.ts`, migration 0014 | TR-0017 #5–6; TR-0020 #1–7 |
-| FR-LED-3 | Ledger | Metric separation | 5 | Specified | — | — |
+| FR-LED-3 | Ledger | Metric separation | 5 | In progress (reports API and screen label net/gross sales, returns, taxable value, tax, cash received, receivables, advances, COGS and gross margin separately with §7 definitions; tests check no sales figure is called profit or cash; dashboard in later phases) | `modules/reports/`, `apps/web/src/pages/reports.tsx` | TR-0024 #4, #10 |
 | FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
-| FR-RPT-1 | Reports | Report set | 5–6 | Specified | — | — |
-| FR-RPT-2 | Reports | Definitions shown | 5 | In progress (definitions module from SRS §7; shown in reports in 5.7) | `packages/domain/src/metrics.ts` | TR-0017 #8 |
-| FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Specified | — | — |
-| FR-RPT-4 | Reports | Export | 5–6 | Specified | — | — |
+| FR-RPT-1 | Reports | Report set | 5–6 | In progress (Phase 5 subset done with exact values on a seeded dataset: sales summary with previous period, sales by brand/model/variant, margin, receivables ageing, cash received by method, returns, tax summary, stock valuation; low/slow/dead stock in TR-0014; expenses, stock-movement report and campaign results later) | `modules/reports/` | TR-0024 #1–8 |
+| FR-RPT-2 | Reports | Definitions shown | 5 | Implemented + tested for the Phase 5 reports (every report returns its metric definitions; the Reports screen shows each next to its figure; exports include them) | `packages/domain/src/metrics.ts`, `modules/reports/`, `pages/reports.tsx` | TR-0017 #8; TR-0024 #4, #10 |
+| FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Implemented + tested (sales at 23:30 and 00:15/00:30 IST, 31 March / 1 April FY split, payments by business date, week start configurable, default Monday) | `packages/domain/src/periods.ts`, `modules/reports/` | TR-0024 #1–3, #6 |
+| FR-RPT-4 | Reports | Export | 5–6 | Implemented + tested (CSV for every report, XLSX for sales, stock and tax summaries and more, PDF for sales summary, tax summary and customer statements; `reports.export` plus the report's permission; every export audited) | `modules/reports/export.ts`, `routes/reports.ts` | TR-0024 #8–9 |
 | FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
 | FR-EXP-1 | Expenses | Expenses (optional module) | 6 | Specified | — | — |
 | FR-AIC-1 | Creative | Generation | 7 | Specified | — | — |

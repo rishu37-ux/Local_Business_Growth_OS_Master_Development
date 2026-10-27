@@ -12,6 +12,7 @@ import { InvitePage } from './pages/invite.tsx';
 import { MembersPage } from './pages/members.tsx';
 import { PlatformPage } from './pages/platform.tsx';
 import { PurchaseEditorPage, PurchasesPage } from './pages/purchases.tsx';
+import { ReportsPage } from './pages/reports.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
 import { StockPage } from './pages/stock.tsx';
 import { SuppliersPage } from './pages/suppliers.tsx';
@@ -80,6 +81,7 @@ const router = createBrowserRouter([
           { path: 'scans', element: <Authed>{() => <ScansPage />}</Authed> },
           { path: 'scans/:scanId', element: <Authed>{() => <ScanReviewPage />}</Authed> },
           { path: 'approvals', element: <Authed>{() => <ApprovalsPage />}</Authed> },
+          { path: 'reports', element: <Authed>{() => <ReportsPage />}</Authed> },
         ],
       },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },

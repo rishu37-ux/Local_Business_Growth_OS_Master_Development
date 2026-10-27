@@ -20,6 +20,12 @@ const TASKS: readonly (readonly [string, string, string, string])[] = [
   ['scans', 'Read a bill or label', 'Upload a photo; review what was read before saving.', 'ocr.scan'],
   ['stock', 'Check stock levels', 'Available, in inspection, damaged and reorder suggestions.', 'inventory.view'],
   ['approvals', 'Review requests', 'Adjustments and discounts waiting for a decision.', 'approvals.decide'],
+  [
+    'reports',
+    'See how the shop is doing',
+    'Sales, cash received, tax summary and what customers owe.',
+    'reports.sales.view',
+  ],
   ['members', 'Invite your team', 'Give staff the role they need, nothing more.', 'users.manage'],
 ];
 interface Application {

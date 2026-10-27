@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 5, after increment 5.6)
+Last updated: 2026-10-28 (Phase 5, after increment 5.7)
 
 ## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
 
@@ -11,7 +11,7 @@ Last updated: 2026-10-27 (Phase 5, after increment 5.6)
 5. ~~5.5 cancellation, credit/debit notes, returns into inspection~~ (done, TR-0021, D-042).
 5a. ~~Portal redesign (D-043, TR-0022)~~ done; the user could not run the portal locally on Windows (WSL password issue), so screenshots are shared from the dev container instead.
 6. ~~5.6 print/PDF~~ (done, TR-0023, D-044). Still needed before the pilot: manual print tests on real devices and an 80 mm thermal printer (FR-PRN-1 AC4).
-7. 5.7 reports and exports; 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
+7. ~~5.7 reports and exports~~ (done, TR-0024, D-045; Reports screen in the portal). Next: 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
 8. CI: #22 (5.1), #23 (5.2), #25 (5.4, includes 5.3) green; #24 (5.3) was cancelled when #25 started. Check CI for the 5.5 push.
 
 ## Phase 4 (complete)

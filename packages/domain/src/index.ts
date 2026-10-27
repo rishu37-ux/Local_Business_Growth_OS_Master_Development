@@ -129,3 +129,13 @@ export { normalizeMobile, placeOfSupply } from './customers.ts';
 export { discountWithinLimit } from './discount-limits.ts';
 export { amountInWords } from './amount-words.ts';
 export { GST_STATES, stateLabel } from './gst-states.ts';
+export {
+  addDays,
+  ageingBucket,
+  customPeriod,
+  daysBetween,
+  periodRange,
+  type DateRange,
+  type Period,
+  type PeriodKind,
+} from './periods.ts';

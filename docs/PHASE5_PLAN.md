@@ -54,6 +54,8 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC3 FR-RPT-3: business timezone and FY start: sales at 23:30 and 00:30 IST and on 31 March / 1 April land in the right day and FY; week start configurable (default Monday).
 - AC4 FR-RPT-4: CSV for tabular reports; PDF for sales summary, tax summary and ledger statements; XLSX for sales, stock and tax summaries; export needs `reports.export` and is audited.
 
+**Status (5.7):** done — TR-0024, D-045; a Reports screen was added to the portal. Not done: historical receivables as of a past date; expenses and campaign reports (later phases).
+
 ## Increment 5.8 — POS and sales web screens, Phase 5 exit test
 - AC1 FR-POS-1 AC1, AC3: POS screen: search/scan by name, model, SKU, barcode or IMEI; unit choice for serialized items; customer by mobile; discounts; split payment; issue and print. A single-item sale with a known customer in ≤ 6 interactions (counted in the browser test). The 300 ms p95 search target over 10,000 variants is measured on the dev container and reported as such (not the reference environment).
 - AC2 Screens: invoices list/detail with print/PDF, customer profile with ledger and statement, payments, credit notes, reports; axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
