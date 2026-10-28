@@ -581,3 +581,22 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 11 | — | Negative controls: (a) cancelled invoices counted → 3 tests fail; (b) payment day boundaries in UTC instead of IST → test 6 fails; (c) CSV formula guard removed → test 9 fails. Restored | **Detected** all |
 | 12 | — | Defect found while writing the tests and fixed: credit-note, debit-note, cancellation and refund ledger entries were stamped with the clock time instead of the document time, so statements and cash reports could disagree with the documents' dates | **Fixed** |
 | 13 | — | `pnpm check`: domain 140, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 231 | **Pass**, exit 0 |
+
+## TR-0025 · 2026-10-28 · Phase 5 increment 5.8 — POS and sales screens, Phase 5 exit test
+
+**Environment:** as TR-0011; Chromium (Playwright 1.63) against the built web app (`phase5-exit.db.test.ts`). Synthetic GST-registered shop; Billing cashier (limit 2 % / ₹500); phone ₹15,000 (2 units by IMEI), cable ₹500; one earlier ₹500 sale today.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | Exit, FR-POS-1…3 | The cashier opens Point of sale from the side menu, scans the phone's IMEI (Enter adds it), adds the cable by SKU, enters a new mobile and adds the customer, gives ₹200 off the phone (within limit), total ₹15,300.00; pays ₹10,000 UPI (reference) + ₹3,000 cash, balance due ₹2,300.00 shown; completes: invoice `T26-27/0002` (next after the earlier `…/0001`) | **Pass** |
+| 2 | Exit, FR-PRN-1 | From the receipt panel: A4 print page shows TAX INVOICE, number, IMEI, customer, ₹15,300.00, "Rupees Fifteen Thousand Three Hundred Only", ₹2,300.00 due and the shop address; 80 mm page shows the IMEI; PDF downloads as `application/pdf` | **Pass** |
+| 3 | Exit, FR-LED-1 | Customers → search "Priya" → profile shows balance ₹2,300.00 "The customer owes the shop."; recording ₹2,300 by UPI → "Nothing owed." | **Pass** |
+| 4 | Exit, FR-TAX-3, FR-INV-6 | The owner opens Invoices → the invoice → credit note for line 1 (phone) kept as advance → "Credit note issued."; the unit is PENDING_INSPECTION | **Pass** |
+| 5 | Exit, FR-RPT-1 | Day reports: 2 invoices, gross ₹15,800, returns ₹14,800, net ₹1,000, taxable ₹847.46, tax ₹152.54; tax summary taxable ₹847.46, CGST ₹76.26, SGST ₹76.28, IGST 0; receivables ₹0 due, ₹14,800 advance; the Reports screen shows net ₹1,000.00 with its definition | **Pass** |
+| 6 | FR-POS-1 AC3 | Single-item sale to a known customer: fill IMEI, Enter, fill mobile (customer found), tap Cash, Complete sale = **5 interactions** (≤ 6); invoice `…/0003` | **Pass** |
+| 7 | FR-POS-1 AC1 | Counter search over 10,000 variants (60 requests, 6 query shapes, in-process API incl. session check): **p95 42.0 ms, median 29.4 ms** — dev container, not the reference environment | **Pass** (< 300 ms) |
+| 8 | NFR-1, NFR-17 | axe (no serious/critical) at 1280/768/360 px on POS (with a cart), customer profile, customers, invoices and invoice detail (15 audits); no horizontal overflow; no CSP violations or page errors | **Pass** |
+| 9 | — | **Defects found by the browser test and fixed:** (a) POS overflowed by 333 px at 360 px — screen-reader-only text inside a scrolling table escaped the scroll container (absolutely positioned); table scrollers are now `relative`, which fixes it for every table; (b) the POS grid had no column template below 1280 px; (c) a `<dl>` held a non-term element (axe); (d) two selects on the invoice page had the same label "Money already paid" — now distinct; (e) at 1280 px the cart table was cramped and the sticky payment card covered the Hold button — layout reworked | **Fixed** |
+| 10 | — | Negative control: POS no longer sends line discounts → the exit test fails (total ≠ ₹15,300). Restored | **Detected** |
+| 11 | — | `pnpm check`: domain 140, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 239 (includes Phase 3, Phase 4, reports and Phase 5 browser tests) | **Pass**, exit 0 |
+| 12 | Exit | CI on GitHub for this commit | recorded in the next entry (not yet run) |

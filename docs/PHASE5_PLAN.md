@@ -60,7 +60,11 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC1 FR-POS-1 AC1, AC3: POS screen: search/scan by name, model, SKU, barcode or IMEI; unit choice for serialized items; customer by mobile; discounts; split payment; issue and print. A single-item sale with a known customer in ≤ 6 interactions (counted in the browser test). The 300 ms p95 search target over 10,000 variants is measured on the dev container and reported as such (not the reference environment).
 - AC2 Screens: invoices list/detail with print/PDF, customer profile with ledger and statement, payments, credit notes, reports; axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
 
+**Status (5.8):** done — TR-0025, D-046.
+
 ## Phase 5 exit
+**Status:** all browser steps pass (TR-0025 #1–8); cross-tenant tests pass in every Phase 5 suite; CI for the 5.8 commit is recorded once it has run. Not done in Phase 5: manual printer/device tests (FR-PRN-1 AC4), search timing on the reference environment, screens for debit notes and payment reversal.
+
 In a real browser, a synthetic shop sells a phone (chosen by IMEI) and an accessory to a new customer at POS with a discount within the cashier's limit, part-paid by UPI and cash; the invoice is issued with the next consecutive number and prints in A4 and 80 mm and as a PDF; the customer's balance shows the amount due; a later payment clears it; a credit note returns the phone into inspection; the sales, tax and receivables reports equal the expected values for the seeded data; cross-tenant tests pass; CI is green.
 
 Not in Phase 5 (by design): payment-gateway collection (SRS §15), e-invoice/e-way bill (FR-TAX-4), messaging invoices by WhatsApp/SMS (Phase 6–7), full CRM consent and reminders (Phase 6), expenses (Phase 6), stock reservation for held carts.

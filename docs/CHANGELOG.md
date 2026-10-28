@@ -11,8 +11,10 @@
 - Migration 0015 and returns in `@lbgos/modules/sales`: invoice cancellation within the window (goods back to stock or into inspection; payments to advance or refunded), credit notes (partial/full, from line snapshots, returns into inspection, release or refund of paid money), debit notes; invoice credited amount and status; API routes.
 - Migration 0016 and printing: shop address/phone/email/terms settings copied into issued documents; print templates for A4, A5, 80 mm and 58 mm (amount in words, tax summary by HSN, payments, terms); PDF download rendered by headless Chromium; `amountInWords` and GST state names in `@lbgos/domain`.
 - `@lbgos/modules/reports` and Reports screen: sales summary with previous period, sales by brand/model/variant, margin, receivables ageing, cash received by method, returns, tax summary, stock valuation, all with metric definitions; CSV/XLSX/PDF exports (audited); customer statement export; report periods in `@lbgos/domain`.
+- POS screen (scan IMEI/barcode, cart priced by the server, customer by mobile, line and invoice discounts, split payments, held sales, receipt with print/PDF), Invoices and Customers screens; counter search API; Phase 5 exit browser test.
 
 ### Fixed
+- Wide tables no longer make small screens scroll sideways when they contain screen-reader-only text.
 - Ledger entries and refunds written by cancellations, credit and debit notes now carry the document time.
 
 ### Changed

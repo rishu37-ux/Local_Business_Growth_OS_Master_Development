@@ -271,8 +271,9 @@ export function TextArea(props: {
 export function Table(props: { caption: string; headers: readonly string[]; children: ReactNode }) {
   return (
     // Focusable so keyboard users can scroll a wide table on small screens (WCAG 2.1.1).
+    // `relative` keeps absolutely positioned content (screen-reader-only text) inside the scroller.
     <div
-      className="mb-4 overflow-x-auto rounded-xl border border-ink-200 bg-white"
+      className="relative mb-4 overflow-x-auto rounded-xl border border-ink-200 bg-white"
       tabIndex={0}
       role="region"
       aria-label={props.caption}

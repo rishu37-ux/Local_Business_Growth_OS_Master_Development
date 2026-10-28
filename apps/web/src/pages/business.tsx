@@ -15,6 +15,7 @@ interface BusinessView {
 // Quick tasks on the overview (navigation itself is the side menu). Shown only
 // with the permission; the API checks again.
 const TASKS: readonly (readonly [string, string, string, string])[] = [
+  ['pos', 'Start a sale', 'Scan an IMEI or barcode, take payment and print the invoice.', 'pos.sell'],
   ['catalogue', 'Add a product', 'Models, variants, prices and tax rates.', 'catalogue.manage'],
   ['purchases/new', 'Record a purchase', 'Enter a supplier bill and scan IMEIs into stock.', 'purchases.create'],
   ['scans', 'Read a bill or label', 'Upload a photo; review what was read before saving.', 'ocr.scan'],

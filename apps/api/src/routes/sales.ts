@@ -24,6 +24,7 @@ import {
   listInvoices,
   NumberingSettingsError,
   PAPER_SIZES,
+  posSearch,
   PrintSettingsError,
   renderDocumentHtml,
   requestDiscountApproval,
@@ -245,6 +246,16 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
     guarded(async (request) =>
       saveNumbering(s.appDb, ctxOf(request), request.body as { prefix: string; numberFormat: string }, request.id),
     ),
+  );
+
+  // Counter search by name, model, SKU, barcode or IMEI (FR-POS-1 AC1–2).
+  app.get(
+    '/api/businesses/:businessId/pos/search',
+    {
+      config: { permission: 'pos.sell' },
+      schema: { params: businessParams, querystring: z.strictObject({ q: z.string().trim().min(1).max(80) }) },
+    },
+    async (request) => posSearch(s.appDb, ctxOf(request), (request.query as { q: string }).q),
   );
 
   // Draft sales (carts). Held carts are drafts; they do not reserve stock.

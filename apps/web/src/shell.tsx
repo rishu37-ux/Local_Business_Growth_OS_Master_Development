@@ -8,10 +8,14 @@ import { api, type Me } from './api.ts';
 import { useBusiness } from './business.ts';
 import { Badge, BrandMark, humanize, statusTone } from './ui.tsx';
 
-type IconName = 'home' | 'box' | 'layers' | 'cart' | 'scan' | 'truck' | 'check' | 'users' | 'chart';
+type IconName =
+  'home' | 'box' | 'layers' | 'cart' | 'scan' | 'truck' | 'check' | 'users' | 'chart' | 'receipt' | 'person' | 'file';
 
 const ICON_PATHS: Readonly<Record<IconName, string>> = {
   chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
+  receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3',
+  person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0',
+  file: 'M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6m-6 4h6',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z',
   box: 'M21 8 12 3 3 8v8l9 5 9-5V8Zm-9 5L3.5 8.3M12 13l8.5-4.7M12 13v8',
   layers: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5',
@@ -44,6 +48,9 @@ export function Icon(props: { name: IconName; className?: string }) {
 
 /** Screens of a business: path, label, permission needed, icon. */
 export const SCREENS: readonly (readonly [string, string, string, IconName])[] = [
+  ['pos', 'Point of sale', 'pos.sell', 'receipt'],
+  ['invoices', 'Invoices', 'customers.view', 'file'],
+  ['customers', 'Customers', 'customers.view', 'person'],
   ['catalogue', 'Catalogue', 'catalogue.view', 'box'],
   ['stock', 'Stock', 'inventory.view', 'layers'],
   ['purchases', 'Purchases', 'purchases.view', 'cart'],

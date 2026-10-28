@@ -13,6 +13,9 @@ import { MembersPage } from './pages/members.tsx';
 import { PlatformPage } from './pages/platform.tsx';
 import { PurchaseEditorPage, PurchasesPage } from './pages/purchases.tsx';
 import { ReportsPage } from './pages/reports.tsx';
+import { PosPage } from './pages/pos.tsx';
+import { InvoiceDetailPage, InvoicesPage } from './pages/invoices.tsx';
+import { CustomerPage, CustomersPage } from './pages/customers.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
 import { StockPage } from './pages/stock.tsx';
 import { SuppliersPage } from './pages/suppliers.tsx';
@@ -82,6 +85,11 @@ const router = createBrowserRouter([
           { path: 'scans/:scanId', element: <Authed>{() => <ScanReviewPage />}</Authed> },
           { path: 'approvals', element: <Authed>{() => <ApprovalsPage />}</Authed> },
           { path: 'reports', element: <Authed>{() => <ReportsPage />}</Authed> },
+          { path: 'pos', element: <Authed>{() => <PosPage />}</Authed> },
+          { path: 'invoices', element: <Authed>{() => <InvoicesPage />}</Authed> },
+          { path: 'invoices/:invoiceId', element: <Authed>{() => <InvoiceDetailPage />}</Authed> },
+          { path: 'customers', element: <Authed>{() => <CustomersPage />}</Authed> },
+          { path: 'customers/:customerId', element: <Authed>{() => <CustomerPage />}</Authed> },
         ],
       },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },

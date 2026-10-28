@@ -80,7 +80,7 @@ const inr = new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFr
 /** Paise → "₹1,500.50" (Indian digit grouping). */
 export function formatPaise(paise: number | null | undefined): string {
   if (paise === null || paise === undefined) return '—';
-  return `₹${inr.format(paise / 100)}`;
+  return `${paise < 0 ? '−' : ''}₹${inr.format(Math.abs(paise) / 100)}`;
 }
 
 /** Trims "2.000" → "2", "1.500" → "1.5". */

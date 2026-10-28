@@ -308,3 +308,10 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - COGS = cost snapshots of sold lines minus the cost of credited lines (returned goods), lines without a recorded cost count 0 and are reported. Gross margin = taxable value − COGS. Receivables ageing is as of today (by document date); historical "as of" dates are not offered yet. Stock valuation splits sellable (available) from other (inspection, damaged, repair) stock.
 - Permissions: sales, payments, returns and tax summaries need `reports.sales.view`; margin, receivables and stock valuation need `reports.financial.view`; exports need `reports.export` **and** the report's permission and are audited (report, format, period only). Exports are allowed in read-only mode (D-009).
 - Formats: CSV for every report (UTF-8 with byte-order mark, rupees with 2 decimals, formula-like text prefixed with an apostrophe), XLSX written by a small built-in writer (no dependency; inline strings, no formulas), PDF from report HTML via the invoice PDF renderer.
+
+### D-046 · 2026-10-28 · Accepted
+**Decision (POS and sales screens, increment 5.8):**
+- The POS cart is the server-side draft (D-040): every change is saved and priced by the server, saves run one at a time so a quick second change never creates a second draft. The screen never computes tax or totals itself.
+- Search at the counter: an exact IMEI or serial number of an in-stock unit adds that unit directly; an exact SKU or barcode of a quantity item adds it; otherwise results are listed with in-stock units to pick (`GET /pos/search`, `pos.sell`).
+- Payment defaults to one row for the full total; quick buttons set cash/UPI/card for the full amount; "Split payment" adds rows. A known customer is found as soon as a full mobile number is typed.
+- New screens: Point of sale, Invoices (list, detail with print/PDF, credit note, cancellation, printed details), Customers (list, add, profile with balance, open invoices, record payment, refund advance, statement with exports). Side-menu entries depend on permissions. Debit notes and payment reversal have API support but no screen yet.

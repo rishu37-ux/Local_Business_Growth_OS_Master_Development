@@ -70,3 +70,4 @@ export {
   type PaperSize,
   type PrintSettings,
 } from './print-settings.ts';
+export { posSearch, type PosItem, type PosSearchResult, type PosUnit } from './search.ts';
