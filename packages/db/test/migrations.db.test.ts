@@ -44,6 +44,7 @@ describe('migrations', () => {
       '0016_print_settings',
       '0017_crm_profile',
       '0018_messaging',
+      '0019_reminders',
     ]);
   });
 });

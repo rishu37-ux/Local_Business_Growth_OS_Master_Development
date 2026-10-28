@@ -417,7 +417,7 @@ async function messagesWithEvents(trx: Trx, ctx: TenantContext, rows: MessageRow
   }>`
     select message_id, status, reason, actor_id, provider, at from lbg.message_events
      where business_id = ${ctx.businessId} and message_id = any(${rows.map((r) => r.id)}::uuid[])
-     order by at, id`.execute(trx);
+     order by seq`.execute(trx);
   const byMessage = new Map<string, MessageEvent[]>();
   for (const e of ev) {
     const list = byMessage.get(e.message_id) ?? [];

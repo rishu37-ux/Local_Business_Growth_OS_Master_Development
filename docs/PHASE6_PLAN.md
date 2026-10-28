@@ -19,6 +19,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - AC5: provider adapter interface; the production default is "not configured"; quiet hours (default 09:00–21:00 business time) for marketing and reminders.
 
 ## Increment 6.3 — Reminders (FR-REM-1)
+**Status: done in the API (TR-0028, D-049); screens in 6.7; runs on request until a scheduler exists.**
 - AC1: types birthday (DOB present **and** marketing consent), warranty expiry (recorded warranty end date in the next N days), service due (configured interval after a sale), payment due (open balance older than N days).
 - AC2: templates reference only recorded fields (`{name}`, `{shop}`, `{model}`, `{imei_last4}`, `{warranty_end}`, `{amount_due}`, `{service_date}`); a placeholder missing for a customer skips that customer (reported); unknown placeholders are refused when the template is saved.
 - AC3: reminders are created as drafts; auto-send per type is off by default, needs `marketing.approve` to enable, and still passes the consent/suppression gate and quiet hours. Running the job twice does not duplicate reminders.

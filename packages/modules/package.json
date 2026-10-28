@@ -15,6 +15,7 @@
     "./ocr": "./src/ocr/index.ts",
     "./onboarding": "./src/onboarding/index.ts",
     "./purchasing": "./src/purchasing/index.ts",
+    "./reminders": "./src/reminders/index.ts",
     "./reports": "./src/reports/index.ts",
     "./sales": "./src/sales/index.ts",
     "./tenancy": "./src/tenancy/index.ts"

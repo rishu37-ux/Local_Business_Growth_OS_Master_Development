@@ -152,3 +152,16 @@ export {
   type MessageChannel,
   type MessagePurpose,
 } from './messaging.ts';
+export {
+  DEFAULT_DAYS,
+  DEFAULT_TEMPLATES,
+  PLACEHOLDERS,
+  REMINDER_PURPOSE,
+  REMINDER_TYPES,
+  renderTemplate,
+  templatePlaceholders,
+  templateProblems,
+  TYPE_PLACEHOLDERS,
+  type Placeholder,
+  type ReminderType,
+} from './reminders.ts';

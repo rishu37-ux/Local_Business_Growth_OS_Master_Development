@@ -636,3 +636,23 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 12 | Domain | `gateDecision` (precedence: erased, no address, suppressed, withdrawn, marketing consent) and `nextAllowedTime`/`localMinute`: 4 tests; `messaging.ts` added to the coverage gate (100 % lines, 96 % branches) | **Pass** (domain 147) |
 | 13 | — | Negative control: the dispatch gate ignores suppression → 2 tests fail (opt-out test and a later one). Restored | **Detected** |
 | 14 | — | `pnpm check`: domain 147, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 258 | **Pass**, exit 0 |
+
+## TR-0028 · 2026-10-28 · Phase 6 increment 6.3 — reminders
+
+**Environment:** as TR-0011 (`reminders.db.test.ts`, `packages/domain` unit tests). Runs use a fixed clock: 10 Nov 2026, 11:30 IST. Synthetic shop: Asha (birthday today, WhatsApp marketing consent, phone sold 20 Nov 2025 with 12 months' warranty), Bilal (birthday today, no consent, warranty ended June 2026), Chitra (no DOB; charger with 6 months' warranty sold 15 May 2026, no IMEI; phone sold 19 May 2026 with ₹600 still owed). No provider connected; a recording test adapter stands in for auto-send.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-REM-1 AC3 | All four types off by default with auto-send off; payment due is transactional, the others marketing; settings visible to anyone with `customers.view`, changes need `marketing.draft` (Billing 403) | **Pass** |
+| 2 | FR-REM-1 AC2 | Saving a template with `{discount}` (unknown) and `{model}` (not available for birthdays) → 422 with both problems | **Pass** |
+| 3 | FR-REM-1 AC3 | A Manager cannot turn on auto-send (`AUTO_SEND_NEEDS_APPROVER`) but can enable drafts; settings audited without personal data | **Pass** |
+| 4 | FR-REM-1 AC1–2 (exit) | Run: drafts birthday (Asha only), warranty (Asha's phone, "ends on 20 Nov 2026", IMEI last 4) and service due (Chitra's phone, 175 days); skipped and reported: Bilal (no consent), Chitra's charger (no IMEI → `MISSING_FIELD imei_last4`), Chitra's payment reminder on email (`NO_ADDRESS`); Bilal's past warranty not drafted; all drafts `DRAFT`, nothing dispatched; run summary and audit hold counts only | **Pass** |
+| 5 | FR-REM-1 AC3 | Second run: nothing new (3 already drafted); after switching payment due to WhatsApp, the skipped reminder is drafted ("₹600.00 is due"); two concurrent runs create nothing | **Pass** |
+| 6 | FR-REM-1 AC3 | Auto-send turned on by the owner: Dev (consent) drafted, approved by the owner's standing approval and SENT through the test adapter (events DRAFT → PENDING_APPROVAL → APPROVED → QUEUED → SUBMITTED → SENT); Esha (opted out, consent withdrawn) not drafted | **Pass** |
+| 7 | FR-REM-1 AC3, FR-CON-1 AC2 | Auto-send at 22:30 IST: a suppressed contact with consent still recorded is `BLOCKED SUPPRESSED`; another is deferred to 09:00 IST next day | **Pass** |
+| 8 | Access | Other businesses see nothing and their own run creates nothing; read-only business can view reminders but cannot change settings or run (`TENANT_READ_ONLY`) | **Pass** |
+| 9 | Domain | `templateProblems`, `renderTemplate`, `templatePlaceholders`, default templates valid: 3 tests; `reminders.ts` in the coverage gate (100 %) | **Pass** (domain 150) |
+| 10 | — | **Defects found by these tests and fixed:** (a) the birthday reminder key did not include the customer, so one customer's birthday reminder blocked all others that year; (b) message events written in one transaction shared a timestamp and could come back out of order — migration 0019 adds an insertion sequence and wall-clock time | **Fixed** |
+| 11 | — | **Flaky existing tests fixed:** `inspections-reports` and `inventory` fixtures picked units by `created_at`, which is equal for units created together; the code-lookup test failed once in the full run. They now order by IMEI | **Fixed** (file passed 3/3 alone before the fix as well) |
+| 12 | — | Negative control: birthday drafted without consent → 3 tests fail. Restored | **Detected** |
+| 13 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 266 | **Pass**, exit 0 |
