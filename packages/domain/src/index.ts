@@ -125,12 +125,13 @@ export {
   type FormatProblem,
 } from './numbering.ts';
 export { METRICS, type MetricKey } from './metrics.ts';
-export { normalizeMobile, placeOfSupply } from './customers.ts';
+export { CONTACT_CHANNELS, normalizeMobile, normalizeTags, placeOfSupply, type ContactChannel } from './customers.ts';
 export { discountWithinLimit } from './discount-limits.ts';
 export { amountInWords } from './amount-words.ts';
 export { GST_STATES, stateLabel } from './gst-states.ts';
 export {
   addDays,
+  addMonths,
   ageingBucket,
   customPeriod,
   daysBetween,
@@ -138,4 +139,5 @@ export {
   type DateRange,
   type Period,
   type PeriodKind,
+  warrantyEnd,
 } from './periods.ts';

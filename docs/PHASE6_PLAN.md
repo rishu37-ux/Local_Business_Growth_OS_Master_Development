@@ -5,6 +5,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 **No messaging provider is connected** (WhatsApp Business Platform, SMS/DLT and email are `planned`, Q4). Phase 6 therefore builds the consent, suppression, message and reminder machinery behind a provider adapter. Without a configured provider nothing is sent: messages that would be sent end as `FAILED` with `PROVIDER_NOT_CONFIGURED`, and the screens say so. Automated tests use a test adapter that records what it was asked to send; no result in this phase is described as "sent to a customer".
 
 ## Increment 6.1 — Customer profile and data minimisation (FR-CRM-1, FR-CRM-2)
+**Status: done in the API (TR-0026, D-047); communications appear with 6.2, screens in 6.7.**
 - AC1 FR-CRM-1 AC1: optional alternate phone, DOB, tags (up to 10, short text), contact preference per channel, notes; only name and mobile mandatory and the others labelled optional (FR-CRM-2 AC1).
 - AC2 FR-CRM-1 AC2: profile shows purchase history (documents), owned units (IMEI) with warranty end date **as recorded** (sale date + the variant's warranty months; none when the variant has no warranty), payments, ledger balance, communications.
 - AC3 FR-CRM-2 AC2: customer export needs `customers.export`, includes only the fields chosen, CSV, audited (fields, count; no personal data in the audit).

@@ -1,13 +1,13 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 5 complete; Phase 6 planned)
+Last updated: 2026-10-28 (Phase 6: increment 6.1 done)
 
 ## Phase 6 — CRM, analytics, consent and reminders (in progress)
 
 Plan and acceptance criteria: `PHASE6_PLAN.md`.
 
-1. 6.1 customer profile (optional fields, owned units with warranty dates, history) and customer export (`customers.export`, selected fields, audited).
-2. 6.2 consent records, suppression list, messages with the send-time gate and provider adapter (no provider connected: nothing is really sent).
+1. ~~6.1 customer profile and customer export~~ — done (TR-0026, D-047); screen fields follow in 6.7.
+2. **Next:** 6.2 consent records, suppression list, messages with the send-time gate and provider adapter (no provider connected: nothing is really sent).
 3. 6.3 reminders (birthday, warranty, service due, payment due) as drafts; templates with recorded fields only.
 4. 6.4 expenses and the operating-profit estimate.
 5. 6.5 dashboard tiles with definitions.

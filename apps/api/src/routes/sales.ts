@@ -3,15 +3,21 @@
 // FR-INV-5 AC2–4, FR-LED-1).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { CONTACT_CHANNELS } from '@lbgos/domain';
 import {
   createCustomer,
+  CUSTOMER_EXPORT_FIELDS,
+  customerOwnedItems,
   CustomerError,
+  exportCustomers,
   findCustomerByMobile,
   getCustomer,
   searchCustomers,
   updateCustomer,
+  type CustomerExportField,
   type CustomerInput,
 } from '@lbgos/modules/customers';
+import { toCsv } from '@lbgos/modules/reports';
 import {
   createSaleDraft,
   discardSale,
@@ -56,7 +62,13 @@ const customerFields = {
     .nullable()
     .optional(),
   notes: optionalText(2000),
+  // FR-CRM-1 AC1: optional profile fields.
+  alternateMobile: z.string().trim().max(20).nullable().optional(),
+  dob: z.iso.date().nullable().optional(),
+  tags: z.array(z.string().max(60)).max(20).optional(),
+  contactChannels: z.array(z.enum(CONTACT_CHANNELS)).max(4).optional(),
 };
+const exportFieldNames = Object.keys(CUSTOMER_EXPORT_FIELDS) as [CustomerExportField, ...CustomerExportField[]];
 
 const paise = z.number().int().min(0).max(10_000_000_000_000);
 const discount = z
@@ -207,6 +219,49 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
       const customer = await getCustomer(s.appDb, ctxOf(request), (request.params as { id: string }).id);
       return customer ? { customer } : notFound(request, reply);
     },
+  );
+
+  // FR-CRM-1 AC2: units and warranty items the customer owns.
+  app.get(
+    '/api/businesses/:businessId/customers/:id/owned-items',
+    { config: { permission: 'customers.view' }, schema: { params: idParams } },
+    guarded(async (request) => ({
+      items: await customerOwnedItems(s.appDb, ctxOf(request), (request.params as { id: string }).id),
+    })),
+  );
+
+  // FR-CRM-2 AC2: only the chosen fields, CSV, audited. Allowed in read-only mode.
+  app.get(
+    '/api/businesses/:businessId/customers/export',
+    {
+      config: { permission: 'customers.export' },
+      schema: {
+        params: businessParams,
+        querystring: z.strictObject({
+          fields: z
+            .string()
+            .max(400)
+            .transform((v) => v.split(','))
+            .pipe(z.array(z.enum(exportFieldNames)).min(1).max(exportFieldNames.length)),
+          tag: z.string().trim().min(1).max(30).optional(),
+        }),
+      },
+    },
+    guarded(async (request, reply) => {
+      const q = request.query as { fields: CustomerExportField[]; tag?: string };
+      const out = await exportCustomers(s.appDb, ctxOf(request), { fields: q.fields, tag: q.tag }, request.id);
+      const csv = toCsv({
+        title: 'Customers',
+        subtitle: '',
+        columns: out.fields.map((f, i) => ({ key: f, label: out.labels[i] ?? f, kind: 'text' as const })),
+        rows: out.rows.map((r) => Object.fromEntries(out.fields.map((f, i) => [f, r[i] ?? null]))),
+      });
+      return reply
+        .type('text/csv; charset=utf-8')
+        .header('content-disposition', 'attachment; filename="customers.csv"')
+        .header('x-content-type-options', 'nosniff')
+        .send(csv);
+    }),
   );
 
   app.patch(

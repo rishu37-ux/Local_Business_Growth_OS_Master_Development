@@ -600,3 +600,18 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 10 | — | Negative control: POS no longer sends line discounts → the exit test fails (total ≠ ₹15,300). Restored | **Detected** |
 | 11 | — | `pnpm check`: domain 140, API unit 37, DB 54 + schema checks, auth schema drift ok, API DB 239 (includes Phase 3, Phase 4, reports and Phase 5 browser tests) | **Pass**, exit 0 |
 | 12 | Exit | CI on GitHub for commit `2cb0c4d`: run #32 (Node 22 and Node 24 jobs: lint, format, typecheck, build, unit, DB and browser tests, memory checks, audit, secret scan) | **Pass** (success) |
+
+## TR-0026 · 2026-10-28 · Phase 6 increment 6.1 — customer profile, owned units, customer export
+
+**Environment:** as TR-0011 (`crm.db.test.ts`, `packages/domain` unit tests). Synthetic unregistered shop; Billing and Manager staff; phone (serialised, 12-month warranty, "Brand service"), charger (6 months), cable (no warranty).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-CRM-1 AC1, FR-CRM-2 AC1 | A customer with only name and mobile is created (optional fields empty); a full profile stores alternate mobile `+919820000003`, DOB, tags trimmed/de-duplicated (`VIP`, `Repair customer`), channels de-duplicated; a later update audits field names only | **Pass** |
+| 2 | FR-CRM-1 AC1 | Refused: DOB in the future or before 1900 (`DOB_INVALID`), 11 tags or a tag with a comma (`TAGS_INVALID`), unknown channel (400), bad alternate number (`MOBILE_INVALID`); nothing half-created. The database itself refuses 11 tags, an unknown channel and a DOB before 1900 | **Pass** |
+| 3 | FR-CRM-1 AC2 | Owned items: unit sold 31 Jan 2024 with 12 months → warranty end 2025-01-31, provider recorded; charger 6 months → 2024-07-31; the cable (no warranty, no unit) is not listed; changing the variant's warranty later does not change what was recorded; a unit returned on a credit note disappears from the list; an item sold with no warranty shows 0 months and no end date | **Pass** |
+| 4 | FR-CRM-2 AC2 | Export: Manager and Billing 403 (`customers.export` is owner-only by default); unknown or empty field list 400; `fields=mobile,name,tags&tag=bulk` returns exactly `Mobile,Name,Tags` and one row in that order (mobile prefixed with an apostrophe by the formula guard), no DOB; audit events hold field names, count and whether a tag filter was used, and no personal data | **Pass** |
+| 5 | Access | Other businesses get 404 on owned items and export (their own export is empty); a suspended (read-only) business can still view owned items and export, but cannot edit a customer (`TENANT_READ_ONLY`) | **Pass** |
+| 6 | Domain | `addMonths` (month-end clamping as PostgreSQL), `warrantyEnd`, `normalizeTags`: 3 new unit tests | **Pass** (domain 143) |
+| 7 | — | Negative control: credit-note returns not subtracted from owned items → test 3 fails. Restored | **Detected** |
+| 8 | — | `pnpm check`: domain 143, API unit 37, DB 54 + schema checks (83 PASS notices, 0 FAIL), Better Auth schema matches migrations, API DB 247 | **Pass**, exit 0 |

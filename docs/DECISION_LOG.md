@@ -315,3 +315,11 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - Search at the counter: an exact IMEI or serial number of an in-stock unit adds that unit directly; an exact SKU or barcode of a quantity item adds it; otherwise results are listed with in-stock units to pick (`GET /pos/search`, `pos.sell`).
 - Payment defaults to one row for the full total; quick buttons set cash/UPI/card for the full amount; "Split payment" adds rows. A known customer is found as soon as a full mobile number is typed.
 - New screens: Point of sale, Invoices (list, detail with print/PDF, credit note, cancellation, printed details), Customers (list, add, profile with balance, open invoices, record payment, refund advance, statement with exports). Side-menu entries depend on permissions. Debit notes and payment reversal have API support but no screen yet.
+
+### D-047 · 2026-10-28 · Accepted
+**Decision (customer profile, increment 6.1):**
+- Optional profile fields (migration 0017): alternate mobile (E.164), tags (up to 10, at most 30 characters, no commas/semicolons, de-duplicated ignoring case), preferred contact channels (WhatsApp, SMS, email, call — a **preference, not consent**; consent is recorded separately in 6.2), date of birth (1900 up to the business's today; the "not in the future" check is in the application because a CHECK constraint must be immutable).
+- The warranty is **recorded on the invoice line when the sale is saved/issued** (months and provider from the variant at that time). 0 = no warranty; null = sold before this migration (not recorded, shown as such). The warranty end date is the business sale date plus the recorded months, clamped to the month end. Changing a variant later does not change past promises.
+- Owned items = serialised units and warranty-carrying lines on issued tax invoices/bills of supply, minus quantities returned on issued credit notes.
+- Customer export (`customers.export`, owner by default): CSV of the fields chosen, in the order chosen, optional tag filter; erased customers are excluded; audited with field names, row count and whether a tag filter was used — no personal data in the audit. Allowed in read-only mode (D-009).
+- An erased customer cannot be edited (404).

@@ -114,12 +114,17 @@ async function writePriced(
                                      quantity, unit_price_paise, discount_paise, tax_rate_percent, taxable_paise,
                                      cgst_paise, sgst_paise, igst_paise, cess_paise, line_total_paise, cost_paise,
                                      tax_rate_id, price_includes_tax, cess_percent, gross_paise, line_discount_kind,
-                                     line_discount_value, invoice_discount_paise)
+                                     line_discount_value, invoice_discount_paise, warranty_months, warranty_provider)
       values (${ctx.businessId}, ${id}, ${i + 1}, ${l.variantId}, ${l.unitId}, ${l.facts.description},
               ${l.facts.hsnCode}, ${milliToQuantity(l.qtyMilli)}::numeric, ${l.unitPricePaise}, ${a.lineDiscountPaise},
               ${rate?.ratePercent ?? '0'}::numeric, ${a.taxablePaise}, ${a.cgstPaise}, ${a.sgstPaise}, ${a.igstPaise},
               ${a.cessPaise}, ${a.totalPaise}, ${costs?.[i] ?? null}, ${rate?.id ?? null}, ${l.facts.priceIncludesTax},
-              ${rate?.cessPercent ?? '0'}::numeric, ${a.grossPaise}, ${d.kind}, ${d.value}, ${a.invoiceDiscountPaise})`.execute(
+              ${rate?.cessPercent ?? '0'}::numeric, ${a.grossPaise}, ${d.kind}, ${d.value}, ${a.invoiceDiscountPaise},
+              -- FR-CRM-1 AC2: the warranty as promised at this sale (0 = none).
+              (select least(coalesce(v.warranty_months, 0), 240) from lbg.product_variants v
+                where v.business_id = ${ctx.businessId} and v.id = ${l.variantId}),
+              (select left(v.warranty_provider, 120) from lbg.product_variants v
+                where v.business_id = ${ctx.businessId} and v.id = ${l.variantId} and v.warranty_months > 0))`.execute(
       trx,
     );
   }

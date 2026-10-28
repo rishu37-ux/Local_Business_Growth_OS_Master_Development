@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, ageingBucket, customPeriod, daysBetween, periodRange } from '../src/index.ts';
+import { addDays, addMonths, ageingBucket, customPeriod, daysBetween, periodRange, warrantyEnd } from '../src/index.ts';
 
 const IN = { weekStart: 1, fyStartMonth: 4 };
 
@@ -80,5 +80,17 @@ describe('report periods (FR-RPT-1 AC1, FR-RPT-3)', () => {
     expect(ageingBucket('2026-07-29', '2026-10-27')).toBe('61-90'); // 90
     expect(ageingBucket('2026-07-28', '2026-10-27')).toBe('90+');
     expect(ageingBucket('2026-10-28', '2026-10-27')).toBe('0-30'); // future-dated never negative
+  });
+
+  it('calendar months and warranty end (FR-CRM-1 AC2)', () => {
+    expect(addMonths('2026-10-28', 12)).toBe('2027-10-28');
+    expect(addMonths('2024-01-31', 1)).toBe('2024-02-29'); // clamped to the month end
+    expect(addMonths('2025-01-31', 1)).toBe('2025-02-28');
+    expect(addMonths('2026-11-30', 3)).toBe('2027-02-28');
+    expect(addMonths('2026-03-31', -1)).toBe('2026-02-28');
+    expect(warrantyEnd('2026-10-28', 6)).toBe('2027-04-28');
+    expect(warrantyEnd('2026-10-28', 0)).toBeNull();
+    expect(warrantyEnd('2026-10-28', null)).toBeNull();
+    expect(() => addMonths('2026-02-30', 1)).toThrow(RangeError);
   });
 });

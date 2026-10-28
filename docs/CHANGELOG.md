@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] — Phase 6 (CRM, consent, reminders, expenses, analytics)
+
+### Added
+- Phase 6 plan (`docs/PHASE6_PLAN.md`).
+- Migration 0017 and customer profile: alternate mobile, date of birth, tags, preferred contact channels; warranty months/provider recorded on sale lines; owned units and warranty items with end dates (`GET /customers/:id/owned-items`); customer CSV export of chosen fields (`GET /customers/export`, `customers.export`, audited); `addMonths`, `warrantyEnd`, `normalizeTags` in `@lbgos/domain`.
+
 ## [0.5.0] — 2026-10-28 — Phase 5 (POS, invoices, payments, ledger, reports)
 
 ### Added

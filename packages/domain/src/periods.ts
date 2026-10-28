@@ -33,6 +33,23 @@ export function addDays(date: string, days: number): string {
   return fmt(d);
 }
 
+/**
+ * `date` plus whole calendar months; a day past the end of the target month
+ * becomes its last day (2024-01-31 + 1 month = 2024-02-29), as PostgreSQL does.
+ */
+export function addMonths(date: string, months: number): string {
+  const d = parse(date);
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth() + months;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return ymd(y, m, Math.min(d.getUTCDate(), last));
+}
+
+/** Warranty end (FR-CRM-1 AC2): the sale date plus the recorded months; none without a warranty. */
+export function warrantyEnd(saleDate: string, months: number | null): string | null {
+  return months === null || months <= 0 ? null : addMonths(saleDate, months);
+}
+
 /** Whole days from `from` to `to` (0 when equal). */
 export function daysBetween(from: string, to: string): number {
   return Math.round((parse(to).getTime() - parse(from).getTime()) / 86_400_000);
