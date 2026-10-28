@@ -951,3 +951,30 @@ Low, slow and dead stock already exist (aged-stock and reorder reports, Phase 4,
 | 11 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 389 (all browser tests); `pnpm secrets` clean | **Pass**, exit 0 |
 
 Screenshots (Assistants, Usage and monitoring) were taken for review and are not stored in the repository.
+
+## TR-0044 · 2026-10-28 · Phase 9 — isolation sweep, restore drill, accessibility sweep, security review
+
+**Environment:** dev container, throwaway PostgreSQL 16 (`scripts/with-throwaway-pg.sh`), Chromium via Playwright (the only browser installed; `/opt/pw-browsers` has no Firefox or WebKit), real API with the built web app. Synthetic data only. Test files:
+- `isolation-sweep.db.test.ts`
+- `a11y-sweep.db.test.ts`
+- `security-headers.db.test.ts`
+- `channels.db.test.ts` (webhook rate limit)
+- `scripts/backup-restore-drill.sh`
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | 9.1 AC1 / NFR-4 | The route table (`app.routeIndex`, > 150 business routes) is called by another business's owner with this business's ID and real record IDs (> 15 IDs of 25 kinds). No 2xx, no 401 (session checked), no 5xx, and no record marker in any body. | **Pass** |
+| 2 | 9.1 AC1 | The same owner uses their own business's URLs with this business's record IDs. No body contains a marker or an ID, and there is no 401 or 5xx. **Found:** `PATCH …/categories/:id` and `…/brands/:id` with `{}` → 500. **Fixed:** they now answer 400 (SR-02); the catalogue tests (20) pass. | **Pass** after fix |
+| 3 | 9.1 AC2 | Signed out, every non-public `/api` route → 401. Every `/api/platform/*` route called by a shop owner → 403. | **Pass** |
+| 4 | 9.1 AC3 | Every `lbg` table with `business_id` has RLS enabled and forced, with a policy (60 tables). **Negative control:** `no force row level security` on `customers` → the test lists `customers`; restored. | **Pass** |
+| 5 | 9.2 AC1 / NFR-11 | Migrate and seed with synthetic data (campaigns, agents and analytics test files), `pg_dump -Fc` (452 KB), restore into a new DB, then compare. Every comparison is equal: <br>• 28 applied migrations <br>• row counts of 72 tables (1,350 rows) <br>• RLS flags of 64 tables <br>• 75 policies <br>• 713 table grants <br>• 4,803 column grants <br>• 46 functions with definer flag | **Pass** ("DRILL PASSED") |
+| 6 | 9.2 AC1 | Tenant isolation after the restore, as `lbgos_app`: 0 customers without a context, and 6 customers for the same business in both source and restore. | **Pass** |
+| 7 | 9.2 AC2 | **Negative control:** one audit row deleted in the restore → "FAIL row counts", "DRILL FAILED", exit 1. The drill also runs in CI after `pnpm check`. The whole run (migrate, seed, dump, restore, compare) takes 16 s in the dev container; this is not a production RTO. | **Pass** |
+| 8 | 9.4 AC3 / NFR-17 | Every response type carries CSP (with `frame-ancestors 'none'` or `default-src 'none'`), HSTS, `nosniff`, referrer policy and a request ID: API JSON 200, HTML shell 200, static asset 200, CSV download 200, 400 validation, 401 signed out, 404, and 413 for a 1.1 MB body from a signed-in owner. API JSON and CSV are `no-store`; CSV is an attachment. | **Pass** |
+| 9 | 9.4 SR-01 / NFR-18 | Webhook rate limit: 300 calls from one address → 404 (unknown integration); call 301 → 429 with `Retry-After: 60` and the security headers; a new address → 404. | **Pass** |
+| 10 | 9.3 AC1 / NFR-1 | 24 screens at 1280/768/360 px (72 audits): <br>• screens: overview, the 19 menu screens, tax rates, and product, customer and invoice detail <br>• 0 serious/critical axe violations (WCAG 2.0/2.1 A and AA, 2.2 AA tags) <br>• no horizontal overflow <br>• no CSP violation or page error <br>**Negative control:** low-contrast text injected into the built CSS → the contrast assertion fails with 40+ `color-contrast` results; CSS restored and app rebuilt. Only the first assertion was shown to fail in that run; the overflow and focus parts of the injected CSS were not separately confirmed. | **Pass** |
+| 11 | 9.3 AC2 | On every one of the 24 screens, the second Tab stop (after the skip link) shows a focus indicator (outline or box-shadow). This is not a full keyboard walk of every form, and no screen reader was used. | **Pass** (partial coverage stated) |
+| 12 | NFR-16 | Firefox and WebKit | **Not run** (not installed in the environment) |
+| 13 | — | `pnpm check`: <br>• ESLint rules 26 <br>• domain 160 <br>• API unit 108 <br>• DB 54 + schema checks (83 PASS, 0 FAIL) <br>• Better Auth schema matches the migrations <br>• API DB 398 in 39 files, all browser tests included <br>Also `pnpm secrets` clean and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
+
+The security review itself is a document (`SECURITY_REVIEW.md`), not a test. Its evidence points to the entries above and to earlier TR entries.

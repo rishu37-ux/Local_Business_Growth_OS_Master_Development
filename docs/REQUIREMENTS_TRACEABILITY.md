@@ -91,24 +91,24 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Done in API (AC1 usage per tenant; AC2 per-plan monthly AI/message/storage quotas with 80 % notice, hard stop and owner overage cap, plus per-integration limits; AC3 no ad spend exists) | `modules/quotas/`, `modules/integrations/`, migration 0028 | TR-0035 #8; TR-0041 #5–7 |
 | FR-AUD-1 | Audit | Audit log | 3 | In progress (append-only store + lifecycle/member/auth events; more actions as modules arrive) | `packages/modules/src/audit/` | TR-0005, TR-0007 #16, TR-0008 #12 |
 | FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |
-| NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | In progress (axe 0 serious/critical on 16 screens × 360/768/1280 px, no overflow; keyboard-only/screen-reader checks pending) | `apps/web` | TR-0010 #4, #6; TR-0016 #7 |
+| NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | Done in Chromium (accessibility sweep: 24 screens × 360/768/1280 px, 0 serious/critical axe violations, no overflow, keyboard focus indicator on every screen); manual screen-reader check not done | `apps/web`, `apps/api/test/a11y-sweep.db.test.ts` | TR-0010 #4, #6; TR-0016 #7; TR-0044 #10–11 |
 | NFR-2 | Non-functional | Modular monolith | 3–9 | In progress | Monorepo + `tooling/eslint/module-boundaries.js` | TR-0004 #4–5 |
 | NFR-3 | Non-functional | TypeScript + validation | 3–9 | In progress (TS strict; API validation pending) | `tsconfig.base.json` | TR-0004 #2 |
-| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | In progress (DB layer + service-layer membership/permission gate; per-endpoint cross-tenant tests for routes so far) | migrations, `apps/api/src/auth-plugin.ts` | TR-0005, TR-0008 #5, #9–10 |
+| NFR-4 | Non-functional | Tenant isolation in two layers | 3–9 | Done (DB: forced RLS with a policy on all 60 tenant tables; API: route-table sweep of every business route — other owner, foreign IDs, signed out, platform routes) | migrations, `apps/api/src/auth-plugin.ts`, `apps/api/test/isolation-sweep.db.test.ts` | TR-0005, TR-0008 #5, #9–10, TR-0044 #1–4 |
 | NFR-5 | Non-functional | Background jobs | 3–9 | In progress (OCR jobs; job runner with lock, idempotent steps, records and failures) | `modules/jobs/`, `server.ts` | TR-0015 #9–11; TR-0041 #1–2 |
 | NFR-6 | Non-functional | Private storage | 3–9 | In progress (private local/in-memory storage, authenticated proxy downloads; signed-URL S3 storage pending hosting Q2) | `modules/ocr/storage.ts`, `routes/scans.ts` | TR-0015 #1, #4 |
 | NFR-7 | Non-functional | Swappable providers | 3–9 | In progress (OCR adapter interface; mock and test adapters swapped by configuration in tests) | `modules/ocr/isolate.ts`, `mock-adapter.ts` | TR-0015 #9–10 |
 | NFR-8 | Non-functional | Money correctness | 3–9 | In progress (integer paise/basis-point arithmetic in `@lbgos/domain` money.ts; bigint/numeric columns; lint/schema check pending) | `packages/domain/src/money.ts` | TR-0011 #1 |
 | NFR-9 | Non-functional | Time handling | 3–9 | Specified | — | — |
 | NFR-10 | Non-functional | Observability | 3–9 | In progress (JSON logs, request IDs, redaction, health/readiness; owner and platform monitoring views) | `apps/api/src/app.ts`, `routes/monitoring.ts` | TR-0006 #7–8, #12–13; TR-0041 #8 |
-| NFR-11 | Non-functional | Backups | 3–9 | Specified | — | — |
+| NFR-11 | Non-functional | Backups | 3–9 | Partly (logical backup/restore drilled and compared in a throwaway cluster, in CI; provider backups/PITR/encryption need hosting Q2) | `scripts/backup-restore-drill.sh`, `DEPLOYMENT_RUNBOOK.md` §4 | TR-0044 #5–7 |
 | NFR-12 | Non-functional | Data protection | 3–9 | Specified | — | — |
 | NFR-13 | Non-functional | Password storage | 3–9 | Implemented + tested | `packages/modules/src/auth/passwords.ts` | TR-0007 #11 |
 | NFR-14 | Non-functional | Performance (pilot) | 3–9 | Specified | — | — |
 | NFR-15 | Non-functional | Availability (pilot) | 3–9 | Specified | — | — |
-| NFR-16 | Non-functional | Browser support | 3–9 | In progress (Chromium automated; Firefox, Safari/WebKit and real devices not yet tested) | `apps/api/test/browser.db.test.ts` | TR-0010 #3 |
-| NFR-17 | Non-functional | Security headers | 3–9 | Implemented + tested (API) | `apps/api/src/app.ts` | TR-0006 #6 |
-| NFR-18 | Non-functional | Webhook security | 3–9 | Done for messaging webhooks (signature over the raw body, 5-minute window, idempotent per event) | `modules/channels/`, `routes/webhooks.ts`, migration 0026 | TR-0038 #9–10, #12 |
+| NFR-16 | Non-functional | Browser support | 3–9 | Partly (Chromium automated on every screen; Firefox, Safari/WebKit and real devices not tested — browsers not available in the environment) | `apps/api/test/a11y-sweep.db.test.ts` | TR-0010 #3, TR-0044 #10 |
+| NFR-17 | Non-functional | Security headers | 3–9 | Implemented + tested on every response type (JSON, HTML, asset, download, 400/401/404/413/429) | `apps/api/src/app.ts`, `apps/api/test/security-headers.db.test.ts` | TR-0006 #6, TR-0044 #8–9 |
+| NFR-18 | Non-functional | Webhook security | 3–9 | Done for messaging webhooks (signature over the raw body, 5-minute window, idempotent per event, per-address rate limit) | `modules/channels/`, `routes/webhooks.ts`, migration 0026 | TR-0038 #9–10, #12, TR-0044 #9 |
 | NFR-19 | Non-functional | Supply chain | 3–9 | Implemented + tested (CI audit + secret scan; lockfile) | `.github/workflows/ci.yml` | TR-0006 #1–4 |
 
 ## Security threats

@@ -56,6 +56,9 @@ jobs:
       - name: Lint, format, typecheck, build, unit, DB and browser tests
         run: pnpm check
 
+      - name: Backup and restore drill (pg_dump / pg_restore, compare)
+        run: scripts/with-throwaway-pg.sh scripts/backup-restore-drill.sh
+
       - name: Project-memory and traceability checks
         run: scripts/check-docs.sh
 

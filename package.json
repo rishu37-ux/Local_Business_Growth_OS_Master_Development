@@ -15,6 +15,7 @@
     "test": "pnpm -r --if-present test",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm build && pnpm test && pnpm test:db",
     "test:db": "pnpm -r --if-present test:db",
+    "drill": "scripts/with-throwaway-pg.sh scripts/backup-restore-drill.sh",
     "secrets": "secretlint --maskSecrets '**/*'",
     "build": "pnpm -r --if-present build"
   },

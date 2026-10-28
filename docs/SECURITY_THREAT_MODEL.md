@@ -88,7 +88,7 @@ Threat actors: unauthenticated internet attacker; malicious or compromised tenan
 
 ## 5. Security requirements derived (ASVS-aligned areas)
 
-V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management · V4 Access control (incl. tenant isolation) · V5 Validation/encoding · V6 Cryptography · V7 Error handling & logging · V8 Data protection · V10 Malicious code / supply chain · V12 Files · V13 API & web services · V14 Configuration. Checklist with per-item status will be created in Phase 3 as `docs/ASVS_CHECKLIST.md`.
+V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management · V4 Access control (incl. tenant isolation) · V5 Validation/encoding · V6 Cryptography · V7 Error handling & logging · V8 Data protection · V10 Malicious code / supply chain · V12 Files · V13 API & web services · V14 Configuration. The checklist with per-item status and evidence is `docs/SECURITY_REVIEW.md` (Phase 9.4).
 
 ## 6. Mitigation status
 
@@ -128,7 +128,18 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | T12 integration secret leakage | **Implemented + tested**: envelope encryption (per-secret data key, KEK from the environment, row-bound additional data), dedicated `lbgos_secrets` role, tenant role cannot read sealed columns, write-only API with a 4-character hint, re-authentication, redaction checked in logs, audit and responses, revocation destroys material. Residual: the KEK is a platform secret without a managed KMS | TR-0034 #1–13 |
 | T17 unlawful marketing / consent | **Implemented + tested (no provider connected)**: consent records, suppression list checked at dispatch under a per-address lock, marketing approval, quiet hours; provider-confirmed statuses only (DB-enforced). DLT templates and verified webhooks wait for a provider | TR-0027 #2–10, #13 |
 | Personal-data erasure and bulk export (AS2) | **Implemented + tested**: owner-only with re-authentication; erasure anonymises, suppresses, cancels and redacts in one transaction, audit holds no personal data; export audited, tenant-scoped (no other business's IDs), formula guard on | TR-0031 #1–7 |
-| All other threats (T5, T6, T13, T16, T19–T22, T30–T31) | Specified in SRS / ADR; not implemented | — |
+| T1 tenant isolation, whole route table (Phase 9) | **Implemented + tested**: every registered business route called by another business's owner, with foreign record IDs, and signed out; platform routes by a shop owner; every tenant table has forced RLS with a policy (60 tables); the sweep found one 5xx on bad input (fixed, SR-02) | TR-0044 #1–4 |
+| T5 XSS | **Implemented + tested**: React escaping, no raw HTML rendering, CSP `script-src 'self'` without `unsafe-inline` (one hashed style), escaped print pages; every browser test fails on a CSP violation | TR-0023 #2, TR-0044 #10, browser exit tests |
+| T6 SQL injection | **Implemented** (Kysely, parameterised `sql` templates only); review in `SECURITY_REVIEW.md` V5 | code review |
+| T13 webhook spoofing / replay / flooding | **Implemented + tested**: signature over the raw body, 5-minute window, applied once, per-address rate limit (SR-01) | TR-0038 #9–12, TR-0044 #9 |
+| T16 cost abuse | **Implemented + tested**: plan quotas with the 80 % alert and a hard stop, agent run and daily budgets, approval for bulk sends | TR-0040, TR-0041 |
+| T19 supply chain | **Implemented**: frozen lockfile, dependency audit (high/critical fails CI), pinned CI actions, secret scan in CI | `ci.yml`, CI runs |
+| T20 backup exposure / unrecoverable data | **Partly**: logical backup and restore drilled and compared in a throwaway cluster (also in CI); provider backups, PITR, encryption and off-site copy wait on hosting (Q2) | TR-0044 #5–7, SR-07 |
+| T21 DoS / resource exhaustion | **Partly**: body limit 1 MiB (413), webhooks 256 KiB and rate-limited, auth rate limits, fixed result caps on list queries (e.g. 100–200 rows), bounded PDF/OCR queues; edge WAF/DDoS needs hosting (Q2) | TR-0044 #8–9, TR-0007 #15, TR-0023 #9 |
+| T22 PII in logs / agent traces | **Implemented + tested**: log redaction, mobile numbers masked in agent runs, references not raw data in audit | TR-0040, TR-0043 #8, `app.test.ts` |
+| T30 consent evidence | **Implemented + tested**: append-only consent rows with source, actor and time | TR-0027 |
+| T31 forged scope from model output | **Implemented + tested**: tenant and user from the session only; a forged business ID in a tool argument is refused | TR-0040, TR-0043 #3 |
+| Open after the Phase 9 review | See `SECURITY_REVIEW.md` findings SR-03…SR-10 (breached-password check, malware scan, OS sandbox for the file worker, KMS, production backups, branch protection, audit hash chain, external pen test) | — |
 
 ## 7. Known limitations and statements
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phase 7 (API Hub, AI Creative Studio, integrations)
+## [Unreleased] — Phases 7–9 (API Hub, AI Creative Studio, integrations; agents; security review)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -15,6 +15,13 @@
 - Migration 0028, `@lbgos/modules/jobs` and `@lbgos/modules/quotas`: job runner (`JOBS_INTERVAL_SECONDS`), plan quotas and notices, usage, overage cap and monitoring routes; plan limits editable by the platform admin.
 - Reports: weekly net sales, repeat-customer rate and campaign results with definitions and exports.
 - Web: Assistants and Usage and monitoring screens; Approvals show the expected effect; Reports show the new analytics. Tests: Phase 8 exit browser test.
+- Phase 9 plan (`docs/PHASE9_PLAN.md`), security review (`docs/SECURITY_REVIEW.md`), pilot checklist (`docs/PILOT_CHECKLIST.md`), restore procedure in the runbook.
+- The app records its route table (`routeIndex`); tenant-isolation sweep over every route; accessibility sweep over 24 screens; security headers test for every response type.
+- `scripts/backup-restore-drill.sh` (`pnpm drill`), run in CI.
+
+### Fixed
+- Public webhook routes are rate-limited per source address (300/min, 429) — review finding SR-01.
+- An empty change to a category or brand returns 400 instead of 500 — found by the isolation sweep (SR-02).
 
 ## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 

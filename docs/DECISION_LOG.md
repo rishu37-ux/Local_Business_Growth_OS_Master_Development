@@ -434,3 +434,17 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 
 ### D-064 · 2026-10-28 · Accepted
 **Decision (Phase 8 screens, increment 8.6):** two new menu entries — Assistants (`agents.use`, first in the menu) and Usage and monitoring (`business.settings.view`). Assistants shows "Facts (from your records)" as a table with period and source, "Suggestions (from the assistant)" separately with a warning for flagged figures, proposals with their effect and a link to where they are decided, steps with refusals, Continue and Cancel. Approvals show the expected effect. Reports gain weekly net sales, repeat customers and campaign results. Usage shows each allowance with "No limit set" when the plan sets none.
+
+### D-065 · 2026-10-28 · Accepted
+**Decision (Phase 9 test sweeps, increments 9.1–9.3):**
+- **Isolation sweep:** the app records its own route table (`app.routeIndex`), so the sweep covers every route without a hand-kept list. Each business route is called three ways: as another business's owner, with that owner's own business ID plus this business's record IDs, and signed out. Each call uses its own source address, so the auth rate limit cannot turn the sweep into 401s that prove nothing. A 401 or 5xx counts as a failure in the signed-in passes.
+- **Restore drill:** `scripts/backup-restore-drill.sh` (also `pnpm drill`) runs in CI after `pnpm check`. It compares migrations, row counts, RLS, policies, grants, column grants and definer functions, plus tenant isolation as `lbgos_app`.
+- **Accessibility sweep:** 24 screens × 3 widths, plus a keyboard focus-indicator check. Firefox and WebKit are not installed in the environment and are recorded as not run.
+
+### D-066 · 2026-10-28 · Accepted
+**Decision (security review, increment 9.4):**
+- **Review format:** an internal ASVS 4.0 L2-aligned checklist in `SECURITY_REVIEW.md` with findings SR-01…SR-10. It is not presented as a penetration test.
+- **Webhook rate limit:** the public webhook routes get a per-address limit of 300 requests a minute (429 with `Retry-After: 60`). The counter is kept in the process; that is acceptable while the deployment is a single instance (ADR-03), and several instances need a shared store.
+- **Empty catalogue name changes:** an empty change to a category or brand is a 400, not a 500.
+- **Open findings:** the remaining findings are owned by the user or wait on hosting (Q2) or provider choices (Q4).
+- **Pilot gate:** `PILOT_CHECKLIST.md` sets a go/no-go rule. The pilot does not start while Q1–Q6, the tax review or the legal review are open.

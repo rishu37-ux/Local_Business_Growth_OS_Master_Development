@@ -73,7 +73,10 @@ const productBody = z.strictObject({ ...productFields, variants: z.array(variant
 const productPatch = z.strictObject(productFields).partial();
 
 const namedBody = z.strictObject({ name: z.string().trim().min(1).max(80) });
-const namedPatch = z.strictObject({ name: z.string().trim().min(1).max(80).optional(), status: status.optional() });
+const namedPatch = z
+  .strictObject({ name: z.string().trim().min(1).max(80).optional(), status: status.optional() })
+  // An empty change is invalid input, not a server error (found by the isolation sweep, TR-0044).
+  .refine((p) => p.name !== undefined || p.status !== undefined, 'give name or status');
 
 const percent = z
   .string()

@@ -1,8 +1,20 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 7 complete, CI green; Phase 8 complete locally; Phase 9 next)
+Last updated: 2026-10-28 (Phases 7–8 complete, CI green; Phase 9 complete locally except the pilot; Phase 10 next)
 
-## Phase 8 — Agents, approvals, monitoring, cost limits, analytics (in progress)
+## Phase 9 — Security review, isolation, accessibility, restore, pilot readiness
+
+Plan and acceptance criteria: `PHASE9_PLAN.md`.
+
+1. ~~9.1 tenant-isolation sweep over the route table~~ — done (TR-0044 #1–4); one 5xx fixed (SR-02).
+2. ~~9.2 backup and restore drill~~ — done in a throwaway cluster and in CI (TR-0044 #5–7); production backups/PITR need Q2.
+3. ~~9.3 accessibility and responsive sweep~~ — done in Chromium (TR-0044 #10–11); Firefox/WebKit and a screen reader not tested.
+4. ~~9.4 security review~~ — `SECURITY_REVIEW.md` (SR-01 fixed, no high finding open; SR-03…SR-10 owned).
+5. 9.5 pilot — `PILOT_CHECKLIST.md` written; **blocked on Q1–Q6**, tax review (Q5) and legal review.
+
+**Next: Phase 10** — onboarding guides, support procedures, pricing validation material (documents; real validation needs pilot shops).
+
+## Phase 8 — Agents, approvals, monitoring, cost limits, analytics (complete)
 
 Plan and acceptance criteria: `PHASE8_PLAN.md`. Mock AI adapter only until a provider account exists (Q4).
 
@@ -11,9 +23,8 @@ Plan and acceptance criteria: `PHASE8_PLAN.md`. Mock AI adapter only until a pro
 3. ~~8.5 advanced analytics~~ — done in the API (TR-0042, D-063).
 4. ~~8.6 screens and the Phase 8 exit test~~ — done (TR-0043, D-064).
 
-**Phase 8 complete locally.** Open from Phase 8: real AI provider (Q4) — agent behaviour with a real model is unverified; plan limit values (product decision); reconciliation for receipts older than the webhook window.
+**Phase 8 complete** (CI #60 green). Open from Phase 8: real AI provider (Q4) — agent behaviour with a real model is unverified; plan limit values (product decision); reconciliation for receipts older than the webhook window.
 
-**Next: Phase 9** — security review (ASVS checklist, threat model status), tenant-isolation sweep, accessibility and responsive checks, backup and restore test; the pilot itself needs Q1/Q2.
 
 ## Phase 7 — API Hub, AI Creative Studio, selected official integrations (complete)
 

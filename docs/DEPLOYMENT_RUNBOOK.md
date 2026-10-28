@@ -48,7 +48,7 @@ Notes: the Docker daemon is unavailable in the cloud session. Server code runs o
 
 **Secrets:** injected as encrypted environment variables of the platform (DB URLs per role incl. `DATABASE_URL_SECRETS`, session secret, `SECRETS_KEK`, provider keys). KEK rotation: prepend the new `version:key` to `SECRETS_KEK`, deploy, run the rewrap for each business (`rewrapSecrets`, secrets role), then remove the old key. Never baked into images, never logged. Rotation is documented per secret in Phase 3.
 
-## 4. Backup and recovery (design; restore test in Phase 9)
+## 4. Backup and recovery (design; restore drilled in a throwaway cluster in Phase 9)
 
 | Asset | Mechanism | Target |
 |---|---|---|
@@ -57,6 +57,33 @@ Notes: the Docker daemon is unavailable in the cloud session. Server code runs o
 | Object storage | Bucket versioning (if supported) + nightly sync to the secondary location | RPO 24 h |
 | Configuration | Infrastructure and app config as code in the repo (no secrets) | Rebuild from repo |
 | Secrets / KEK | Stored in the platform secret store **and** an offline, access-controlled escrow (two-person access) | Losing the KEK makes tenant integration secrets unrecoverable (tenants re-enter them) |
+
+**Restore procedure (logical backup) — drilled in Phase 9 (TR-0044 #5–7, `scripts/backup-restore-drill.sh`, `pnpm drill`, also run in CI):**
+
+1. Stop writes: put the app in maintenance (scale the API to zero, or point the edge at a static page). The job runner stops with the API.
+2. Take or choose the backup: `pg_dump -Fc -d <db> -f lbgos-<date>.dump`. Run it as the owner role, never as `lbgos_app`, because RLS would hide rows from a tenant role.
+3. Create an empty target database. The roles (`lbgos_app`, `lbgos_platform`, `lbgos_auth`, `lbgos_secrets`) are cluster-wide and must already exist. Create them with the migration setup if the cluster is new.
+4. Restore: `pg_restore -d <new db> --exit-on-error lbgos-<date>.dump`.
+5. Verify before switching. These are the drill's checks:
+   - applied migrations equal the source;
+   - the row count of every `lbg`/`auth` table is plausible against the backup;
+   - RLS is enabled and forced on every tenant table, with its policies;
+   - the grants and column grants of the application roles are present;
+   - the definer functions are present;
+   - `lbgos_app` sees 0 rows without a tenant context and a business's own rows with it.
+   Then run the reconciliation reports (stock = Σ movements, ledger balances, invoice numbering continuity).
+6. Point the API at the restored database, start it, check `/readyz`, and sign in as a test user.
+7. Record the actual RPO (age of the backup) and RTO (stop → ready) in `TEST_REPORT.md`.
+
+**Not yet done for production (needs Q2 hosting):**
+- encrypted automated backups at the provider;
+- point-in-time recovery and a PITR restore test;
+- the off-site encrypted copy;
+- object-storage backup;
+- KEK escrow;
+- a timed RPO/RTO measurement on real hardware.
+
+The drill above uses synthetic data in a throwaway cluster.
 
 **Restore drill (Phase 9 exit criterion, then quarterly):** restore the latest backup and a point-in-time target into staging; run the migration status check, the DB test suite and reconciliation reports (stock = Σ movements, ledger balances, invoice numbering continuity); record actual RPO/RTO in `TEST_REPORT.md`.
 

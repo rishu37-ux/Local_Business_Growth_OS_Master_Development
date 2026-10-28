@@ -6,7 +6,8 @@ import { createHmac } from 'node:crypto';
 import type { ResolvedAddress, TransportRequest, TransportResponse } from '@lbgos/modules/outbound';
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { startHarness, type Harness } from './auth-harness.ts';
+import { WEBHOOK_LIMIT_PER_MINUTE } from '../src/routes/webhooks.ts';
+import { freshIp, startHarness, type Harness } from './auth-harness.ts';
 import {
   activeShop,
   errorCode,
@@ -550,5 +551,27 @@ describe('SMS webhooks (NFR-18)', () => {
       shop.owner,
     );
     expect(changed.json<{ integration: { status: string } }>().integration.status).toBe('CONFIGURED');
+  });
+});
+
+describe('webhook rate limit (9.4, SR-01)', () => {
+  it('one address gets 429 after the per-minute limit; another address is not affected', async () => {
+    const hook = (ip: string) =>
+      h.app.inject({
+        method: 'POST',
+        url: '/api/webhooks/sms/00000000-0000-4000-8000-000000000000',
+        remoteAddress: ip,
+        headers: { 'content-type': 'application/json' },
+        payload: '{}',
+      });
+    const ip = freshIp();
+    const codes = new Set<number>();
+    for (let i = 0; i < WEBHOOK_LIMIT_PER_MINUTE; i++) codes.add((await hook(ip)).statusCode);
+    expect([...codes]).toEqual([404]);
+    const limited = await hook(ip);
+    expect(limited.statusCode).toBe(429);
+    expect(limited.headers['retry-after']).toBe('60');
+    expect(limited.headers['content-security-policy']).toBeDefined();
+    expect((await hook(freshIp())).statusCode).toBe(404);
   });
 });

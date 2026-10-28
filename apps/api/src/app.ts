@@ -39,6 +39,10 @@ import { zodValidatorCompiler } from './validation.ts';
 // Enforcement of `permission` against the session arrives with RBAC (3.6);
 // the declaration requirement is enforced from the start.
 declare module 'fastify' {
+  interface FastifyInstance {
+    /** Every registered route (method and URL pattern), for the isolation sweep (Phase 9). */
+    readonly routeIndex: readonly { readonly method: string; readonly url: string }[];
+  }
   interface FastifyContextConfig {
     /** Permission key from ROLES_PERMISSIONS.md required to call this route. */
     permission?: string;
@@ -115,7 +119,10 @@ export function buildApp(deps: AppDeps): FastifyInstance {
 
   app.setValidatorCompiler(zodValidatorCompiler);
 
+  const routeIndex: { method: string; url: string }[] = [];
+  app.decorate('routeIndex', routeIndex);
   app.addHook('onRoute', (route) => {
+    for (const method of [route.method].flat()) routeIndex.push({ method: String(method), url: route.url });
     const where = `route ${String(route.method)} ${route.url}`;
     const config = route.config as { permission?: unknown; public?: unknown } | undefined;
     if (config?.public === true) return;
