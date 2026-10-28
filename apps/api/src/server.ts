@@ -7,7 +7,13 @@ import { hubMessagingProvider } from '@lbgos/modules/channels';
 import { startJobRunner } from '@lbgos/modules/jobs';
 import { parseKeyring } from '@lbgos/modules/secrets';
 import { chromiumPdfRenderer } from './pdf.ts';
-import { DEFAULT_ADAPTER_URL, LocalFileStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
+import {
+  DEFAULT_ADAPTER_URL,
+  LocalFileStorage,
+  processNextOcrJob,
+  TESSERACT_ADAPTER_URL,
+  type OcrConfig,
+} from '@lbgos/modules/ocr';
 import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -50,12 +56,12 @@ const auth = createAuthService({
   db: authDb,
 });
 
-// Scans: private local storage and the mock OCR adapter until a provider is chosen (Q4).
+// Scans: private local storage; OCR by Tesseract when OCR_ENGINE=tesseract (D-071), else the test adapter.
 const ocr: OcrConfig = {
   storage: new LocalFileStorage(path.resolve(config.UPLOAD_DIR)),
   limits: DEFAULT_UPLOAD_LIMITS,
   isolation: {
-    adapterUrl: DEFAULT_ADAPTER_URL,
+    adapterUrl: config.OCR_ENGINE === 'tesseract' ? TESSERACT_ADAPTER_URL : DEFAULT_ADAPTER_URL,
     structurerUrl: null,
     timeoutMs: config.OCR_TIMEOUT_MS,
     maxMemoryMb: config.OCR_MAX_MEMORY_MB,

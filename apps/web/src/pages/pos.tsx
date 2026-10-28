@@ -9,6 +9,7 @@ import { Form } from 'react-aria-components';
 import { useParams, useSearchParams } from 'react-router';
 import { api, ApiError, formatPaise, formatQty, rupeesToPaise } from '../api.ts';
 import { useBusiness } from '../business.ts';
+import { PhotoLookup } from '../camera.tsx';
 import { Alert, Badge, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
 
 interface PosUnit {
@@ -213,36 +214,38 @@ export function PosPage() {
     if ('customer' in patch) setCustomer(patch.customer ?? null);
     if (patch.invoiceDiscount !== undefined) setInvoiceDiscount(patch.invoiceDiscount);
     if (patch.discountKind) setDiscountKind(patch.discountKind);
-    void sync(next);
+    return sync(next);
   };
 
-  const addUnit = (variantId: string, unitId: string) => {
+  /** Resolves once the sale is saved (which clears the message); null if the unit was already in it. */
+  const addUnit = (variantId: string, unitId: string): Promise<void> | null => {
     if (lines.some((l) => l.unitId === unitId)) {
       setMessage({ text: 'This unit is already in the sale.', tone: 'error' });
-      return;
+      return null;
     }
-    update({ lines: [...lines, { key: nextKey(), variantId, unitId, quantity: '1', discount: '' }] });
+    const saved = update({ lines: [...lines, { key: nextKey(), variantId, unitId, quantity: '1', discount: '' }] });
     setResults(null);
     setQuery('');
+    return saved;
   };
   const addItem = (item: PosItem) => {
     const existing = lines.find((l) => l.variantId === item.variantId && !l.unitId);
     const next = existing
       ? lines.map((l) => (l === existing ? { ...l, quantity: String(Number(l.quantity || '1') + 1) } : l))
       : [...lines, { key: nextKey(), variantId: item.variantId, unitId: null, quantity: '1', discount: '' }];
-    update({ lines: next });
+    void update({ lines: next });
     setResults(null);
     setQuery('');
   };
 
-  const search = async () => {
-    const q = query.trim();
+  const search = () => searchFor(query.trim());
+  const searchFor = async (q: string) => {
     if (!q) return;
     try {
       const r = await api<SearchResult>(`${base}/pos/search?q=${encodeURIComponent(q)}`);
       // A scanned IMEI goes straight into the sale; so does an exact barcode of a quantity item.
       if (r.unit) {
-        addUnit(r.unit.variantId, r.unit.unitId);
+        void addUnit(r.unit.variantId, r.unit.unitId);
         return;
       }
       const only = r.items.length === 1 ? r.items[0] : undefined;
@@ -265,7 +268,7 @@ export function PosPage() {
     try {
       const r = await api<{ customers: Customer[] }>(`${base}/customers?mobile=${encodeURIComponent(value)}`);
       const found = r.customers[0];
-      if (found) update({ customer: found });
+      if (found) void update({ customer: found });
       else setLookup('not-found');
     } catch (err) {
       setMessage({ text: errorText(err), tone: 'error' });
@@ -278,7 +281,7 @@ export function PosPage() {
         body: { name: newName, mobile },
       });
       setLookup('idle');
-      update({ customer: r.customer });
+      void update({ customer: r.customer });
     } catch (err) {
       setMessage({ text: errorText(err), tone: 'error' });
     }
@@ -470,6 +473,55 @@ export function PosPage() {
                 </div>
               </div>
             </Form>
+            <details className="mb-3">
+              <summary className="cursor-pointer text-sm font-medium text-brand-700">
+                Add by photo (IMEI or barcode)
+              </summary>
+              <div className="mt-2">
+                <PhotoLookup
+                  businessId={businessId}
+                  what="IMEI or barcode"
+                  name="pos"
+                  onResult={(r) => {
+                    // 12.2 AC2: an available phone goes in with its IMEI; a sold or unknown one is only reported.
+                    const phone = r.imeis.find((x) => x.unit?.status === 'IN_STOCK');
+                    if (phone?.unit) {
+                      const text = `Added ${phone.unit.productName}, IMEI ${phone.imei}.`;
+                      // After the save (which clears the message), unless the save reported an error.
+                      void addUnit(phone.unit.variantId, phone.unit.unitId)?.then(() => {
+                        setMessage((m) => (m?.tone === 'error' ? m : { text, tone: 'success' }));
+                      });
+                      return;
+                    }
+                    const other = r.imeis.find((x) => x.unit);
+                    if (other?.unit) {
+                      setMessage({
+                        text: `IMEI ${other.imei} is ${other.unit.status.replaceAll('_', ' ').toLowerCase()}; it cannot be sold.`,
+                        tone: 'error',
+                      });
+                      return;
+                    }
+                    const product = r.products[0];
+                    if (product && r.imeis.length === 0) {
+                      setQuery(product.sku);
+                      setMessage({
+                        text: `Found ${product.productName}. Choose it from the results.`,
+                        tone: 'success',
+                      });
+                      void searchFor(product.sku);
+                      return;
+                    }
+                    setMessage({
+                      text:
+                        r.imeis.length > 0
+                          ? `IMEI ${r.imeis[0]?.imei ?? ''} is not in this shop's stock.`
+                          : 'No IMEI or known barcode could be read. Try a sharper photo, or type it.',
+                      tone: 'error',
+                    });
+                  }}
+                />
+              </div>
+            </details>
             {results && results.items.length > 0 ? (
               <ul className="mb-4 flex flex-col gap-2" aria-label="Search results">
                 {results.items.map((item) => (
@@ -500,7 +552,7 @@ export function PosPage() {
                               <Button
                                 variant="secondary"
                                 onPress={() => {
-                                  addUnit(item.variantId, u.unitId);
+                                  void addUnit(item.variantId, u.unitId);
                                 }}
                               >
                                 Add IMEI {u.imeis[0] ?? u.serialNumber ?? '—'}
@@ -544,7 +596,7 @@ export function PosPage() {
                               setLines(lines.map((x) => (x.key === l.key ? { ...x, quantity: e.target.value } : x)));
                             }}
                             onBlur={(e) => {
-                              update({
+                              void update({
                                 lines: lines.map((x) => (x.key === l.key ? { ...x, quantity: e.target.value } : x)),
                               });
                             }}
@@ -561,7 +613,7 @@ export function PosPage() {
                             setLines(lines.map((x) => (x.key === l.key ? { ...x, discount: e.target.value } : x)));
                           }}
                           onBlur={(e) => {
-                            update({
+                            void update({
                               lines: lines.map((x) => (x.key === l.key ? { ...x, discount: e.target.value } : x)),
                             });
                           }}
@@ -573,7 +625,7 @@ export function PosPage() {
                           type="button"
                           className="link cursor-pointer text-sm"
                           onClick={() => {
-                            update({ lines: lines.filter((x) => x.key !== l.key) });
+                            void update({ lines: lines.filter((x) => x.key !== l.key) });
                           }}
                         >
                           Remove<span className="sr-only"> {v?.description}</span>
@@ -625,7 +677,7 @@ export function PosPage() {
                   className="link cursor-pointer text-sm"
                   onClick={() => {
                     setMobile('');
-                    update({ customer: null });
+                    void update({ customer: null });
                   }}
                 >
                   Change customer
@@ -683,7 +735,7 @@ export function PosPage() {
                 name="discountKind"
                 value={discountKind}
                 onChange={(v) => {
-                  update({ discountKind: v === 'PERCENT' ? 'PERCENT' : 'AMOUNT' });
+                  void update({ discountKind: v === 'PERCENT' ? 'PERCENT' : 'AMOUNT' });
                 }}
                 options={[
                   ['AMOUNT', '₹'],
@@ -695,7 +747,7 @@ export function PosPage() {
               <Button
                 variant="secondary"
                 onPress={() => {
-                  update({ invoiceDiscount });
+                  void update({ invoiceDiscount });
                 }}
                 isDisabled={lines.length === 0}
               >

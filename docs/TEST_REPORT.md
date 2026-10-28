@@ -1038,3 +1038,22 @@ Not tested: real payment collection (no gateway, Q4), GST on platform invoices (
 | 19 | — | `pnpm check`: <br>• ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL) <br>• API DB 444 <br>The first full run had 3 failures: older tests listing the categories, providers and job steps exactly. Their lists were updated for the new MARKETPLACE category, `marketplace_json` and the 2 job steps; the re-run passed. `pnpm secrets` and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
 
 Not tested: Amazon, Flipkart or any real marketplace (no accounts, Q4); custom domains (Q6); online payment (out of scope); Firefox/WebKit.
+
+## TR-0047 · 2026-10-28 · Phase 12 — camera and real OCR (Tesseract) for sale, product, purchase and stock
+
+**Environment:** as TR-0046 (dev container, throwaway PostgreSQL 16, Chromium only, real API with the built web app), plus Tesseract 5.3.4 (`tesseract-ocr`, `eng`). Synthetic data only. **Images:** text was rendered in Chromium and screenshotted (clean, flat, printed text). No real phone photo was used, so these results say nothing about accuracy on real photos.
+
+**Test files:** `ocr-camera.db.test.ts` (Tesseract adapter), `phase12-exit.db.test.ts` (Chromium with `--use-fake-device-for-media-stream` and a fake camera file showing a generated IMEI label).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | 12.1 AC1–2 | Label image read by Tesseract: brand Lava, model Blaze Pro, model number LXB-501, 6 GB / 128 GB, colour Glass Blue, 2 IMEIs with valid check digits. | **Pass** |
+| 2 | 12.1 AC2 | Invoice image: number INV-7781, date 2026-10-15, quantity 2, unit price ₹12,000.00 (1200000 paise), the IMEIs on the line. | **Pass** |
+| 3 | 12.1 AC3 | A PDF scan fails as `PDF_NEEDS_TEXT_ENGINE` (no API error). | **Pass** |
+| 4 | 12.3 AC1 | Product draft from the label: <br>• It is saved through the normal brand and product routes. <br>• A second draft reuses the existing brand, and the scan then proposes the product. <br>• Another business → 404; an accountant → 403. | **Pass** |
+| 5 | 12.2 AC1, AC4 | Scan lookup: <br>• IMEIs are reported with status IN_STOCK, SOLD and not found. Nothing is stored (no upload or job row). <br>• A barcode finds the product with its stock and price. <br>• Another business's IMEIs do not match. <br>• A non-image → 415; another business → 404. | **Pass** |
+| 6 | Phase 12 exit (browser) | In Chromium with a fake camera: <br>1. Catalogue → a photo of the box label → the new-product form is pre-filled (Lava, Blaze Pro, 6 GB, 128 GB, Glass Blue). The owner enters the price and saves; the product exists as serialized. <br>2. Scans → a photo of the supplier bill → review → confirm → Create draft purchase → Post purchase. Both IMEIs are IN_STOCK. <br>3. Point of sale → Use camera → Take photo: the fake camera's IMEI is read, the phone is added ("Added Blaze Pro, IMEI …"), and Complete sale issues the invoice. The unit is SOLD. <br>4. Stock → Find by photo → "IMEI …: Blaze Pro (LXB-501-6-128), sold". <br>axe: 0 serious/critical over 12 audits (4 screens × 3 widths). No overflow, CSP violations or page errors. | **Pass** |
+| 7 | — | Bugs found by the exit test and fixed: <br>• The POS confirmation "Added …" was cleared at once by the cart save, so the cashier never saw it. It is now shown after the save, unless the save reported an error. <br>• The test's own `waitForFunction` with a string was blocked by the app's CSP (no eval); a function is used instead. <br>Re-run: 5/5 passed. | **Pass** |
+| 8 | — | `pnpm check`: <br>• ESLint rules 26, domain 160, API unit 108, DB 54 <br>• API DB 456 (444 + 7 + 5) <br>`pnpm secrets` and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
+
+Not tested: real phone photos (accuracy unmeasured, needs consented pilot samples); a real phone camera over https; live `BarcodeDetector` decoding; handwritten bills; Firefox/WebKit.

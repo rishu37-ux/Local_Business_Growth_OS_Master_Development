@@ -23,7 +23,7 @@ pnpm check                      # lint, format, typecheck, build, unit, DB and b
 pnpm -F @lbgos/web build        # SPA → apps/web/dist (served by the API at /)
 ```
 
-**Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally.
+**Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally. For real OCR of camera photos, install Tesseract first (`sudo apt install -y tesseract-ocr`); the script then sets `OCR_ENGINE=tesseract` (D-071), otherwise it uses the mock reader, which cannot read real photos.
 
 Running the API locally against a persistent database:
 1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store. Environments bootstrapped before migration 0022 must first run `create role lbgos_secrets login nobypassrls;` (D-055).

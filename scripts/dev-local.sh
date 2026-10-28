@@ -32,5 +32,7 @@ scripts/with-throwaway-pg.sh bash -c '
      then sign out and in again; you will be asked to set up two-step verification.
 
 INFO
+  # Real OCR when Tesseract is installed (sudo apt install tesseract-ocr), else the test adapter.
+  if command -v tesseract >/dev/null; then export OCR_ENGINE=tesseract; else echo "  (OCR: test adapter only — install tesseract-ocr for real photos)"; fi
   PUBLIC_BASE_URL=http://127.0.0.1:3000 HOST=127.0.0.1 PORT=3000 LOG_LEVEL=warn node apps/api/src/server.ts
 '

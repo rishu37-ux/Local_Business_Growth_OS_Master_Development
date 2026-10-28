@@ -43,7 +43,9 @@ export class OcrError extends Error {
     | 'NOT_RETRYABLE'
     | 'RETRY_LIMIT'
     | 'UNCONFIRMED_FIELDS'
-    | 'QUOTA_EXCEEDED';
+    | 'QUOTA_EXCEEDED'
+    | 'BUSY'
+    | 'READ_FAILED';
   readonly fields: readonly string[];
 
   constructor(code: OcrError['code'], message: string, fields: readonly string[] = []) {
@@ -503,5 +505,181 @@ export async function createDraftFromScan(
       ...(requestId ? { requestId } : {}),
     });
     return { purchaseId };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Scan to find (12.2) and add a product from a label (12.3), D-071
+// ---------------------------------------------------------------------------
+
+export interface LookupUnit {
+  readonly imei: string;
+  readonly unitId: string;
+  readonly variantId: string;
+  readonly sku: string;
+  readonly productName: string;
+  readonly status: string;
+}
+
+export interface LookupResult {
+  readonly provider: string;
+  /** IMEIs read from the photo (check digit valid), each with its unit in this business, or null. */
+  readonly imeis: readonly { readonly imei: string; readonly unit: LookupUnit | null }[];
+  /** Products matched by barcode, model number or model name, with AVAILABLE stock. */
+  readonly products: readonly (MatchProposal & { readonly available: string; readonly sellingPricePaise: number })[];
+  readonly barcode: string | null;
+}
+
+let lookupsRunning = 0;
+const MAX_LOOKUPS = 2;
+
+/**
+ * AC1: reads a photo now (same isolation and limits as scans) and says what
+ * it matches in this business. The photo is not stored. Only reads.
+ */
+export async function scanLookup(
+  db: Db,
+  cfg: Pick<OcrConfig, 'limits' | 'isolation'>,
+  ctx: TenantContext,
+  bytes: Uint8Array,
+): Promise<LookupResult> {
+  const check = checkUpload(bytes, cfg.limits);
+  if (!check.ok) throw new OcrError(check.problem, `file rejected: ${check.problem.toLowerCase().replace(/_/g, ' ')}`);
+  if (lookupsRunning >= MAX_LOOKUPS) throw new OcrError('BUSY', 'Scanning is busy; try again in a moment.');
+  lookupsRunning++;
+  let result: Awaited<ReturnType<typeof runIsolated>>;
+  try {
+    result = await runIsolated(bytes, 'PRODUCT_LABEL', { ...cfg.isolation, limits: cfg.limits });
+  } finally {
+    lookupsRunning--;
+  }
+  if (!result.ok) throw new OcrError('READ_FAILED', `The photo could not be read (${result.code}).`);
+  const e = result.extraction;
+  if (e.scanType !== 'PRODUCT_LABEL') throw new OcrError('READ_FAILED', 'The photo could not be read.');
+  const imeis = [...new Set(e.imeis.map((f) => f.value).filter((v): v is string => typeof v === 'string'))];
+  return withTenant(db, ctx, async (trx) => {
+    const units = imeis.length
+      ? (
+          await sql<{
+            imei: string;
+            unit_id: string;
+            variant_id: string;
+            sku: string;
+            model_name: string;
+            status: string;
+          }>`
+            select i.imei, u.id as unit_id, u.variant_id, v.sku, p.model_name, u.status
+              from lbg.serialized_unit_imeis i
+              join lbg.serialized_units u on u.business_id = i.business_id and u.id = i.unit_id
+              join lbg.product_variants v on v.business_id = u.business_id and v.id = u.variant_id
+              join lbg.products p on p.business_id = v.business_id and p.id = v.product_id
+             where i.business_id = ${ctx.businessId} and i.imei = any(${imeis}::text[])`.execute(trx)
+        ).rows
+      : [];
+    const barcode = value(e, 'barcode');
+    const matches = await proposals(trx, ctx, {
+      barcode,
+      modelNumber: value(e, 'modelNumber'),
+      modelName: value(e, 'modelName'),
+    });
+    const products = [];
+    for (const m of matches) {
+      const { rows } = await sql<{ q: string | null; price: string }>`
+        select (select quantity::text from lbg.stock_levels where business_id = ${ctx.businessId}
+                  and variant_id = ${m.variantId} and bucket = 'AVAILABLE') as q,
+               selling_price_paise::text as price
+          from lbg.product_variants where business_id = ${ctx.businessId} and id = ${m.variantId}`.execute(trx);
+      products.push({ ...m, available: rows[0]?.q ?? '0', sellingPricePaise: Number(rows[0]?.price ?? 0) });
+    }
+    return {
+      provider: result.provider,
+      imeis: imeis.map((imei) => {
+        const u = units.find((x) => x.imei === imei);
+        return {
+          imei,
+          unit: u
+            ? {
+                imei,
+                unitId: u.unit_id,
+                variantId: u.variant_id,
+                sku: u.sku,
+                productName: u.model_name,
+                status: u.status,
+              }
+            : null,
+        };
+      }),
+      products,
+      barcode,
+    };
+  });
+}
+
+export interface ProductDraft {
+  readonly brandName: string | null;
+  /** An existing brand of this business with that name (case-insensitive), if any. */
+  readonly brandId: string | null;
+  readonly modelName: string | null;
+  readonly modelNumber: string | null;
+  readonly isSerialized: boolean;
+  readonly variant: {
+    readonly ram: string | null;
+    readonly storage: string | null;
+    readonly colour: string | null;
+    readonly barcode: string | null;
+    readonly sku: string | null;
+  };
+  readonly imeis: readonly string[];
+  /** Fields read with low confidence: the person must check them before saving. */
+  readonly needsConfirmation: readonly string[];
+  /** Products that already match (adding another would duplicate it). */
+  readonly existing: readonly MatchProposal[];
+}
+
+/** 12.3 AC1: a product form pre-filled from a product-label scan. Nothing is saved here. */
+export async function productDraftFromScan(db: Db, ctx: TenantContext, scanId: string): Promise<ProductDraft | null> {
+  return withTenant(db, ctx, async (trx) => {
+    const j = await loadJob(trx, ctx, scanId);
+    const e = j?.extraction;
+    if (!j || e?.scanType !== 'PRODUCT_LABEL') return null;
+    const brandName = value(e, 'brand');
+    const brand = brandName
+      ? (
+          await sql<{ id: string }>`select id from lbg.brands where business_id = ${ctx.businessId}
+                                     and lower(name) = lower(${brandName}) order by id limit 1`.execute(trx)
+        ).rows[0]
+      : undefined;
+    const imeis = e.imeis.map((f) => f.value).filter((v): v is string => typeof v === 'string');
+    const modelNumber = value(e, 'modelNumber');
+    const ram = value(e, 'ram');
+    const storage = value(e, 'storage');
+    const skuBase = (modelNumber ?? value(e, 'modelName') ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    const size = [ram, storage].map((x) => (x ?? '').replace(/\s*GB/i, '').replace(/\s+/g, '')).filter(Boolean);
+    return {
+      brandName,
+      brandId: brand?.id ?? null,
+      modelName: value(e, 'modelName'),
+      modelNumber,
+      isSerialized: imeis.length > 0,
+      variant: {
+        ram,
+        storage,
+        colour: value(e, 'colour'),
+        barcode: value(e, 'barcode'),
+        sku: skuBase ? [skuBase, ...size].join('-').slice(0, 40) : null,
+      },
+      imeis,
+      needsConfirmation: allFields(e)
+        .filter((f) => f.needsConfirmation)
+        .map((f) => f.key),
+      existing: await proposals(trx, ctx, {
+        barcode: value(e, 'barcode'),
+        modelNumber,
+        modelName: value(e, 'modelName'),
+      }),
+    };
   });
 }

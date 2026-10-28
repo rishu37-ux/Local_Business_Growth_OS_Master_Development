@@ -10,11 +10,14 @@ import {
   getScanFile,
   listScans,
   OcrError,
+  productDraftFromScan,
   retryScan,
+  scanLookup,
   uploadScan,
   type ScanType,
 } from '@lbgos/modules/ocr';
 import { PurchasingError, type PurchaseDraftInput } from '@lbgos/modules/purchasing';
+import { MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
 import { purchaseBody } from './purchasing.ts';
 
@@ -30,6 +33,8 @@ const FILE_STATUS: Readonly<Record<string, number>> = {
   TOO_MANY_PAGES: 422,
   DIMENSIONS_TOO_LARGE: 422,
   QUOTA_EXCEEDED: 429,
+  BUSY: 503,
+  READ_FAILED: 422,
 };
 
 function sendScanError(err: unknown, request: FastifyRequest, reply: FastifyReply) {
@@ -111,6 +116,37 @@ export function registerScanRoutes(app: FastifyInstance, s: AppServices): void {
       );
       return reply.status(202).send(result);
     }),
+  );
+
+  // 12.2: read a photo now and say what it matches (sale and stock). The photo is not stored.
+  app.post(
+    '/api/businesses/:businessId/scan-lookup',
+    {
+      config: { permission: MEMBER },
+      bodyLimit: ocr.limits.maxBytes + 1024,
+      schema: { params: businessParams, body: z.instanceof(Buffer) },
+    },
+    guarded(async (request, reply) => {
+      const p = request.access?.permissions;
+      if (p?.has('pos.sell') !== true && p?.has('inventory.view') !== true) {
+        return reply.status(403).send({
+          error: { code: 'FORBIDDEN', message: 'You do not have access to this resource.', requestId: request.id },
+        });
+      }
+      return { lookup: await scanLookup(s.appDb, ocr, ctxOf(request), request.body as Buffer) };
+    }),
+  );
+
+  // 12.3: a product form pre-filled from a product-label scan (saving uses the normal product route).
+  app.get(
+    '/api/businesses/:businessId/scans/:id/product-draft',
+    { config: { permission: 'ocr.scan' }, schema: { params: idParams } },
+    async (request, reply) => {
+      const draft = await productDraftFromScan(s.appDb, ctxOf(request), idOf(request));
+      if (!draft)
+        return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Not found.', requestId: request.id } });
+      return { draft };
+    },
   );
 
   app.get(

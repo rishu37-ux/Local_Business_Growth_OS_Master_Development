@@ -5,8 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Form } from 'react-aria-components';
 import { Link, useNavigate, useParams } from 'react-router';
-import { api, uploadFile } from '../api.ts';
-import { Alert, Button, cell, Checkbox, errorText, NativeSelect, Page, Table } from '../ui.tsx';
+import { api, rupeesToPaise, uploadFile } from '../api.ts';
+import { TakePhoto } from '../camera.tsx';
+import { Alert, Button, cell, Checkbox, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
 import { draftBody, emptyLine, PurchaseForm, useVariantOptions, type DraftForm } from './purchases.tsx';
 
 interface ExtractedField {
@@ -78,14 +79,14 @@ export function ScansPage() {
     refetchInterval: (q) => (q.state.data?.scans.some((s) => ACTIVE.has(s.status)) ? 2000 : false),
   });
 
-  const send = async () => {
+  const send = async (photo: Blob | null = file, name = file?.name ?? 'scan') => {
     setMessage(null);
-    if (!file) {
+    if (!photo) {
       setMessage({ text: 'Choose a photo or PDF first.', tone: 'error' });
       return;
     }
     try {
-      await uploadFile(`/api/businesses/${businessId}/scans?type=${type}&name=${encodeURIComponent(file.name)}`, file);
+      await uploadFile(`/api/businesses/${businessId}/scans?type=${type}&name=${encodeURIComponent(name)}`, photo);
       setMessage({ text: 'Uploaded. Reading the document…', tone: 'success' });
       await queryClient.invalidateQueries({ queryKey: ['scans', businessId] });
     } catch (err) {
@@ -97,7 +98,7 @@ export function ScansPage() {
     <Page title="Scans">
       <p className="mb-3 text-sm text-ink-600">
         Photos (JPEG, PNG, WebP) or PDFs up to 10 MB. Files are checked for type and size; no malware scanner is
-        configured. This build reads text with a test adapter only — no OCR service is connected yet.
+        configured. The text is read on this shop's server (Tesseract) when it is installed; always check what was read.
       </p>
       <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />
       <Form
@@ -117,6 +118,11 @@ export function ScansPage() {
             ['SUPPLIER_INVOICE', TYPE_LABEL.SUPPLIER_INVOICE],
             ['PRODUCT_LABEL', TYPE_LABEL.PRODUCT_LABEL],
           ]}
+        />
+        <TakePhoto
+          what={type === 'PRODUCT_LABEL' ? 'box label' : 'supplier bill'}
+          name="scan"
+          onPhoto={(photo, name) => void send(photo, name)}
         />
         <div className="mb-3 flex flex-col gap-1">
           <label htmlFor="scan-file" className="font-medium">
@@ -371,6 +377,20 @@ export function ScanReviewPage() {
           ) : null}
         </>
       ) : null}
+      {s.status === 'NEEDS_REVIEW' && s.scanType === 'PRODUCT_LABEL' && s.catalogueMatches.length === 0 ? (
+        <NewProductFromLabel
+          businessId={businessId}
+          scanId={scanId}
+          onCreated={async (name) => {
+            setMessage({
+              text: `${name} added to the catalogue. Now create the purchase to bring it into stock.`,
+              tone: 'success',
+            });
+            await queryClient.invalidateQueries();
+            setForm(null);
+          }}
+        />
+      ) : null}
       {s.status === 'NEEDS_REVIEW' && form ? (
         <section aria-labelledby="create">
           <h2 id="create" className="section-title">
@@ -410,5 +430,156 @@ export function ScanReviewPage() {
         </p>
       ) : null}
     </Page>
+  );
+}
+
+interface ProductDraft {
+  brandName: string | null;
+  brandId: string | null;
+  modelName: string | null;
+  modelNumber: string | null;
+  isSerialized: boolean;
+  variant: {
+    ram: string | null;
+    storage: string | null;
+    colour: string | null;
+    barcode: string | null;
+    sku: string | null;
+  };
+  imeis: string[];
+}
+
+/** 12.3: a product from the box label, pre-filled and checked by the person, saved by the normal product rules. */
+function NewProductFromLabel(props: {
+  businessId: string;
+  scanId: string;
+  onCreated: (name: string) => Promise<void>;
+}) {
+  const base = `/api/businesses/${props.businessId}`;
+  const draft = useQuery({
+    queryKey: ['product-draft', props.businessId, props.scanId],
+    queryFn: () => api<{ draft: ProductDraft }>(`${base}/scans/${props.scanId}/product-draft`),
+  });
+  const d = draft.data?.draft;
+  const [f, setF] = useState<Record<string, string> | null>(null);
+  const [serialized, setSerialized] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!d || f) return;
+    setSerialized(d.isSerialized);
+    setF({
+      brand: d.brandName ?? '',
+      modelName: d.modelName ?? '',
+      modelNumber: d.modelNumber ?? '',
+      ram: d.variant.ram ?? '',
+      storage: d.variant.storage ?? '',
+      colour: d.variant.colour ?? '',
+      barcode: d.variant.barcode ?? '',
+      sku: d.variant.sku ?? '',
+      price: '',
+    });
+  }, [d, f]);
+  if (!d || !f) return null;
+  const set = (k: string) => (v: string) => {
+    setF({ ...f, [k]: v });
+  };
+  const save = async () => {
+    setError(null);
+    const price = rupeesToPaise(f.price ?? '');
+    if (price === null) {
+      setError('Enter the selling price in rupees.');
+      return;
+    }
+    try {
+      let brandId = d.brandId;
+      const brand = (f.brand ?? '').trim();
+      if (brand && (!brandId || brand.toLowerCase() !== (d.brandName ?? '').toLowerCase())) {
+        brandId = (await api<{ id: string }>(`${base}/brands`, { method: 'POST', body: { name: brand } })).id;
+      }
+      const text = (k: string) => (f[k] ?? '').trim() || null;
+      await api(`${base}/products`, {
+        method: 'POST',
+        body: {
+          ...(brandId ? { brandId } : {}),
+          modelName: text('modelName') ?? '',
+          modelNumber: text('modelNumber'),
+          isSerialized: serialized,
+          variants: [
+            {
+              sku: text('sku') ?? '',
+              barcode: text('barcode'),
+              ram: text('ram'),
+              storage: text('storage'),
+              colour: text('colour'),
+              sellingPricePaise: price,
+            },
+          ],
+        },
+      });
+      await props.onCreated(text('modelName') ?? 'The product');
+    } catch (err) {
+      setError(errorText(err));
+    }
+  };
+  return (
+    <section aria-labelledby="new-product">
+      <h2 id="new-product" className="section-title">
+        Add this product to the catalogue
+      </h2>
+      <p className="mb-3 text-sm text-ink-600">
+        No matching product was found. Check the values read from the label, add the selling price, and save. The IMEIs
+        come into stock with the purchase below.
+      </p>
+      <Alert message={error} />
+      <Form
+        onSubmit={(ev) => {
+          ev.preventDefault();
+          void save();
+        }}
+      >
+        <div className="grid gap-x-4 sm:grid-cols-2">
+          <Field label="Brand" name="npBrand" value={f.brand ?? ''} onChange={set('brand')} isRequired={false} />
+          <Field label="Model" name="npModel" value={f.modelName ?? ''} onChange={set('modelName')} />
+          <Field
+            label="Model number"
+            name="npModelNumber"
+            value={f.modelNumber ?? ''}
+            onChange={set('modelNumber')}
+            isRequired={false}
+          />
+          <Field label="SKU (your code for it)" name="npSku" value={f.sku ?? ''} onChange={set('sku')} />
+          <Field label="RAM" name="npRam" value={f.ram ?? ''} onChange={set('ram')} isRequired={false} />
+          <Field
+            label="Storage"
+            name="npStorage"
+            value={f.storage ?? ''}
+            onChange={set('storage')}
+            isRequired={false}
+          />
+          <Field label="Colour" name="npColour" value={f.colour ?? ''} onChange={set('colour')} isRequired={false} />
+          <Field
+            label="Barcode"
+            name="npBarcode"
+            value={f.barcode ?? ''}
+            onChange={set('barcode')}
+            isRequired={false}
+          />
+          <Field
+            label="Selling price (₹)"
+            name="npPrice"
+            value={f.price ?? ''}
+            onChange={set('price')}
+            inputMode="numeric"
+          />
+        </div>
+        <Checkbox
+          label="Each piece has its own IMEI or serial number"
+          name="npSerialized"
+          checked={serialized}
+          onChange={setSerialized}
+        />
+        <Button type="submit">Save product</Button>
+      </Form>
+    </section>
   );
 }

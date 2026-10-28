@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; Phase 12 — camera and Tesseract OCR — complete locally; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -24,6 +24,22 @@ Developer work that can follow those inputs:
 - the debit-note and payment-reversal screens;
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
+
+## Phase 12 — Camera and OCR for sale, product, purchase and stock (complete locally)
+
+Plan and acceptance criteria: `PHASE12_PLAN.md` (D-071).
+
+1. ~~12.1 Tesseract OCR adapter~~ — done (TR-0047).
+2. ~~12.2 scan lookup in POS and Stock~~ — done (TR-0047).
+3. ~~12.3 add a product from the box label~~ — done (TR-0047).
+4. ~~12.4 camera in the screens and Phase 12 exit~~ — done (TR-0047).
+
+**Still open from Phase 12:**
+- **Needs the user:** measure accuracy on real, consented photos of boxes and bills from the pilot shop (Q1). Try the camera on a real phone over https (needs Q6 or a local certificate).
+- **Developer follow-ups:**
+  - OS-level sandbox for the OCR program before production.
+  - Live barcode decoding in the browser where `BarcodeDetector` exists.
+  - Text-layer reading of PDF bills.
 
 ## Phase 11 — Branding, the shop's website, online channels (complete, CI #64 green)
 

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Form } from 'react-aria-components';
 import { useParams } from 'react-router';
 import { api, ApiError, formatPaise, formatQty } from '../api.ts';
+import { PhotoLookup } from '../camera.tsx';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
 import { useVariantOptions } from './purchases.tsx';
@@ -157,6 +158,29 @@ export function StockPage() {
   return (
     <Page title="Stock">
       <ScanField label="Find by code" onCode={(c) => void lookup(c)} />
+      <details className="mb-4">
+        <summary className="cursor-pointer text-sm font-medium text-brand-700">Find by photo (IMEI or barcode)</summary>
+        <div className="mt-2">
+          <PhotoLookup
+            businessId={businessId}
+            what="IMEI or barcode"
+            name="stock"
+            onResult={(r) => {
+              setLookupError(null);
+              const parts = [
+                ...r.imeis.map((x) =>
+                  x.unit
+                    ? `IMEI ${x.imei}: ${x.unit.productName} (${x.unit.sku}), ${x.unit.status.replaceAll('_', ' ').toLowerCase()}`
+                    : `IMEI ${x.imei}: not in this shop`,
+                ),
+                ...r.products.map((p) => `${p.productName} (${p.sku}): ${formatQty(p.available)} available`),
+              ];
+              if (parts.length === 0) setLookupError('No IMEI or known barcode could be read from the photo.');
+              setFound(parts.length ? parts.join(' · ') : null);
+            }}
+          />
+        </div>
+      </details>
       <Alert message={found} tone="success" />
       <Alert message={lookupError} />
       <p className="mb-2 text-sm text-ink-600">

@@ -3,8 +3,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Form } from 'react-aria-components';
-import { Link, useParams } from 'react-router';
-import { api, formatPaise, rupeesToPaise } from '../api.ts';
+import { Link, useNavigate, useParams } from 'react-router';
+import { api, formatPaise, rupeesToPaise, uploadFile } from '../api.ts';
+import { TakePhoto } from '../camera.tsx';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, Checkbox, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
 
@@ -216,6 +217,7 @@ export function CataloguePage() {
           </tr>
         ))}
       </Table>
+      {canManage && business.can('ocr.scan') ? <ProductFromPhoto businessId={businessId} /> : null}
       {canManage ? (
         <section aria-labelledby="new-product">
           <h2 id="new-product" className="section-title">
@@ -408,5 +410,42 @@ export function TaxRatesPage() {
         </section>
       ) : null}
     </Page>
+  );
+}
+
+/** 12.3: a photo of the box label is read, then reviewed on its scan page, where the product is saved. */
+function ProductFromPhoto(props: { businessId: string }) {
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  return (
+    <section aria-labelledby="product-photo">
+      <h2 id="product-photo" className="section-title">
+        Add a product from a photo of its box
+      </h2>
+      <p className="mb-2 text-sm text-ink-600">
+        The label is read (brand, model, RAM, storage, colour, IMEIs). You check the values and add the price before
+        anything is saved.
+      </p>
+      <Alert message={error} />
+      <TakePhoto
+        what="box label"
+        name="product"
+        busy={busy}
+        onPhoto={(photo, name) => {
+          setBusy(true);
+          setError(null);
+          uploadFile<{ jobId: string }>(
+            `/api/businesses/${props.businessId}/scans?type=PRODUCT_LABEL&name=${encodeURIComponent(name)}`,
+            photo,
+          )
+            .then((r) => navigate(`/b/${props.businessId}/scans/${r.jobId}`))
+            .catch((err: unknown) => {
+              setError(errorText(err));
+              setBusy(false);
+            });
+        }}
+      />
+    </section>
   );
 }

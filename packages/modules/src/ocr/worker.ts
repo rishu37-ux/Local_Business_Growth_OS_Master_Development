@@ -38,5 +38,12 @@ async function run(input: Input) {
 
 run(workerData as Input).then(
   (out) => parentPort?.postMessage(out),
-  (err: unknown) => parentPort?.postMessage({ ok: false, code: 'PROVIDER_ERROR', detail: String(err).slice(0, 200) }),
+  (err: unknown) => {
+    // An engine's own failure code (e.g. PDF_NEEDS_TEXT_ENGINE) is kept; anything else is a provider error.
+    const code = (err as { code?: unknown }).code;
+    parentPort?.postMessage({
+      ok: false,
+      code: typeof code === 'string' && /^[A-Z_]{1,40}$/.test(code) ? code : 'PROVIDER_ERROR',
+    });
+  },
 );

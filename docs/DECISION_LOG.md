@@ -491,3 +491,18 @@ Defaults chosen without blocking the user:
 - **Marketplace connectors.** Marketplaces are integrations of a new category, MARKETPLACE. The platform defines a JSON connector contract (`marketplace_json`: POST /v1/inventory, GET /v1/orders with a cursor). Feeds are validated strictly; anything malformed is rejected whole.
 - **Amazon and Flipkart.** Their own APIs (Selling Partner API, Seller API) are **not** called. Each needs the shop's seller account and app approval, and its contract must be checked and tested against the real service (Q4). Until then a connector or aggregator service can sit in between.
 - **Known gap.** A counter sale in POS is not blocked by reservations. The buffer and the push after each sale limit the risk, and the order list flags an order larger than stock.
+
+### D-071 · 2026-10-28 · Accepted
+**Decision (camera and real OCR, Phase 12):**
+- **Engine.** Tesseract 5 is the real OCR engine. It runs on the shop's own server, so photos never leave it, and it is free. `OCR_ENGINE=tesseract` selects it, and `scripts/dev-local.sh` turns it on when `tesseract` is installed. The mock adapter stays the default and is used by the tests.
+- **Isolation.** `tesseract` is started from inside the isolated OCR worker as a child program. The image goes in on stdin and nothing is written to disk. It has a 20-second limit and one thread. A missing program, a timeout or a crash becomes a scan failure code, never an API error.
+- **PDFs.** Tesseract does not read PDFs. A PDF scan fails as `PDF_NEEDS_TEXT_ENGINE` and goes to manual entry.
+- **Scan lookup.** A photo for finding a phone or product (POS, Stock) is read at once and **not stored**. At most 2 lookups run at a time; a third gets 503 `BUSY`. It needs `pos.sell` or `inventory.view`. Matching runs inside the tenant context.
+- **Nothing changes by OCR alone.**
+  - A lookup in POS only adds an available unit to the cart; a sold or unknown IMEI is reported and not added.
+  - A label scan only pre-fills the new-product form, which the owner saves under `catalogue.manage`; an existing brand is reused.
+  - An invoice scan only makes a purchase draft.
+- **Camera.**
+  - The live camera uses `getUserMedia`. It works on `http://127.0.0.1` or over https.
+  - A file input with `capture="environment"` is always offered; on a phone it opens the camera.
+- **Not claimed.** Accuracy on real phone photos is unmeasured; it needs consented pilot samples (Q1). Live barcode decoding in the browser is not verified.

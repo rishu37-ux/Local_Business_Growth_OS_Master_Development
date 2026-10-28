@@ -11,6 +11,15 @@ Branch: `claude/quirky-dirac-vm3o46`
 - **Online channels:** website plus marketplace connectors, with one stock. Available-to-sell = stock − reservations − buffer. Pushes are queued by a DB trigger and sent by the job runner; orders reserve stock until billed in POS.
 
 All of this is done and tested with the mock connector (TR-0046). **Amazon and Flipkart are not connected:** they need the shop's seller accounts and API approval (Q4).
+
+**Phase 12 (requested by the user after Phase 11; D-071, `PHASE12_PLAN.md`): camera + real OCR.**
+- **Engine.** Tesseract 5 is the real OCR engine (`OCR_ENGINE=tesseract`; `scripts/dev-local.sh` turns it on when installed).
+- **Camera.** A camera control (live preview, or a phone photo) is on four screens:
+  - Point of sale: an IMEI photo adds that phone to the cart.
+  - Catalogue: a box photo becomes a new product.
+  - Scans: a supplier bill photo becomes a purchase draft; posting it adds the stock.
+  - Stock: an IMEI or barcode photo finds the item and its status.
+- **Tested** in Chromium with a fake camera and generated images (TR-0047). Accuracy on real photos is **not measured**.
 - Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015). Increment 4.6 (web screens for catalogue, tax rates, suppliers, purchases, stock, scans/review, approvals; `member` pseudo-permission; Phase 4 exit browser test) is implemented and tested (TR-0016).
 - Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
@@ -53,6 +62,7 @@ All of this is done and tested with the mock connector (TR-0046). **Amazon and F
 | `PRICING_VALIDATION.md` | Pilot prices, cost per shop, hypotheses, interview guide, decision rule |
 | `COMMERCIAL_READINESS.md` | What must be true before charging shops; owners and status |
 | `PHASE11_PLAN.md` | Phase 11 (branding, shop website, online channels): increments, acceptance criteria, status |
+| `PHASE12_PLAN.md` | Phase 12 (camera and Tesseract OCR for sale, product, purchase and stock): increments, acceptance criteria, status |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
 | `SECURITY_THREAT_MODEL.md` | Assets, boundaries, threats T1–T31, per-workflow data flows, mitigation status |
@@ -89,7 +99,7 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phase 11 is done locally. Next, ask the user for the Amazon/Flipkart seller accounts and API approval (Q4) before building marketplace-specific adapters. Then, ask the user for the rest, in this order:
+Phases 11 and 12 are done locally. Next, ask the user for a few real (consented) photos of boxes and bills from the pilot shop to measure OCR accuracy, and for the Amazon/Flipkart seller accounts and API approval (Q4) before building marketplace-specific adapters. Then, ask the user for the rest, in this order:
 1. Q1 pilot shop.
 2. Q2 hosting and budget.
 3. Q6 domain.

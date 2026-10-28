@@ -47,6 +47,9 @@ jobs:
       - name: Ensure pdftotext (PDF text checks in the print tests)
         run: command -v pdftotext || (sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils)
 
+      - name: Ensure Tesseract OCR (real OCR engine tests, D-071)
+        run: command -v tesseract || (sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng)
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

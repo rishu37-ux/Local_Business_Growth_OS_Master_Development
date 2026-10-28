@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phases 7–11 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels)
+## [Unreleased] — Phases 7–12 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels; camera and OCR)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -28,6 +28,12 @@
   - Integration category MARKETPLACE, with the `marketplace_json` connector adapter and a mock marketplace.
   - Job steps `channel_orders` and `channel_stock`.
   - The shop's public website at `/s/<address>` with order requests.
+- Phase 12 (D-071):
+  - Tesseract 5 OCR adapter (`OCR_ENGINE=tesseract`); `scripts/dev-local.sh` turns it on when installed; CI installs `tesseract-ocr`.
+  - `POST /scan-lookup`: a photo is read at once and not stored. It returns the IMEIs with their units and status, and the matching products with stock.
+  - `GET /scans/:id/product-draft`.
+  - Web: a camera control (live preview or phone photo) in Point of sale (an IMEI photo adds the phone), Catalogue (a product from a box photo), Scans (bill photo) and Stock (find by photo). A scanned label with no matching product can be saved as a new product.
+  - Tests: `ocr-camera.db.test.ts` and the Phase 12 exit browser test with a fake camera.
   - Screens: Branding and website, and Online selling. POS opens a billed online order.
   - Phase 11 exit browser test.
 - Docs: `PHASE11_PLAN.md`, SRS FR-CHN-1…3.

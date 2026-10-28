@@ -68,6 +68,8 @@ export async function startHarness(
     outbound?: Pick<OutboundOptions, 'resolver' | 'transport'>;
     /** Offer mock adapters (default true; false behaves like production). */
     allowMocks?: boolean;
+    /** OCR engine module (default: the fixture-reading mock). */
+    ocrAdapterUrl?: string;
   } = {},
 ): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
@@ -100,7 +102,12 @@ export async function startHarness(
   const ocr: OcrConfig = {
     storage,
     limits: DEFAULT_UPLOAD_LIMITS,
-    isolation: { adapterUrl: DEFAULT_ADAPTER_URL, structurerUrl: null, timeoutMs: 15_000, maxMemoryMb: 128 },
+    isolation: {
+      adapterUrl: options.ocrAdapterUrl ?? DEFAULT_ADAPTER_URL,
+      structurerUrl: null,
+      timeoutMs: 30_000,
+      maxMemoryMb: 128,
+    },
     staleSeconds: 600,
   };
   // Real Chromium, started on the first PDF request only.

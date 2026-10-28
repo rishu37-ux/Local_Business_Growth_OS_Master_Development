@@ -24,6 +24,8 @@ export type IsolatedResult =
   | { readonly ok: false; readonly code: string };
 
 export const DEFAULT_ADAPTER_URL = new URL('./mock-adapter.ts', import.meta.url).href;
+/** The real engine (12.1, D-071): Tesseract 5 run locally. */
+export const TESSERACT_ADAPTER_URL = new URL('./tesseract-adapter.ts', import.meta.url).href;
 
 export function runIsolated(
   bytes: Uint8Array,
