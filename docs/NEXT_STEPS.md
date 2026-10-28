@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; Phase 12 — camera and Tesseract OCR — complete, CI #66 green; Phase 13 — online order details — complete, CI #68 green; Phase 14 — states, shop address, exports — complete locally; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; Phase 12 — camera and Tesseract OCR — complete, CI #66 green; Phase 13 — online order details — complete, CI #68 green; Phase 14 — states, shop address, exports — complete, CI #69 green; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -25,7 +25,7 @@ Developer work that can follow those inputs:
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
 
-## Phase 14 — All states, the shop's address, exports in every section (complete locally)
+## Phase 14 — All states, the shop's address, exports in every section (complete, CI #69 green)
 
 Plan and acceptance criteria: `PHASE14_PLAN.md` (D-073).
 

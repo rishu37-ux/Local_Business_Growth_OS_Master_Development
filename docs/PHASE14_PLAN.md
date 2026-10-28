@@ -43,7 +43,7 @@ Acceptance criteria (AC) are fixed **before** coding. Only executed checks count
 
 ## Status
 
-Both increments and the exit are done (TR-0049).
+Both increments and the exit are done (TR-0049). CI #69 green.
 
 ## Increment 14.1 — States and the shop's address
 - **AC1:** registration, setup and suppliers offer all 36 states and union territories. The API refuses any other code with 400.
