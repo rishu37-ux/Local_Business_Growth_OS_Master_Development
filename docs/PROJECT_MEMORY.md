@@ -20,6 +20,13 @@ All of this is done and tested with the mock connector (TR-0046). **Amazon and F
   - Scans: a supplier bill photo becomes a purchase draft; posting it adds the stock.
   - Stock: an IMEI or barcode photo finds the item and its status.
 - **Tested** in Chromium with a fake camera and generated images (TR-0047). Accuracy on real photos is **not measured**. CI #66 green.
+
+**Phase 13 (requested by the user; D-072, `PHASE13_PLAN.md`, migration 0033): online order details.**
+- Each online order now carries the platform's details (status, who ships, ship-by and deliver-by dates, carrier, tracking, payment, totals with marketplace fees) and the buyer's details (name, mobile, email, GSTIN, delivery and billing address).
+- The website form takes an optional email and delivery address.
+- There is an order page, and the order list has filters.
+- Buyer details are masked without `customers.view` and can be erased per order or with the customer; the export includes the channel tables.
+- Tested with the mock connector (TR-0048); real Amazon/Flipkart still need Q4.
 - Phase 4 plan with acceptance criteria: `PHASE4_PLAN.md`. Increment 4.1 (catalogue, versioned tax rates, migration 0007, `@lbgos/modules/catalogue`) is implemented and tested (TR-0011). Increment 4.2 (suppliers, purchases draft → post → reverse, stock buckets and levels, migration 0008, `@lbgos/modules/purchasing` + `inventory`) is implemented and tested (TR-0012). Increment 4.3 (stock reads, reconciliation, adjustments, generic approvals module with R3, migration 0009) is implemented and tested (TR-0013). Increment 4.4 (inspection outcomes, low/slow/dead/reorder reports, code lookup, migration 0010) is implemented and tested (TR-0014). Increment 4.5 (uploads, isolated OCR jobs with a **mock** adapter, deterministic parsing, review → draft purchase, migration 0011, `@lbgos/modules/ocr`) is implemented and tested (TR-0015). Increment 4.6 (web screens for catalogue, tax rates, suppliers, purchases, stock, scans/review, approvals; `member` pseudo-permission; Phase 4 exit browser test) is implemented and tested (TR-0016).
 - Phases 0–3 detail: PR #1 (through increment 3.6) was merged into `main` by the repository owner. Increments 3.7a/3.7b and the Phase 3 exit records are on the working branch, with `main` merged back in (merge commit `890d97c`; a rebase plus force-push was refused by the session's permission policy). These commits are not yet in `main`; no new PR has been opened.
 - **What exists:** a pnpm monorepo, run with Node type stripping (no build step for server code).
@@ -62,6 +69,7 @@ All of this is done and tested with the mock connector (TR-0046). **Amazon and F
 | `PRICING_VALIDATION.md` | Pilot prices, cost per shop, hypotheses, interview guide, decision rule |
 | `COMMERCIAL_READINESS.md` | What must be true before charging shops; owners and status |
 | `PHASE11_PLAN.md` | Phase 11 (branding, shop website, online channels): increments, acceptance criteria, status |
+| `PHASE13_PLAN.md` | Phase 13 (online order details: platform and buyer): increments, acceptance criteria, status |
 | `PHASE12_PLAN.md` | Phase 12 (camera and Tesseract OCR for sale, product, purchase and stock): increments, acceptance criteria, status |
 | `REQUIREMENTS_BLUEPRINT.md` | Phase 0 blueprint (superseded in detail by SRS) |
 | `REQUIREMENTS_TRACEABILITY.md` | Requirement → implementation → test evidence (generated from SRS headings) |
@@ -99,7 +107,7 @@ Nothing blocks the start of Phase 3 (scaffold, CI, migrations, tenancy, RBAC are
 
 ## Exact next action
 
-Phases 11 and 12 are done locally. Next, ask the user for a few real (consented) photos of boxes and bills from the pilot shop to measure OCR accuracy, and for the Amazon/Flipkart seller accounts and API approval (Q4) before building marketplace-specific adapters. Then, ask the user for the rest, in this order:
+Phases 11–13 are done locally. Next, ask the user for a few real (consented) photos of boxes and bills from the pilot shop to measure OCR accuracy, and for the Amazon/Flipkart seller accounts and API approval (Q4) before building marketplace-specific adapters. Then, ask the user for the rest, in this order:
 1. Q1 pilot shop.
 2. Q2 hosting and budget.
 3. Q6 domain.

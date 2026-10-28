@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; Phase 12 — camera and Tesseract OCR — complete, CI #66 green; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; Phase 12 — camera and Tesseract OCR — complete, CI #66 green; Phase 13 — online order details — complete locally; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -24,6 +24,20 @@ Developer work that can follow those inputs:
 - the debit-note and payment-reversal screens;
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
+
+## Phase 13 — Online order details: platform and buyer (complete locally)
+
+Plan and acceptance criteria: `PHASE13_PLAN.md` (D-072).
+
+1. ~~13.1 contract, storage, API, masking~~ — done (TR-0048).
+2. ~~13.2 privacy: erase per order and with the customer, export~~ — done (TR-0048).
+3. ~~13.3 order list filters and the order page; Phase 13 exit~~ — done (TR-0048).
+
+**Still open (needs the user):** real Amazon/Flipkart connectors (Q4). What buyer data they share depends on the platform's approval.
+
+**Developer follow-ups:**
+- Shipping labels.
+- Sending status and tracking back to the marketplace.
 
 ## Phase 12 — Camera and OCR for sale, product, purchase and stock (complete, CI #66 green)
 

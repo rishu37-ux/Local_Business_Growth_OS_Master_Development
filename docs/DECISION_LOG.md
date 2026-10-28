@@ -506,3 +506,25 @@ Defaults chosen without blocking the user:
   - The live camera uses `getUserMedia`. It works on `http://127.0.0.1` or over https.
   - A file input with `capture="environment"` is always offered; on a phone it opens the camera.
 - **Not claimed.** Accuracy on real phone photos is unmeasured; it needs consented pilot samples (Q1). Live barcode decoding in the browser is not verified.
+
+### D-072 · 2026-10-28 · Accepted
+**Decision (online order details, Phase 13):**
+- **Contract.** The `marketplace_json` order feed gains optional sections:
+  - `buyer`: name, phone, email, GSTIN.
+  - `shipTo` and `billTo`: addresses.
+  - `payment`: method, status.
+  - `fulfilment`: who ships, platform status, ship-by, deliver-by, carrier, tracking ID.
+  - `totals`: items, shipping, discount, tax, total, marketplace fees.
+  - A product `title` on each line.
+- **Validation.**
+  - Required parts stay strict: one malformed order rejects the feed (D-070).
+  - Optional details are checked field by field. An invalid one is dropped and named on the order, so one bad address cannot stop all orders.
+  - The mock marketplace now goes through the same parser.
+- **Updates.** An order sent again updates only its progress fields: platform status, payment status, dates, carrier, tracking. Lines, prices and buyer details stay as first received, and an erased buyer is never re-filled.
+- **Access.** Buyer contact and addresses need `customers.view`. Others see the name's initial, the phone's last 4 digits and only city/state/PIN, enough to dispatch but not to contact.
+- **Privacy.**
+  - The owner can erase the buyer details of one order (reason + recent sign-in). `privacy_requests` gains the target `ERASE_ORDER_BUYER` (migration 0033).
+  - Customer erasure also erases buyer details on their orders (billed to them or with the same mobile).
+  - The data export now includes the channel tables. This closes the Phase 11 gap where these tables were missing from the export.
+- **Billing.** The customer created from an order gets the buyer's name, mobile, email, address (billing, else delivery) and GSTIN.
+- **Not claimed.** What Amazon and Flipkart actually share is up to them. Amazon restricts buyer address and phone (restricted data with special approval; none for orders it ships itself). Missing details show as "Not given by the platform".

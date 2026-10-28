@@ -17,7 +17,9 @@ import { createCustomerIn } from '../customers/index.ts';
 import {
   callIntegration,
   IntegrationError,
+  type FeedAddress,
   type FeedOrder,
+  type FeedOrderDetails,
   type HubDeps,
   type InventoryItem,
 } from '../integrations/index.ts';
@@ -33,7 +35,10 @@ export class CommerceError extends Error {
     | 'ORDER_CLOSED'
     | 'ORDER_BILLED'
     | 'NEEDS_ATTENTION'
-    | 'MOBILE_INVALID';
+    | 'MOBILE_INVALID'
+    | 'PINCODE_INVALID'
+    | 'EMAIL_INVALID'
+    | 'ALREADY_ERASED';
   readonly available?: number;
 
   constructor(code: CommerceError['code'], message: string, available?: number) {
@@ -85,8 +90,33 @@ export interface ChannelOrder {
   readonly status: 'NEW' | 'ACCEPTED' | 'CANCELLED';
   /** BILLED once the sale from it is issued (the reservation has ended). */
   readonly state: 'OPEN' | 'BILLING' | 'BILLED' | 'CANCELLED';
+  /** Buyer details (D-072); masked unless the reader may see customer details. */
   readonly customerName: string | null;
   readonly customerMobile: string | null;
+  readonly buyerEmail: string | null;
+  readonly buyerGstin: string | null;
+  readonly shipTo: FeedAddress | null;
+  readonly billTo: FeedAddress | null;
+  readonly buyerErased: boolean;
+  readonly masked: boolean;
+  readonly paymentMethod: FeedOrderDetails['paymentMethod'];
+  readonly paymentStatus: FeedOrderDetails['paymentStatus'];
+  readonly fulfilledBy: FeedOrderDetails['fulfilledBy'];
+  readonly platformStatus: string | null;
+  readonly shipBy: string | null;
+  readonly deliverBy: string | null;
+  readonly carrier: string | null;
+  readonly trackingId: string | null;
+  readonly totals: {
+    readonly itemsPaise: number | null;
+    readonly shippingPaise: number | null;
+    readonly discountPaise: number | null;
+    readonly taxPaise: number | null;
+    readonly totalPaise: number | null;
+    readonly marketplaceFeesPaise: number | null;
+  };
+  readonly droppedFields: readonly string[];
+  readonly detailsUpdatedAt: string | null;
   readonly note: string | null;
   readonly oversold: boolean;
   readonly needsAttention: boolean;
@@ -98,12 +128,37 @@ export interface ChannelOrder {
     readonly variantId: string | null;
     readonly externalSku: string;
     readonly productName: string | null;
+    readonly title: string | null;
     readonly quantity: number;
     readonly unitPricePaise: number | null;
   }[];
 }
 
 const iso = (d: Date | string | null) => (d === null ? null : new Date(d).toISOString());
+const num = (v: string | null) => (v === null ? null : Number(v));
+
+const NO_DETAILS: FeedOrderDetails = {
+  buyerName: null,
+  buyerPhone: null,
+  buyerEmail: null,
+  buyerGstin: null,
+  shipTo: null,
+  billTo: null,
+  paymentMethod: null,
+  paymentStatus: null,
+  fulfilledBy: null,
+  platformStatus: null,
+  shipBy: null,
+  deliverBy: null,
+  carrier: null,
+  trackingId: null,
+  itemsPaise: null,
+  shippingPaise: null,
+  discountPaise: null,
+  taxPaise: null,
+  totalPaise: null,
+  marketplaceFeesPaise: null,
+};
 
 /** Serialises everything that reads or changes available-to-sell of one variant (until commit). */
 const lockVariant = (trx: Trx, variantId: string) =>
@@ -363,6 +418,36 @@ export async function listListings(db: Db, ctx: TenantContext, channelId?: strin
 // Orders
 // ---------------------------------------------------------------------------
 
+/**
+ * AC3 (D-072): an order sent again updates only its progress (platform
+ * status, payment status, dates, carrier, tracking). Lines, prices and buyer
+ * details stay as first received; an erased buyer is never filled in again.
+ */
+async function updateProgress(trx: Trx, ctx: TenantContext, orderId: string, d: FeedOrderDetails) {
+  const r = await sql`
+    update lbg.channel_orders
+       set payment_status = coalesce(${d.paymentStatus}, payment_status),
+           platform_status = coalesce(${d.platformStatus}, platform_status),
+           ship_by = coalesce(${d.shipBy}::timestamptz, ship_by),
+           deliver_by = coalesce(${d.deliverBy}::timestamptz, deliver_by),
+           carrier = coalesce(${d.carrier}, carrier),
+           tracking_id = coalesce(${d.trackingId}, tracking_id),
+           details_updated_at = now()
+     where business_id = ${ctx.businessId} and id = ${orderId}
+       and (payment_status, platform_status, ship_by, deliver_by, carrier, tracking_id) is distinct from
+           (coalesce(${d.paymentStatus}, payment_status), coalesce(${d.platformStatus}, platform_status),
+            coalesce(${d.shipBy}::timestamptz, ship_by), coalesce(${d.deliverBy}::timestamptz, deliver_by),
+            coalesce(${d.carrier}, carrier), coalesce(${d.trackingId}, tracking_id))`.execute(trx);
+  if (Number(r.numAffectedRows ?? 0) > 0) {
+    await recordTenantEvent(trx, ctx, {
+      action: 'channel.order_updated',
+      targetType: 'channel_order',
+      targetId: orderId,
+      metadata: { platformStatus: d.platformStatus, paymentStatus: d.paymentStatus },
+    });
+  }
+}
+
 async function insertOrder(
   trx: Trx,
   ctx: TenantContext,
@@ -373,24 +458,36 @@ async function insertOrder(
     readonly customerName?: string | null;
     readonly customerMobile?: string | null;
     readonly note?: string | null;
+    readonly details?: FeedOrderDetails | undefined;
+    readonly dropped?: readonly string[] | undefined;
     readonly lines: readonly {
       readonly sku: string;
       readonly quantity: number;
       readonly unitPricePaise: number | null;
+      readonly title?: string | null | undefined;
     }[];
   },
 ): Promise<{ id: string; created: boolean }> {
   const { rows: existing } = await sql<{ id: string }>`
     select id from lbg.channel_orders where business_id = ${ctx.businessId} and channel_id = ${channelId}
        and external_order_id = ${order.externalOrderId}`.execute(trx);
-  if (existing[0]) return { id: existing[0].id, created: false };
+  if (existing[0]) {
+    if (order.details) await updateProgress(trx, ctx, existing[0].id, order.details);
+    return { id: existing[0].id, created: false };
+  }
   const { rows: buf } = await sql<{ stock_buffer: number }>`
     select stock_buffer from lbg.sales_channels where business_id = ${ctx.businessId} and id = ${channelId}`.execute(
     trx,
   );
   const buffer = buf[0]?.stock_buffer ?? 0;
   // Match lines to listings by the channel's SKU; check stock before the order reserves anything.
-  const matched: { sku: string; quantity: number; unitPricePaise: number | null; variantId: string | null }[] = [];
+  const matched: {
+    sku: string;
+    quantity: number;
+    unitPricePaise: number | null;
+    title?: string | null | undefined;
+    variantId: string | null;
+  }[] = [];
   let oversold = false;
   const needed = new Map<string, number>();
   for (const l of order.lines) {
@@ -405,19 +502,36 @@ async function insertOrder(
     await lockVariant(trx, variantId);
     if (availableToSell(await stockOf(trx, ctx, variantId), buffer) < qty) oversold = true;
   }
+  const d = order.details;
+  const dropped = [...(order.dropped ?? [])];
+  // The order's own column takes Indian mobiles only; another country's number stays in the addresses.
+  let mobile = order.customerMobile ?? d?.buyerPhone ?? d?.shipTo?.phone ?? null;
+  if (mobile !== null && !/^\+91[6-9][0-9]{9}$/.test(mobile)) {
+    if (order.customerMobile === undefined && d?.buyerPhone) dropped.push('buyer.phone');
+    mobile = null;
+  }
+  const name = order.customerName ?? d?.buyerName ?? d?.shipTo?.name ?? null;
+  const json = (a: FeedAddress | null | undefined) => (a ? JSON.stringify(a) : null);
   const { rows } = await sql<{ id: string }>`
     insert into lbg.channel_orders (business_id, channel_id, external_order_id, customer_name, customer_mobile, note,
-                                    oversold, needs_attention, placed_at)
-    values (${ctx.businessId}, ${channelId}, ${order.externalOrderId}, ${order.customerName ?? null},
-            ${order.customerMobile ?? null}, ${order.note ?? null}, ${oversold},
-            ${matched.some((m) => m.variantId === null)}, ${order.placedAt})
+                                    oversold, needs_attention, placed_at, buyer_email, buyer_gstin, ship_to, bill_to,
+                                    payment_method, payment_status, fulfilled_by, platform_status, ship_by, deliver_by,
+                                    carrier, tracking_id, items_paise, shipping_paise, discount_paise, tax_paise,
+                                    total_paise, marketplace_fees_paise, dropped_fields)
+    values (${ctx.businessId}, ${channelId}, ${order.externalOrderId}, ${name}, ${mobile}, ${order.note ?? null},
+            ${oversold}, ${matched.some((m) => m.variantId === null)}, ${order.placedAt}, ${d?.buyerEmail ?? null},
+            ${d?.buyerGstin ?? null}, ${json(d?.shipTo)}::jsonb, ${json(d?.billTo)}::jsonb, ${d?.paymentMethod ?? null},
+            ${d?.paymentStatus ?? null}, ${d?.fulfilledBy ?? null}, ${d?.platformStatus ?? null}, ${d?.shipBy ?? null},
+            ${d?.deliverBy ?? null}, ${d?.carrier ?? null}, ${d?.trackingId ?? null}, ${d?.itemsPaise ?? null},
+            ${d?.shippingPaise ?? null}, ${d?.discountPaise ?? null}, ${d?.taxPaise ?? null}, ${d?.totalPaise ?? null},
+            ${d?.marketplaceFeesPaise ?? null}, ${dropped.slice(0, 40)}::text[])
     returning id`.execute(trx);
   const id = rows[0]?.id ?? '';
   for (const m of matched) {
-    await sql`insert into lbg.channel_order_lines (business_id, order_id, variant_id, external_sku, quantity, unit_price_paise)
-              values (${ctx.businessId}, ${id}, ${m.variantId}, ${m.sku}, ${m.quantity}, ${m.unitPricePaise})`.execute(
-      trx,
-    );
+    await sql`insert into lbg.channel_order_lines (business_id, order_id, variant_id, external_sku, quantity,
+                                                   unit_price_paise, title)
+              values (${ctx.businessId}, ${id}, ${m.variantId}, ${m.sku}, ${m.quantity}, ${m.unitPricePaise},
+                      ${m.title ?? null})`.execute(trx);
   }
   for (const variantId of needed.keys()) await queueVariant(trx, ctx, variantId);
   await recordTenantEvent(trx, ctx, {
@@ -442,10 +556,32 @@ export async function createWebsiteOrder(
     readonly name: string;
     readonly mobile: string;
     readonly token: string;
+    /** Optional (D-072): email and a delivery address. */
+    readonly email?: string | undefined;
+    readonly address?: { readonly line1: string; readonly city: string; readonly pincode: string } | undefined;
   },
 ): Promise<{ orderId: string; created: boolean }> {
   const mobile = normalizeMobile(input.mobile);
   if (!mobile?.startsWith('+91')) throw new CommerceError('MOBILE_INVALID', 'Enter a 10-digit Indian mobile number.');
+  const email = input.email?.trim().toLowerCase() ?? '';
+  if (email !== '' && !(email.length <= 254 && /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(email)))
+    throw new CommerceError('EMAIL_INVALID', 'Please check the email address.');
+  const pincode = input.address?.pincode.replace(/\s/g, '') ?? '';
+  if (input.address && !/^[1-9][0-9]{5}$/.test(pincode))
+    throw new CommerceError('PINCODE_INVALID', 'Enter a 6-digit PIN code.');
+  const shipTo: FeedAddress | null = input.address
+    ? {
+        name: input.name.trim(),
+        phone: mobile,
+        line1: input.address.line1.trim(),
+        line2: null,
+        landmark: null,
+        city: input.address.city.trim(),
+        state: null,
+        pincode,
+        country: 'IN',
+      }
+    : null;
   return withTenant(db, ctx, async (trx) => {
     const { rows } = await sql<{
       channel_id: string;
@@ -477,6 +613,16 @@ export async function createWebsiteOrder(
       placedAt: new Date().toISOString(),
       customerName: input.name,
       customerMobile: mobile,
+      details: {
+        ...NO_DETAILS,
+        buyerName: input.name,
+        buyerPhone: mobile,
+        buyerEmail: email === '' ? null : email,
+        shipTo,
+        // No online payment on the website: the buyer pays the shop.
+        paymentStatus: 'PENDING',
+        fulfilledBy: 'SELLER',
+      },
       lines: [{ sku: l.external_sku, quantity: input.quantity, unitPricePaise: Number(l.price) }],
     });
     return { orderId: order.id, created: order.created };
@@ -500,13 +646,38 @@ interface OrderRow {
   invoice_number: string | null;
   placed_at: Date;
   cancelled_reason: string | null;
+  buyer_email: string | null;
+  buyer_gstin: string | null;
+  ship_to: FeedAddress | null;
+  bill_to: FeedAddress | null;
+  buyer_erased_at: Date | null;
+  payment_method: ChannelOrder['paymentMethod'];
+  payment_status: ChannelOrder['paymentStatus'];
+  fulfilled_by: ChannelOrder['fulfilledBy'];
+  platform_status: string | null;
+  ship_by: Date | null;
+  deliver_by: Date | null;
+  carrier: string | null;
+  tracking_id: string | null;
+  items_paise: string | null;
+  shipping_paise: string | null;
+  discount_paise: string | null;
+  tax_paise: string | null;
+  total_paise: string | null;
+  marketplace_fees_paise: string | null;
+  dropped_fields: string[];
+  details_updated_at: Date | null;
 }
 
 async function ordersIn(trx: Trx, ctx: TenantContext, where: { id?: string; open?: boolean }): Promise<ChannelOrder[]> {
   const { rows } = await sql<OrderRow>`
     select o.id, o.channel_id, c.name as channel_name, c.kind as channel_kind, o.external_order_id, o.status,
            o.customer_name, o.customer_mobile, o.note, o.oversold, o.needs_attention, o.sale_id,
-           i.status as invoice_status, i.invoice_number, o.placed_at, o.cancelled_reason
+           i.status as invoice_status, i.invoice_number, o.placed_at, o.cancelled_reason,
+           o.buyer_email, o.buyer_gstin, o.ship_to, o.bill_to, o.buyer_erased_at, o.payment_method,
+           o.payment_status, o.fulfilled_by, o.platform_status, o.ship_by, o.deliver_by, o.carrier, o.tracking_id,
+           o.items_paise::text, o.shipping_paise::text, o.discount_paise::text, o.tax_paise::text,
+           o.total_paise::text, o.marketplace_fees_paise::text, o.dropped_fields, o.details_updated_at
       from lbg.channel_orders o
       join lbg.sales_channels c on c.business_id = o.business_id and c.id = o.channel_id
       left join lbg.invoices i on i.business_id = o.business_id and i.id = o.sale_id
@@ -520,10 +691,11 @@ async function ordersIn(trx: Trx, ctx: TenantContext, where: { id?: string; open
     variant_id: string | null;
     external_sku: string;
     product_name: string | null;
+    title: string | null;
     quantity: number;
     unit_price_paise: string | null;
   }>`
-    select l.order_id, l.variant_id, l.external_sku,
+    select l.order_id, l.variant_id, l.external_sku, l.title,
            concat_ws(' ', p.model_name, nullif(concat_ws(' · ', v.ram, v.storage, v.colour), '')) as product_name,
            l.quantity, l.unit_price_paise::text as unit_price_paise
       from lbg.channel_order_lines l
@@ -550,6 +722,30 @@ async function ordersIn(trx: Trx, ctx: TenantContext, where: { id?: string; open
               : 'OPEN',
       customerName: r.customer_name,
       customerMobile: r.customer_mobile,
+      buyerEmail: r.buyer_email,
+      buyerGstin: r.buyer_gstin,
+      shipTo: r.ship_to,
+      billTo: r.bill_to,
+      buyerErased: r.buyer_erased_at !== null,
+      masked: false,
+      paymentMethod: r.payment_method,
+      paymentStatus: r.payment_status,
+      fulfilledBy: r.fulfilled_by,
+      platformStatus: r.platform_status,
+      shipBy: iso(r.ship_by),
+      deliverBy: iso(r.deliver_by),
+      carrier: r.carrier,
+      trackingId: r.tracking_id,
+      totals: {
+        itemsPaise: num(r.items_paise),
+        shippingPaise: num(r.shipping_paise),
+        discountPaise: num(r.discount_paise),
+        taxPaise: num(r.tax_paise),
+        totalPaise: num(r.total_paise),
+        marketplaceFeesPaise: num(r.marketplace_fees_paise),
+      },
+      droppedFields: r.dropped_fields,
+      detailsUpdatedAt: iso(r.details_updated_at),
       note: r.note,
       oversold: r.oversold,
       needsAttention: r.needs_attention,
@@ -563,6 +759,7 @@ async function ordersIn(trx: Trx, ctx: TenantContext, where: { id?: string; open
           variantId: l.variant_id,
           externalSku: l.external_sku,
           productName: l.variant_id ? l.product_name : null,
+          title: l.title,
           quantity: l.quantity,
           unitPricePaise: l.unit_price_paise === null ? null : Number(l.unit_price_paise),
         })),
@@ -570,12 +767,124 @@ async function ordersIn(trx: Trx, ctx: TenantContext, where: { id?: string; open
   });
 }
 
-export async function listOrders(db: Db, ctx: TenantContext, open = false): Promise<ChannelOrder[]> {
-  return withTenant(db, ctx, (trx) => ordersIn(trx, ctx, { open }));
+/**
+ * AC4 (D-072): what a reader without customers.view sees of the buyer — the
+ * name's first letter, the phone's last 4 digits and only the city, state and
+ * PIN code of the addresses (enough to pack and dispatch, not to contact).
+ */
+export function maskBuyer(o: ChannelOrder): ChannelOrder {
+  const place = (a: FeedAddress | null): FeedAddress | null =>
+    a
+      ? {
+          name: null,
+          phone: null,
+          line1: null,
+          line2: null,
+          landmark: null,
+          city: a.city,
+          state: a.state,
+          pincode: a.pincode,
+          country: a.country,
+        }
+      : null;
+  return {
+    ...o,
+    masked: true,
+    customerName: o.customerName ? `${o.customerName.slice(0, 1)}…` : null,
+    customerMobile: o.customerMobile ? `••••••${o.customerMobile.slice(-4)}` : null,
+    buyerEmail: null,
+    buyerGstin: null,
+    shipTo: place(o.shipTo),
+    billTo: place(o.billTo),
+  };
 }
 
-export async function getOrder(db: Db, ctx: TenantContext, id: string): Promise<ChannelOrder | null> {
-  return (await withTenant(db, ctx, (trx) => ordersIn(trx, ctx, { id })))[0] ?? null;
+export async function listOrders(
+  db: Db,
+  ctx: TenantContext,
+  open = false,
+  view: { readonly buyer: boolean } = { buyer: true },
+): Promise<ChannelOrder[]> {
+  const orders = await withTenant(db, ctx, (trx) => ordersIn(trx, ctx, { open }));
+  return view.buyer ? orders : orders.map(maskBuyer);
+}
+
+export async function getOrder(
+  db: Db,
+  ctx: TenantContext,
+  id: string,
+  view: { readonly buyer: boolean } = { buyer: true },
+): Promise<ChannelOrder | null> {
+  const order = (await withTenant(db, ctx, (trx) => ordersIn(trx, ctx, { id })))[0] ?? null;
+  return order && !view.buyer ? maskBuyer(order) : order;
+}
+
+/** The address as one text line for the customer record (≤ 500 characters). */
+export const addressText = (a: FeedAddress | null): string | null => {
+  if (!a) return null;
+  const parts = [
+    a.line1,
+    a.line2,
+    a.landmark,
+    a.city,
+    a.state && a.pincode ? `${a.state} ${a.pincode}` : (a.state ?? a.pincode),
+  ].filter((p): p is string => p !== null && p !== '');
+  return parts.length ? parts.join(', ').slice(0, 500) : null;
+};
+
+const BUYER_ERASED = sql`customer_name = null, customer_mobile = null, buyer_email = null, buyer_gstin = null,
+                         ship_to = null, bill_to = null, buyer_erased_at = now()`;
+
+/**
+ * 13.2 AC2 (the caller checks owner and fresh sign-in): removes the buyer's
+ * personal data from one order; lines, totals and the invoice stay.
+ */
+export async function eraseOrderBuyer(
+  db: Db,
+  ctx: TenantContext,
+  orderId: string,
+  reason: string,
+  requestId?: string,
+): Promise<{ requestId: string }> {
+  return withTenant(db, ctx, async (trx) => {
+    const { rows } = await sql<{ erased: boolean }>`
+      select buyer_erased_at is not null as erased from lbg.channel_orders
+       where business_id = ${ctx.businessId} and id = ${orderId} for update`.execute(trx);
+    if (!rows[0]) throw new CommerceError('NOT_FOUND', 'Not found.');
+    if (rows[0].erased) throw new CommerceError('ALREADY_ERASED', "This buyer's details have already been erased.");
+    await sql`update lbg.channel_orders set ${BUYER_ERASED} where business_id = ${ctx.businessId} and id = ${orderId}`.execute(
+      trx,
+    );
+    const { rows: req } = await sql<{ id: string }>`
+      insert into lbg.privacy_requests (business_id, channel_order_id, kind, reason, requested_by)
+      values (${ctx.businessId}, ${orderId}, 'ERASE_ORDER_BUYER', ${reason.trim()}, ${ctx.userId}) returning id`.execute(
+      trx,
+    );
+    await recordTenantEvent(trx, ctx, {
+      action: 'channel.order_buyer_erased',
+      targetType: 'channel_order',
+      targetId: orderId,
+      metadata: { privacyRequestId: req[0]?.id ?? '' },
+      ...(requestId ? { requestId } : {}),
+    });
+    return { requestId: req[0]?.id ?? '' };
+  });
+}
+
+/** 13.2 AC1: with a customer's erasure, the buyer details of orders billed to them or with their mobile. */
+export async function eraseCustomerOrderBuyersIn(
+  trx: Trx,
+  ctx: TenantContext,
+  customerId: string,
+  mobile: string | null,
+): Promise<number> {
+  const r = await sql`
+    update lbg.channel_orders o set ${BUYER_ERASED}
+     where o.business_id = ${ctx.businessId} and o.buyer_erased_at is null
+       and ((${mobile}::text is not null and o.customer_mobile = ${mobile}::text)
+            or exists (select 1 from lbg.invoices i where i.business_id = o.business_id and i.id = o.sale_id
+                          and i.customer_id = ${customerId}))`.execute(trx);
+  return Number(r.numAffectedRows ?? 0);
 }
 
 /**
@@ -604,8 +913,16 @@ export async function billOrder(
         select id from lbg.customers where business_id = ${ctx.businessId} and mobile_e164 = ${order.customerMobile}
          order by created_at limit 1`.execute(trx);
       if (rows[0]) return rows[0].id;
-      return (await createCustomerIn(trx, ctx, { name: order.customerName ?? '', mobile: order.customerMobile ?? '' }))
-        .id;
+      // The buyer's details from the order (D-072); a GSTIN only when it is valid for its own state.
+      return (
+        await createCustomerIn(trx, ctx, {
+          name: order.customerName ?? '',
+          mobile: order.customerMobile ?? '',
+          email: order.buyerEmail,
+          address: addressText(order.billTo ?? order.shipTo),
+          gstin: order.buyerGstin,
+        })
+      ).id;
     });
   }
   const draft = await createSaleDraft(db, ctx, access, {
@@ -708,6 +1025,8 @@ export async function importChannelOrders(deps: HubDeps, ctx: TenantContext): Pr
           const placed = await insertOrder(trx, ctx, ch.id, {
             externalOrderId: o.id,
             placedAt: o.placedAt,
+            details: o.details,
+            dropped: o.dropped,
             lines: o.status === 'CANCELLED' ? [] : o.lines,
           });
           if (placed.created) changed++;

@@ -5,6 +5,7 @@
 // adapter. 7.6 adds the WhatsApp Cloud API adapter (Meta's documented Graph
 // API; tested only against a local mock of it) and a DLT-aware SMS adapter
 // speaking a platform-defined JSON contract (D-059).
+import { gstinProblem, normalizeMobile } from '@lbgos/domain';
 import { guardedRequest, OutboundError, type OutboundOptions } from '../outbound/index.ts';
 
 export const CATEGORIES = [
@@ -96,6 +97,43 @@ export interface InventoryItem {
   readonly pricePaise: number;
 }
 
+/** A delivery or billing address as the platform reports it (Phase 13, D-072). */
+export interface FeedAddress {
+  readonly name: string | null;
+  readonly phone: string | null;
+  readonly line1: string | null;
+  readonly line2: string | null;
+  readonly landmark: string | null;
+  readonly city: string | null;
+  readonly state: string | null;
+  readonly pincode: string | null;
+  readonly country: string | null;
+}
+
+/** The optional platform and buyer details of an order; null = not given (or dropped as invalid). */
+export interface FeedOrderDetails {
+  readonly buyerName: string | null;
+  readonly buyerPhone: string | null;
+  readonly buyerEmail: string | null;
+  readonly buyerGstin: string | null;
+  readonly shipTo: FeedAddress | null;
+  readonly billTo: FeedAddress | null;
+  readonly paymentMethod: 'PREPAID' | 'COD' | null;
+  readonly paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED' | null;
+  readonly fulfilledBy: 'SELLER' | 'MARKETPLACE' | null;
+  readonly platformStatus: string | null;
+  readonly shipBy: string | null;
+  readonly deliverBy: string | null;
+  readonly carrier: string | null;
+  readonly trackingId: string | null;
+  readonly itemsPaise: number | null;
+  readonly shippingPaise: number | null;
+  readonly discountPaise: number | null;
+  readonly taxPaise: number | null;
+  readonly totalPaise: number | null;
+  readonly marketplaceFeesPaise: number | null;
+}
+
 /** An order as a marketplace reports it (never trusted for anything but its own content). */
 export interface FeedOrder {
   readonly id: string;
@@ -105,7 +143,11 @@ export interface FeedOrder {
     readonly sku: string;
     readonly quantity: number;
     readonly unitPricePaise: number | null;
+    readonly title?: string | null;
   }[];
+  readonly details?: FeedOrderDetails;
+  /** Optional fields that were present but invalid, and so dropped (e.g. "shipTo.pincode"). */
+  readonly dropped?: readonly string[];
 }
 
 export interface SendRequest {
@@ -237,11 +279,10 @@ export function mockAdapter(): ProviderAdapter {
       if (failed) return Promise.resolve(failed);
       const all = mockMarketplace.orders.get(cfg(call, 'store')) ?? [];
       const from = cursor ? Number(cursor) : 0;
-      return Promise.resolve({
-        ok: true,
-        value: { orders: all.slice(from), cursor: String(all.length) },
-        units: 1,
-      });
+      // The same validation as a real connector's feed (D-072).
+      const orders = parseFeedOrders({ orders: all.slice(from) });
+      if (!orders) return Promise.resolve({ ok: false, code: 'FEED_INVALID', retryable: false });
+      return Promise.resolve({ ok: true, value: { orders, cursor: String(all.length) }, units: 1 });
     },
     generateText: (call, req) => {
       const failed = failFor(call);
@@ -622,21 +663,134 @@ export function smsDltAdapter(): ProviderAdapter {
 const SKU = /^[A-Za-z0-9._/-]{1,60}$/;
 const ORDER_ID = /^[A-Za-z0-9._:/-]{1,100}$/;
 
-/** Validates a feed from outside: anything malformed is dropped, never half-applied. */
+// Rejecting control characters is the point here.
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f]/;
+const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+
+/**
+ * Optional order details (D-072): each field is checked on its own; an
+ * invalid one is dropped and named in `dropped`, so one bad address does not
+ * stop the order. Absent fields are simply null.
+ */
+function parseDetails(o: Record<string, unknown>): { details: FeedOrderDetails; dropped: string[] } {
+  const dropped: string[] = [];
+  const section = (key: string): Record<string, unknown> | null => {
+    const v = o[key];
+    if (v === undefined || v === null) return null;
+    if (typeof v === 'object' && !Array.isArray(v)) return v as Record<string, unknown>;
+    dropped.push(key);
+    return null;
+  };
+  const field = <T>(
+    sec: Record<string, unknown> | null,
+    path: string,
+    key: string,
+    check: (v: unknown) => T | null,
+  ) => {
+    const v = sec?.[key];
+    if (v === undefined || v === null || v === '') return null;
+    const out = check(v);
+    if (out === null) dropped.push(`${path}.${key}`);
+    return out;
+  };
+  const text = (max: number) => (v: unknown) => {
+    if (typeof v !== 'string') return null;
+    const t = v.trim().replace(/\s+/g, ' ');
+    return t.length >= 1 && t.length <= max && !CONTROL.test(t) ? t : null;
+  };
+  const phone = (v: unknown) => (typeof v === 'string' && v.length <= 20 ? normalizeMobile(v) : null);
+  const oneOf =
+    <T extends string>(...values: T[]) =>
+    (v: unknown) =>
+      values.includes(v as T) ? (v as T) : null;
+  const paise = (v: unknown) => (Number.isSafeInteger(v) && (v as number) >= 0 ? (v as number) : null);
+  const date = (v: unknown) => {
+    if (typeof v !== 'string' || v.length > 40) return null;
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  };
+  const address = (key: string): FeedAddress | null => {
+    const a = section(key);
+    if (!a) return null;
+    const country = field(a, key, 'country', (v) => (typeof v === 'string' && /^[A-Z]{2}$/.test(v) ? v : null));
+    const out: FeedAddress = {
+      name: field(a, key, 'name', text(120)),
+      phone: field(a, key, 'phone', phone),
+      line1: field(a, key, 'line1', text(200)),
+      line2: field(a, key, 'line2', text(200)),
+      landmark: field(a, key, 'landmark', text(120)),
+      city: field(a, key, 'city', text(80)),
+      state: field(a, key, 'state', text(80)),
+      pincode: field(a, key, 'pincode', (v) => {
+        const t = typeof v === 'string' || typeof v === 'number' ? String(v).replace(/\s/g, '') : '';
+        return (country ?? 'IN') === 'IN'
+          ? /^[1-9][0-9]{5}$/.test(t)
+            ? t
+            : null
+          : /^[A-Z0-9-]{2,12}$/i.test(t)
+            ? t
+            : null;
+      }),
+      country,
+    };
+    return Object.values(out).some((v) => v !== null) ? out : null;
+  };
+  const buyer = section('buyer');
+  const payment = section('payment');
+  const fulfilment = section('fulfilment');
+  const totals = section('totals');
+  const details: FeedOrderDetails = {
+    buyerName: field(buyer, 'buyer', 'name', text(120)),
+    buyerPhone: field(buyer, 'buyer', 'phone', phone),
+    buyerEmail: field(buyer, 'buyer', 'email', (v) =>
+      typeof v === 'string' && v.length <= 254 && EMAIL.test(v.trim()) ? v.trim().toLowerCase() : null,
+    ),
+    buyerGstin: field(buyer, 'buyer', 'gstin', (v) => {
+      const g = typeof v === 'string' ? v.trim().toUpperCase() : '';
+      return g.length === 15 && gstinProblem(g) === undefined ? g : null;
+    }),
+    shipTo: address('shipTo'),
+    billTo: address('billTo'),
+    paymentMethod: field(payment, 'payment', 'method', oneOf('PREPAID', 'COD')),
+    paymentStatus: field(payment, 'payment', 'status', oneOf('PAID', 'PENDING', 'REFUNDED')),
+    fulfilledBy: field(fulfilment, 'fulfilment', 'by', oneOf('SELLER', 'MARKETPLACE')),
+    platformStatus: field(fulfilment, 'fulfilment', 'status', text(40)),
+    shipBy: field(fulfilment, 'fulfilment', 'shipBy', date),
+    deliverBy: field(fulfilment, 'fulfilment', 'deliverBy', date),
+    carrier: field(fulfilment, 'fulfilment', 'carrier', text(60)),
+    trackingId: field(fulfilment, 'fulfilment', 'trackingId', text(100)),
+    itemsPaise: field(totals, 'totals', 'itemsPaise', paise),
+    shippingPaise: field(totals, 'totals', 'shippingPaise', paise),
+    discountPaise: field(totals, 'totals', 'discountPaise', paise),
+    taxPaise: field(totals, 'totals', 'taxPaise', paise),
+    totalPaise: field(totals, 'totals', 'totalPaise', paise),
+    marketplaceFeesPaise: field(totals, 'totals', 'marketplaceFeesPaise', paise),
+  };
+  return { details, dropped: dropped.slice(0, 40) };
+}
+
+/**
+ * Validates a feed from outside. A malformed order (ID, status, date, lines)
+ * makes the whole feed invalid, never half-applied; optional details are
+ * checked field by field (parseDetails).
+ */
 export function parseFeedOrders(json: unknown): FeedOrder[] | null {
   const list = (json as { orders?: unknown } | null)?.orders;
   if (!Array.isArray(list) || list.length > 500) return null;
   const out: FeedOrder[] = [];
   for (const o of list as unknown[]) {
+    if (typeof o !== 'object' || o === null || Array.isArray(o)) return null;
     const r = o as { id?: unknown; status?: unknown; placedAt?: unknown; lines?: unknown };
     if (typeof r.id !== 'string' || !ORDER_ID.test(r.id)) return null;
     if (r.status !== 'NEW' && r.status !== 'CANCELLED') return null;
     const placed = typeof r.placedAt === 'string' ? new Date(r.placedAt) : null;
     if (!placed || Number.isNaN(placed.getTime())) return null;
     if (!Array.isArray(r.lines) || r.lines.length === 0 || r.lines.length > 100) return null;
+    const { details, dropped } = parseDetails(o as Record<string, unknown>);
     const lines = [];
-    for (const l of r.lines as unknown[]) {
-      const x = l as { sku?: unknown; quantity?: unknown; unitPricePaise?: unknown };
+    for (const [i, l] of (r.lines as unknown[]).entries()) {
+      const x = l as { sku?: unknown; quantity?: unknown; unitPricePaise?: unknown; title?: unknown };
       if (typeof x.sku !== 'string' || !SKU.test(x.sku)) return null;
       if (!Number.isInteger(x.quantity) || (x.quantity as number) < 1 || (x.quantity as number) > 1000) return null;
       const price =
@@ -646,9 +800,15 @@ export function parseFeedOrders(json: unknown): FeedOrder[] | null {
             ? (x.unitPricePaise as number)
             : undefined;
       if (price === undefined) return null;
-      lines.push({ sku: x.sku, quantity: x.quantity as number, unitPricePaise: price });
+      let title: string | null = null;
+      if (typeof x.title === 'string' && x.title.trim() !== '') {
+        const t = x.title.trim().replace(/\s+/g, ' ');
+        if (t.length <= 200 && !CONTROL.test(t)) title = t;
+        else if (dropped.length < 40) dropped.push(`lines.${String(i)}.title`);
+      }
+      lines.push({ sku: x.sku, quantity: x.quantity as number, unitPricePaise: price, title });
     }
-    out.push({ id: r.id, status: r.status, placedAt: placed.toISOString(), lines });
+    out.push({ id: r.id, status: r.status, placedAt: placed.toISOString(), lines, details, dropped });
   }
   return out;
 }
@@ -720,12 +880,13 @@ export function marketplaceJsonAdapter(): ProviderAdapter {
  */
 export const mockMarketplace = {
   pushes: [] as { label: string; items: InventoryItem[] }[],
-  orders: new Map<string, FeedOrder[]>(),
+  /** Orders as a connector would send them (JSON-shaped, validated when fetched). */
+  orders: new Map<string, object[]>(),
   failing: new Set<string>(),
   failure(call: AdapterCall): AdapterFailure | null {
     return this.failing.has(cfg(call, 'store')) ? { ok: false, code: 'MOCK_UNAVAILABLE', retryable: false } : null;
   },
-  place(label: string, order: FeedOrder): void {
+  place(label: string, order: object): void {
     this.orders.set(label, [...(this.orders.get(label) ?? []), order]);
   },
   reset(): void {

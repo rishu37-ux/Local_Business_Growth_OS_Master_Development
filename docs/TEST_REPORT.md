@@ -1057,3 +1057,26 @@ Not tested: Amazon, Flipkart or any real marketplace (no accounts, Q4); custom d
 | 8 | — | `pnpm check`: <br>• ESLint rules 26, domain 160, API unit 108, DB 54 <br>• API DB 456 (444 + 7 + 5) <br>`pnpm secrets` and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
 
 Not tested: real phone photos (accuracy unmeasured, needs consented pilot samples); a real phone camera over https; live `BarcodeDetector` decoding; handwritten bills; Firefox/WebKit.
+
+## TR-0048 · 2026-10-28 · Phase 13 — online order details (platform and buyer)
+
+**Environment:** as TR-0046 (dev container, throwaway PostgreSQL 16, Chromium only, real API with the built web app). Synthetic data only. The marketplace is the **mock connector**, which now uses the same feed parser as a real connector. Amazon, Flipkart or any other marketplace was not contacted.
+
+**Test files:** `order-details.db.test.ts` (new); `phase13-exit.db.test.ts` (new); `storefront.db.test.ts` (delivery address); `privacy.db.test.ts` (export list).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | 13.1 AC1 | An order with every section is stored and returned with all fields: <br>• buyer name, mobile (normalised), email (lower case), GSTIN <br>• both addresses <br>• prepaid/paid, shipped by the seller, platform status, ship-by and deliver-by <br>• the six totals, including marketplace fees <br>• the line title <br>An order without the optional sections imports as before. | **Pass** |
+| 2 | 13.1 AC2 | Invalid optional fields are dropped one by one and listed (10 fields: over-long name, bad phone, email, GSTIN check digit, PIN code, a city with a control character, unknown payment method, bad date, negative and fractional amounts). The valid parts stay. A malformed required field rejects the whole feed. | **Pass** |
+| 3 | 13.1 AC3 | Sent again: platform status, carrier, tracking and payment status are updated, and audited once. Payment method, dates, buyer, quantity and price are unchanged. | **Pass** |
+| 4 | 13.1 AC4 | Inventory staff (no `customers.view`) see "A…", "••••••1111" and only city/state/PIN. The response contains none of the name, email, mobile, street or GSTIN. Billing staff see everything. Another business → 404. | **Pass** |
+| 5 | D-072 (billing) | The customer created from the order has the buyer's name, mobile, email, billing address and GSTIN. | **Pass** |
+| 6 | 13.1 AC5 | Website form: <br>• An optional email and delivery address are stored on the order. <br>• A bad PIN code → 400 "Enter a 6-digit PIN code."; a partial address → 400; a bad email → 400. <br>• Nothing is reserved for the refused requests. | **Pass** |
+| 7 | 13.2 AC2 | Erasing the buyer of one order: <br>• Billing staff → 403; a short reason → 400; a stale sign-in → 403 `REAUTH_REQUIRED`; another business → 404. <br>• The owner → buyer fields null, recorded as `ERASE_ORDER_BUYER`. The audit holds no name and no reason. <br>• Second time → 409 `ALREADY_ERASED`. <br>• Re-sent by the platform: the status updates, the buyer stays erased. | **Pass** |
+| 8 | 13.2 AC1 | Customer erasure also erased the buyer details of 2 orders: the one billed to them and an unbilled one with the same mobile. Another buyer's order is untouched. | **Pass** |
+| 9 | 13.2 AC3 | The export ZIP has 29 files, including `sales_channels`, `channel_listings`, `channel_orders` and `channel_order_lines`. | **Pass** |
+| 10 | Phase 13 exit (browser) | In Chromium: <br>1. Sync imports the mock Amazon order. The list shows the buyer, "Pune 411045", Prepaid/paid and UNSHIPPED, and the channel and status filters keep it. <br>2. The order page shows: <br>• every platform and buyer detail, and both addresses <br>• items with the platform title <br>• total ₹11,939.00, fees − ₹959.12, you receive ₹10,979.88 <br>**Bill in Point of sale** → **Complete sale**: the invoice customer is "Asha Verma (synthetic)" with the email. <br>3. Inventory staff see the order with "A…", "••••••1111" and only city/PIN, and with none of the name, email, street, GSTIN or full mobile. <br>axe: 0 serious/critical over 9 audits (3 screens × 3 widths). No overflow, CSP violations or page errors. | **Pass** (4/4, first run) |
+| 11 | NFR-11 | Drill with migration 0033: <br>• 33 migrations <br>• 81 tables (1,350 rows) <br>• RLS 73 <br>• 85 policies <br>• 798 grants <br>• 5,537 column grants <br>• 55 functions <br>• tenant isolation <br>All compare equal. | **Pass** |
+| 12 | — | `pnpm check`: <br>• ESLint rules 26, domain 160, API unit 108, DB 54 <br>• API DB 470 (456 + 10 + 4) <br>The first full run failed only the exact migration list test; 0033 was added and the re-run passed. `pnpm secrets` and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
+
+Not tested: real Amazon/Flipkart feeds, or what they actually share (Q4); Firefox/WebKit.

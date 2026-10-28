@@ -86,6 +86,7 @@ main{padding:24px 0 40px}
 .out{color:#9b1c1c;font-weight:600}
 form{display:flex;flex-direction:column;gap:12px;max-width:26rem}
 label{display:flex;flex-direction:column;gap:4px;font-weight:600}
+fieldset{display:flex;flex-direction:column;gap:12px;border:1px solid #d4d4d8;border-radius:8px;padding:12px;margin:0}legend{font-weight:600;padding:0 4px}
 input{font:inherit;padding:10px 12px;border:1px solid #8a93ad;border-radius:8px}
 input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #3b34a8;outline-offset:2px}
 button{font:inherit;font-weight:600;padding:10px 16px;border:0;border-radius:8px;background:#302b86;color:#fff;cursor:pointer}
@@ -187,12 +188,18 @@ ${l.brand ? `<div class="muted">${esc(l.brand)}</div>` : ''}${l.variant_label ? 
     const form =
       l.available > 0
         ? `<h3>Ask the shop to keep it for you</h3>
-<p class="muted">No payment online. ${esc(p.name)} receives your name and number to contact you about this order, and you pay at the shop.</p>
+<p class="muted">No payment online. ${esc(p.name)} receives your name and number (and your email and address, if you give them) to contact you about this order, and you pay the shop.</p>
 <form method="post" action="/s/${esc(slug)}/p/${esc(l.listing_id)}/order">
 <input type="hidden" name="token" value="${randomBytes(16).toString('hex')}">
 <label>Your name <input name="name" required maxlength="120" autocomplete="name"></label>
 <label>Mobile number <input name="mobile" required inputmode="tel" maxlength="16" autocomplete="tel"></label>
 <label>Quantity <input name="quantity" type="number" min="1" max="${String(Math.min(10, l.available))}" value="1" required></label>
+<label>Email (optional) <input name="email" type="email" maxlength="254" autocomplete="email"></label>
+<fieldset><legend>Delivery address (optional, if you want it delivered)</legend>
+<label>Address <input name="address" maxlength="200" autocomplete="street-address"></label>
+<label>City <input name="city" maxlength="80" autocomplete="address-level2"></label>
+<label>PIN code <input name="pincode" inputmode="numeric" maxlength="6" autocomplete="postal-code"></label>
+</fieldset>
 <div class="trap" aria-hidden="true"><label>Leave empty <input name="website" tabindex="-1" autocomplete="off"></label></div>
 <button type="submit">Send order request</button></form>`
         : '<p>This item is out of stock right now. Please check again later or call the shop.</p>';
@@ -243,8 +250,17 @@ ${form}<p><a href="/s/${esc(slug)}">All products</a></p>`,
     name: z.string().trim().min(1).max(120),
     mobile: z.string().trim().min(10).max(16),
     quantity: z.coerce.number().int().min(1).max(10),
+    email: z.string().trim().max(254).optional(),
+    address: z.string().trim().max(200).optional(),
+    city: z.string().trim().max(80).optional(),
+    pincode: z.string().trim().max(10).optional(),
     website: z.string().max(200).optional(),
   });
+  const ORDER_FORM_ERRORS: Partial<Record<CommerceError['code'], string>> = {
+    MOBILE_INVALID: 'Enter a 10-digit Indian mobile number.',
+    EMAIL_INVALID: 'Please check the email address.',
+    PINCODE_INVALID: 'Enter a 6-digit PIN code.',
+  };
 
   void app.register((scope, _opts, done) => {
     scope.addContentTypeParser(
@@ -281,6 +297,15 @@ ${form}<p><a href="/s/${esc(slug)}">All products</a></p>`,
             productPage(p, slug, l, { tone: 'error', text: 'Please check your name, mobile number and quantity.' }),
           );
         }
+        const { address = '', city = '', pincode = '', email = '' } = parsed.data;
+        const anyAddress = address !== '' || city !== '' || pincode !== '';
+        if (anyAddress && (address === '' || city === '' || pincode === '')) {
+          return send(
+            reply,
+            400,
+            productPage(p, slug, l, { tone: 'error', text: 'For delivery, enter the address, city and PIN code.' }),
+          );
+        }
         try {
           await createWebsiteOrder(
             s.appDb,
@@ -291,20 +316,16 @@ ${form}<p><a href="/s/${esc(slug)}">All products</a></p>`,
               name: parsed.data.name,
               mobile: parsed.data.mobile,
               token: parsed.data.token,
+              ...(email === '' ? {} : { email }),
+              ...(anyAddress ? { address: { line1: address, city, pincode } } : {}),
             },
           );
         } catch (err) {
-          if (err instanceof CommerceError && (err.code === 'NOT_ENOUGH_STOCK' || err.code === 'MOBILE_INVALID')) {
-            const text =
-              err.code === 'MOBILE_INVALID'
-                ? 'Enter a 10-digit Indian mobile number.'
-                : `Only ${String(err.available ?? 0)} available right now.`;
+          const formError = err instanceof CommerceError ? ORDER_FORM_ERRORS[err.code] : undefined;
+          if (err instanceof CommerceError && (err.code === 'NOT_ENOUGH_STOCK' || formError)) {
+            const text = formError ?? `Only ${String(err.available ?? 0)} available right now.`;
             const fresh = (await findListing(slug, listingId))?.l ?? l;
-            return send(
-              reply,
-              err.code === 'MOBILE_INVALID' ? 400 : 409,
-              productPage(p, slug, fresh, { tone: 'error', text }),
-            );
+            return send(reply, formError ? 400 : 409, productPage(p, slug, fresh, { tone: 'error', text }));
           }
           if (err instanceof CommerceError && err.code === 'NOT_FOUND') return notFound(reply);
           throw err;

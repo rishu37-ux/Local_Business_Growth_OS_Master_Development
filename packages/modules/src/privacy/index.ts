@@ -5,6 +5,7 @@
 import { sql } from 'kysely';
 import { withTenant, type Db, type TenantContext } from '@lbgos/db';
 import { recordTenantEvent } from '../audit/index.ts';
+import { eraseCustomerOrderBuyersIn } from '../commerce/index.ts';
 import { suppressCustomerIn } from '../messaging/index.ts';
 import { toCsv, zip } from '../reports/index.ts';
 
@@ -26,6 +27,8 @@ export interface ErasureResult {
   readonly cancelledMessages: number;
   readonly redactedMessages: number;
   readonly consentsWithdrawn: number;
+  /** Channel orders whose buyer details were erased with the customer (D-072). */
+  readonly erasedOrderBuyers: number;
 }
 
 /**
@@ -42,8 +45,8 @@ export async function eraseCustomer(
   requestId?: string,
 ): Promise<ErasureResult> {
   return withTenant(db, ctx, async (trx) => {
-    const { rows } = await sql<{ erased: boolean }>`
-      select erased_at is not null as erased from lbg.customers
+    const { rows } = await sql<{ erased: boolean; mobile: string | null }>`
+      select erased_at is not null as erased, mobile_e164 as mobile from lbg.customers
        where business_id = ${ctx.businessId} and id = ${customerId} for update`.execute(trx);
     const c = rows[0];
     if (!c) throw new PrivacyError('NOT_FOUND', 'Customer not found.');
@@ -65,6 +68,7 @@ export async function eraseCustomer(
     const redacted = await sql`
       update lbg.messages set body = '[erased]', to_address = '[erased]', redacted_at = now()
        where business_id = ${ctx.businessId} and customer_id = ${customerId} and redacted_at is null`.execute(trx);
+    const orderBuyers = await eraseCustomerOrderBuyersIn(trx, ctx, customerId, c.mobile);
     await sql`
       update lbg.customers
          set name = ${ERASED_NAME}, mobile_e164 = null, alternate_mobile_e164 = null, email = null, address = null,
@@ -80,6 +84,7 @@ export async function eraseCustomer(
       cancelledMessages: Number(cancelled.numAffectedRows ?? 0),
       redactedMessages: Number(redacted.numAffectedRows ?? 0),
       consentsWithdrawn: Number(withdrawn.numAffectedRows ?? 0),
+      erasedOrderBuyers: orderBuyers,
     };
     // No personal data and not the reason text (it is kept in privacy_requests).
     await recordTenantEvent(trx, ctx, {
@@ -91,6 +96,7 @@ export async function eraseCustomer(
         cancelledMessages: result.cancelledMessages,
         redactedMessages: result.redactedMessages,
         consentsWithdrawn: result.consentsWithdrawn,
+        erasedOrderBuyers: result.erasedOrderBuyers,
       },
       ...(requestId ? { requestId } : {}),
     });
@@ -129,6 +135,10 @@ export const EXPORT_TABLES = [
   'offers',
   'creative_drafts',
   'campaigns',
+  'sales_channels',
+  'channel_listings',
+  'channel_orders',
+  'channel_order_lines',
 ] as const;
 
 /** Rows per table above which the export is refused (a background export is needed then). */

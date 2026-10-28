@@ -139,7 +139,18 @@ describe('public store (11.4)', () => {
     expect(form.body).toContain('Send order request');
     expect(form.body).toContain('No payment online.');
     const token = tokenOf(form.body);
-    const fields = { token, name: 'Store visitor (synthetic)', mobile: '9860000001', quantity: '2', website: '' };
+    expect(form.body).toContain('Delivery address (optional, if you want it delivered)');
+    const fields = {
+      token,
+      name: 'Store visitor (synthetic)',
+      mobile: '9860000001',
+      quantity: '2',
+      email: 'Visitor@Example.test',
+      address: '12 Test Lane',
+      city: 'Pune',
+      pincode: '411001',
+      website: '',
+    };
     const sent = await order(cableListing, fields);
     expect(sent.statusCode).toBe(200);
     expect(sent.body).toContain('has your request for 2');
@@ -168,6 +179,24 @@ describe('public store (11.4)', () => {
       quantity: '1',
     });
     expect(badMobile.statusCode).toBe(400);
+    // D-072: the optional delivery address is all or nothing, with a valid PIN code and email.
+    const fresh = async () => tokenOf((await page(`/s/${SLUG}/p/${cableListing}`)).body);
+    const base = { name: 'Someone', mobile: '9860000005', quantity: '1' };
+    const badPin = await order(cableListing, {
+      ...base,
+      token: await fresh(),
+      address: '1 Road',
+      city: 'Pune',
+      pincode: '0110',
+    });
+    expect([badPin.statusCode, badPin.body.includes('Enter a 6-digit PIN code.')]).toEqual([400, true]);
+    const partial = await order(cableListing, { ...base, token: await fresh(), city: 'Pune' });
+    expect([partial.statusCode, partial.body.includes('For delivery, enter the address, city and PIN code.')]).toEqual([
+      400,
+      true,
+    ]);
+    const badEmail = await order(cableListing, { ...base, token: await fresh(), email: 'not-an-email' });
+    expect([badEmail.statusCode, badEmail.body.includes('Please check the email address.')]).toEqual([400, true]);
     const bot = await order(cableListing, {
       token: tokenOf((await page(`/s/${SLUG}/p/${cableListing}`)).body),
       name: 'Bot',
@@ -199,6 +228,20 @@ describe('public store (11.4)', () => {
         channelKind: 'WEBSITE',
         customerName: 'Store visitor (synthetic)',
         customerMobile: '+919860000001',
+        buyerEmail: 'visitor@example.test',
+        shipTo: {
+          name: 'Store visitor (synthetic)',
+          phone: '+919860000001',
+          line1: '12 Test Lane',
+          line2: null,
+          landmark: null,
+          city: 'Pune',
+          state: null,
+          pincode: '411001',
+          country: 'IN',
+        },
+        paymentStatus: 'PENDING',
+        fulfilledBy: 'SELLER',
         state: 'OPEN',
       }),
     ]);

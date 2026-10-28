@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phases 7–12 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels; camera and OCR)
+## [Unreleased] — Phases 7–13 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels; camera and OCR)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -34,6 +34,13 @@
   - `GET /scans/:id/product-draft`.
   - Web: a camera control (live preview or phone photo) in Point of sale (an IMEI photo adds the phone), Catalogue (a product from a box photo), Scans (bill photo) and Stock (find by photo). A scanned label with no matching product can be saved as a new product.
   - Tests: `ocr-camera.db.test.ts` and the Phase 12 exit browser test with a fake camera.
+- Phase 13 (D-072):
+  - Migration 0033: platform and buyer details on channel orders, line titles, and per-order buyer erasure in `privacy_requests`.
+  - The `marketplace_json` feed takes optional buyer, address, payment, fulfilment and totals sections, validated per field. Re-sent orders update their progress.
+  - The API masks buyer details without `customers.view`. New route `POST /channel-orders/:id/erase-buyer`. Customer erasure covers that customer's orders; the export includes the channel tables.
+  - Website form: optional email and delivery address.
+  - Web: an order page; the order list has filters and buyer, delivery and payment columns.
+  - Tests: `order-details.db.test.ts` and the Phase 13 exit browser test.
   - Screens: Branding and website, and Online selling. POS opens a billed online order.
   - Phase 11 exit browser test.
 - Docs: `PHASE11_PLAN.md`, SRS FR-CHN-1…3.

@@ -5,10 +5,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Form } from 'react-aria-components';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { api, formatPaise, rupeesToPaise } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Badge, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { FULFILLED_BY, ORDER_STATE, PAYMENT_METHOD, PAYMENT_STATUS, when, type Order } from './online-order.tsx';
 import { useVariantOptions } from './purchases.tsx';
 
 interface Channel {
@@ -37,35 +38,12 @@ interface Listing {
   lastPushedQuantity: number | null;
   pushPending: boolean;
 }
-interface Order {
-  id: string;
-  channelName: string;
-  channelKind: Channel['kind'];
-  externalOrderId: string;
-  state: 'OPEN' | 'BILLING' | 'BILLED' | 'CANCELLED';
-  customerName: string | null;
-  customerMobile: string | null;
-  oversold: boolean;
-  needsAttention: boolean;
-  saleId: string | null;
-  invoiceNumber: string | null;
-  placedAt: string;
-  lines: { externalSku: string; productName: string | null; quantity: number; unitPricePaise: number | null }[];
-}
 interface Integration {
   id: string;
   category: string;
   label: string;
   status: string;
 }
-
-const STATE: Record<Order['state'], [string, 'success' | 'warning' | 'neutral' | 'danger']> = {
-  OPEN: ['New — stock kept', 'warning'],
-  BILLING: ['Being billed — stock kept', 'warning'],
-  BILLED: ['Billed', 'success'],
-  CANCELLED: ['Cancelled', 'neutral'],
-};
-const when = (iso: string) => new Date(iso).toLocaleString('en-IN');
 
 export function OnlineSellingPage() {
   const { businessId = '' } = useParams();
@@ -101,6 +79,8 @@ export function OnlineSellingPage() {
   const [channelId, setChannelId] = useState('');
   const [price, setPrice] = useState('');
   const [reason, setReason] = useState('');
+  const [orderChannel, setOrderChannel] = useState('');
+  const [orderState, setOrderState] = useState('');
   const chans = channels.data?.channels ?? [];
   const nameOf = (id: string) => chans.find((c) => c.id === id)?.name ?? '';
   const refresh = async (text: string) => {
@@ -340,6 +320,28 @@ export function OnlineSellingPage() {
             <p className="text-sm text-ink-600">No online orders yet.</p>
           ) : (
             <>
+              <div className="flex flex-wrap gap-x-4">
+                <NativeSelect
+                  label="Show orders from"
+                  name="orderChannel"
+                  value={orderChannel}
+                  onChange={setOrderChannel}
+                  options={[['', 'All channels'], ...chans.map((c) => [c.id, c.name] as const)]}
+                />
+                <NativeSelect
+                  label="Status"
+                  name="orderState"
+                  value={orderState}
+                  onChange={setOrderState}
+                  options={[
+                    ['', 'All'],
+                    ['OPEN', 'New — stock kept'],
+                    ['BILLING', 'Being billed'],
+                    ['BILLED', 'Billed'],
+                    ['CANCELLED', 'Cancelled'],
+                  ]}
+                />
+              </div>
               {business.can('pos.sell') ? (
                 <Field
                   label="Reason, if you cancel an order"
@@ -349,75 +351,103 @@ export function OnlineSellingPage() {
                   isRequired={false}
                 />
               ) : null}
-              <Table caption="Online orders" headers={['Received', 'From', 'Customer', 'Items', 'Status', '']}>
-                {(orders.data?.orders ?? []).map((o) => (
-                  <tr key={o.id}>
-                    <td className={cell}>{when(o.placedAt)}</td>
-                    <td className={cell}>
-                      {o.channelName} <span className="text-ink-600">{o.externalOrderId}</span>
-                    </td>
-                    <td className={cell}>
-                      {o.customerName ?? '—'}
-                      {o.customerMobile ? <div className="text-ink-600">{o.customerMobile}</div> : null}
-                    </td>
-                    <td className={cell}>
-                      {o.lines.map((l, i) => (
-                        <div key={`${o.id}-${String(i)}`}>
-                          {`${String(l.quantity)} × ${l.productName ?? `unknown SKU ${l.externalSku}`}`}
-                          {l.unitPricePaise === null ? '' : ` @ ${formatPaise(l.unitPricePaise)}`}
-                        </div>
-                      ))}
-                    </td>
-                    <td className={cell}>
-                      <Badge tone={STATE[o.state][1]}>{STATE[o.state][0]}</Badge>
-                      {o.invoiceNumber ? <div>{o.invoiceNumber}</div> : null}
-                      {o.oversold ? (
-                        <div>
-                          <Badge tone="danger">More than in stock</Badge>
-                        </div>
-                      ) : null}
-                      {o.needsAttention ? (
-                        <div>
-                          <Badge tone="danger">Needs attention</Badge>
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className={cell}>
-                      {business.can('pos.sell') && (o.state === 'OPEN' || o.state === 'BILLING') ? (
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            onPress={() => {
-                              setNotice(null);
-                              api<{ saleId: string }>(`${base}/channel-orders/${o.id}/bill`, {
-                                method: 'POST',
-                                body: {},
-                              })
-                                .then((r) => navigate(`/b/${businessId}/pos?sale=${r.saleId}`))
-                                .catch(failed);
-                            }}
-                          >
-                            Bill in Point of sale<span className="sr-only"> order {o.externalOrderId}</span>
-                          </Button>
-                          <Button
-                            variant="danger"
-                            isDisabled={reason.trim().length < 3}
-                            onPress={() => {
-                              setNotice(null);
-                              api(`${base}/channel-orders/${o.id}/cancel`, {
-                                method: 'POST',
-                                body: { reason: reason.trim() },
-                              })
-                                .then(() => refresh('Order cancelled; its stock is free again.'))
-                                .catch(failed);
-                            }}
-                          >
-                            Cancel<span className="sr-only"> order {o.externalOrderId}</span>
-                          </Button>
-                        </div>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+              <Table
+                caption="Online orders"
+                headers={['Received', 'Order', 'Buyer', 'Deliver to', 'Payment', 'Items', 'Status', '']}
+              >
+                {(orders.data?.orders ?? [])
+                  .filter(
+                    (o) =>
+                      (orderChannel === '' || o.channelId === orderChannel) &&
+                      (orderState === '' || o.state === orderState),
+                  )
+                  .map((o) => (
+                    <tr key={o.id}>
+                      <td className={cell}>{when(o.placedAt)}</td>
+                      <td className={cell}>
+                        <div>{o.channelName}</div>
+                        <Link
+                          to={`/b/${businessId}/online/orders/${o.id}`}
+                          className="font-medium text-brand-700 underline"
+                        >
+                          {o.externalOrderId}
+                          <span className="sr-only"> — open order details</span>
+                        </Link>
+                        {o.platformStatus ? <div className="text-ink-600">{o.platformStatus}</div> : null}
+                      </td>
+                      <td className={cell}>
+                        {o.buyerErased ? <span className="text-ink-600">Erased</span> : (o.customerName ?? '—')}
+                        {o.customerMobile ? <div className="text-ink-600">{o.customerMobile}</div> : null}
+                      </td>
+                      <td className={cell}>
+                        {o.shipTo?.city || o.shipTo?.pincode
+                          ? [o.shipTo.city, o.shipTo.pincode].filter(Boolean).join(' ')
+                          : '—'}
+                        {o.fulfilledBy ? <div className="text-ink-600">{FULFILLED_BY[o.fulfilledBy]}</div> : null}
+                      </td>
+                      <td className={cell}>
+                        {o.paymentMethod ? PAYMENT_METHOD[o.paymentMethod] : '—'}
+                        {o.paymentStatus ? <div className="text-ink-600">{PAYMENT_STATUS[o.paymentStatus]}</div> : null}
+                        {o.totals.totalPaise === null ? null : <div>{formatPaise(o.totals.totalPaise)}</div>}
+                      </td>
+                      <td className={cell}>
+                        {o.lines.map((l, i) => (
+                          <div key={`${o.id}-${String(i)}`}>
+                            {`${String(l.quantity)} × ${l.productName ?? l.title ?? `unknown SKU ${l.externalSku}`}`}
+                            {l.unitPricePaise === null ? '' : ` @ ${formatPaise(l.unitPricePaise)}`}
+                          </div>
+                        ))}
+                      </td>
+                      <td className={cell}>
+                        <Badge tone={ORDER_STATE[o.state][1]}>{ORDER_STATE[o.state][0]}</Badge>
+                        {o.invoiceNumber ? <div>{o.invoiceNumber}</div> : null}
+                        {o.oversold ? (
+                          <div>
+                            <Badge tone="danger">More than in stock</Badge>
+                          </div>
+                        ) : null}
+                        {o.needsAttention ? (
+                          <div>
+                            <Badge tone="danger">Needs attention</Badge>
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className={cell}>
+                        {business.can('pos.sell') && (o.state === 'OPEN' || o.state === 'BILLING') ? (
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              onPress={() => {
+                                setNotice(null);
+                                api<{ saleId: string }>(`${base}/channel-orders/${o.id}/bill`, {
+                                  method: 'POST',
+                                  body: {},
+                                })
+                                  .then((r) => navigate(`/b/${businessId}/pos?sale=${r.saleId}`))
+                                  .catch(failed);
+                              }}
+                            >
+                              Bill in Point of sale<span className="sr-only"> order {o.externalOrderId}</span>
+                            </Button>
+                            <Button
+                              variant="danger"
+                              isDisabled={reason.trim().length < 3}
+                              onPress={() => {
+                                setNotice(null);
+                                api(`${base}/channel-orders/${o.id}/cancel`, {
+                                  method: 'POST',
+                                  body: { reason: reason.trim() },
+                                })
+                                  .then(() => refresh('Order cancelled; its stock is free again.'))
+                                  .catch(failed);
+                              }}
+                            >
+                              Cancel<span className="sr-only"> order {o.externalOrderId}</span>
+                            </Button>
+                          </div>
+                        ) : null}
+                      </td>
+                    </tr>
+                  ))}
               </Table>
             </>
           )}

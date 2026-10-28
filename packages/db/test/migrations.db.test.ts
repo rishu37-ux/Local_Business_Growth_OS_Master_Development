@@ -58,6 +58,7 @@ describe('migrations', () => {
       '0030_billing',
       '0031_branding_store',
       '0032_sales_channels',
+      '0033_channel_order_details',
     ]);
   });
 });

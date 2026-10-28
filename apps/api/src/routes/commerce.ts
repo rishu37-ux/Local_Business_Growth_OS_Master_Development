@@ -1,7 +1,8 @@
 // Sales channels, listings and channel orders (increments 11.2–11.3: D-070).
 // Reading works in read-only mode with the view permission; changes need
 // integrations.manage (channels), catalogue.manage (listings) or pos.sell
-// (billing and cancelling orders).
+// (billing and cancelling orders). Buyer details are shown in full only with
+// customers.view (D-072); erasing them is owner-only with a recent sign-in.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
@@ -9,6 +10,7 @@ import {
   cancelOrder,
   CommerceError,
   createMarketplaceChannel,
+  eraseOrderBuyer,
   getOrder,
   importChannelOrders,
   listChannels,
@@ -36,6 +38,9 @@ const STATUS = {
   ORDER_BILLED: 409,
   NEEDS_ATTENTION: 409,
   MOBILE_INVALID: 422,
+  PINCODE_INVALID: 422,
+  EMAIL_INVALID: 422,
+  ALREADY_ERASED: 409,
 } as const satisfies Record<CommerceError['code'], number>;
 
 export function registerCommerceRoutes(app: FastifyInstance, s: AppServices): void {
@@ -67,6 +72,9 @@ export function registerCommerceRoutes(app: FastifyInstance, s: AppServices): vo
       }
     };
   const base = '/api/businesses/:businessId';
+  const buyerView = (request: FastifyRequest) => ({
+    buyer: request.access?.permissions.has('customers.view') === true,
+  });
 
   app.get(
     `${base}/channels`,
@@ -196,7 +204,12 @@ export function registerCommerceRoutes(app: FastifyInstance, s: AppServices): vo
     guarded(async (request, reply) =>
       can(request, reply, 'pos.sell', 'inventory.view')
         ? {
-            orders: await listOrders(s.appDb, ctxOf(request), (request.query as { open?: string }).open === 'true'),
+            orders: await listOrders(
+              s.appDb,
+              ctxOf(request),
+              (request.query as { open?: string }).open === 'true',
+              buyerView(request),
+            ),
           }
         : reply,
     ),
@@ -207,7 +220,12 @@ export function registerCommerceRoutes(app: FastifyInstance, s: AppServices): vo
     { config: { permission: MEMBER }, schema: { params: orderParams } },
     guarded(async (request, reply) => {
       if (!can(request, reply, 'pos.sell', 'inventory.view')) return reply;
-      const order = await getOrder(s.appDb, ctxOf(request), (request.params as { orderId: string }).orderId);
+      const order = await getOrder(
+        s.appDb,
+        ctxOf(request),
+        (request.params as { orderId: string }).orderId,
+        buyerView(request),
+      );
       return order ? { order } : fail(request, reply, 404, 'NOT_FOUND', 'Not found.');
     }),
   );
@@ -244,6 +262,28 @@ export function registerCommerceRoutes(app: FastifyInstance, s: AppServices): vo
         request.id,
       );
       return reply.status(204).send();
+    }),
+  );
+
+  app.post(
+    `${base}/channel-orders/:orderId/erase-buyer`,
+    {
+      // customers.manage keeps it out of read-only mode; the owner check and re-authentication follow (as D-052).
+      config: { permission: 'customers.manage', freshAuth: true },
+      schema: { params: orderParams, body: z.strictObject({ reason: z.string().trim().min(10).max(500) }) },
+    },
+    guarded(async (request, reply) => {
+      if (request.access?.isOwner !== true)
+        return fail(request, reply, 403, 'OWNER_ONLY', 'Only the owner can do this.');
+      return {
+        erasure: await eraseOrderBuyer(
+          s.appDb,
+          ctxOf(request),
+          (request.params as { orderId: string }).orderId,
+          (request.body as { reason: string }).reason,
+          request.id,
+        ),
+      };
     }),
   );
 }
