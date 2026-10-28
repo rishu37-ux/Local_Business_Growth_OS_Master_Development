@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Business modules of the modular monolith; each module is imported only via its index.ts.",
   "exports": {
+    "./agents": "./src/agents/index.ts",
     "./approvals": "./src/approvals/index.ts",
     "./audit": "./src/audit/index.ts",
     "./campaigns": "./src/campaigns/index.ts",

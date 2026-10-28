@@ -73,14 +73,17 @@ export async function createApprovalRequest(
     readonly payload: unknown;
     readonly requiredPermission: string;
     readonly reason: string;
+    /** The expected effect, computed by the caller from current records (shown to the approver). */
+    readonly effect?: string | undefined;
   },
 ): Promise<{ id: string; payloadSha256: string }> {
   const hash = payloadHash(input.payload);
   const { rows } = await sql<{ id: string }>`
     insert into lbg.approval_requests (business_id, requested_by, action_type, payload, payload_sha256,
-                                       required_permission, reason, expires_at)
+                                       required_permission, reason, effect, expires_at)
     values (${ctx.businessId}, ${ctx.userId}, ${input.actionType}, ${canonicalJson(input.payload)}::jsonb, ${hash},
-            ${input.requiredPermission}, ${input.reason}, now() + make_interval(hours => ${APPROVAL_TTL_HOURS}))
+            ${input.requiredPermission}, ${input.reason}, ${input.effect?.slice(0, 300) ?? null},
+            now() + make_interval(hours => ${APPROVAL_TTL_HOURS}))
     returning id`.execute(trx);
   const id = rows[0]?.id ?? '';
   await recordTenantEvent(trx, ctx, {
@@ -99,6 +102,7 @@ export interface ApprovalRequest {
   readonly payloadSha256: string;
   readonly requiredPermission: string;
   readonly reason: string | null;
+  readonly effect: string | null;
   readonly status: ApprovalStatus;
   readonly requestedBy: string;
   readonly requestedByName: string | null;
@@ -117,6 +121,7 @@ interface Row {
   payload_sha256: string;
   required_permission: string;
   reason: string | null;
+  effect: string | null;
   status: ApprovalStatus;
   requested_by: string;
   requested_by_name: string | null;
@@ -135,6 +140,7 @@ const toRequest = (r: Row): ApprovalRequest => ({
   payloadSha256: r.payload_sha256,
   requiredPermission: r.required_permission,
   reason: r.reason,
+  effect: r.effect,
   status: r.status,
   requestedBy: r.requested_by,
   requestedByName: r.requested_by_name,
@@ -146,7 +152,7 @@ const toRequest = (r: Row): ApprovalRequest => ({
   expiresAt: r.expires_at.toISOString(),
 });
 
-const SELECT = sql`select a.id, a.action_type, a.payload, a.payload_sha256, a.required_permission, a.reason, a.status,
+const SELECT = sql`select a.id, a.action_type, a.payload, a.payload_sha256, a.required_permission, a.reason, a.effect, a.status,
                           a.requested_by, u.display_name as requested_by_name, a.decided_by, a.decision_note,
                           a.error_code, a.result, a.created_at, a.expires_at
                      from lbg.approval_requests a left join lbg.users u on u.id = a.requested_by`;

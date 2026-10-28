@@ -61,7 +61,14 @@ async function signIn(page: Page, email: string, secret?: string) {
     await page.getByLabel('Six-digit code from your authenticator app').fill(totp(secret));
     await page.getByRole('button', { name: 'Verify code' }).click();
   }
-  await page.getByRole('heading', { name: /Welcome/ }).waitFor();
+  try {
+    await page.getByRole('heading', { name: /Welcome/ }).waitFor();
+  } catch (err) {
+    // Say what the page shows instead (e.g. a refused sign-in) rather than only a timeout.
+    throw new Error(`sign-in did not finish for ${email}: ${(await page.locator('main').innerText()).slice(0, 300)}`, {
+      cause: err,
+    });
+  }
 }
 
 beforeAll(async () => {
@@ -110,6 +117,8 @@ describe('reports screen', () => {
     await page.getByRole('heading', { name: 'Sales and accounts' }).waitFor();
     await page.getByRole('heading', { name: 'Gross margin' }).waitFor();
     await page.getByRole('cell', { name: 'Model RB-CB' }).first().waitFor();
+    // Each section loads on its own; wait for the last one read below (CI #50 read the page before it).
+    await page.getByText(/not a GST return/).waitFor();
     const text = await page.locator('main').innerText();
     // Net sales ₹1,500 this month, with the SRS §7 definition beside it.
     expect(text).toContain('Net sales');

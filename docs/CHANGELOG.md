@@ -10,6 +10,8 @@
 - Migration 0024, `@lbgos/modules/studio` and `groundingCheck` in `@lbgos/domain`: offers, caption and image generation through the hub, deterministic grounding post-check, versioned drafts with exact-version approval; studio API routes.
 - Migration 0025 and `@lbgos/modules/campaigns`: campaigns with exact-version approval, scheduling and cancellation, one gated message per recipient; campaign API routes; the tenant export includes offers, Studio drafts and campaigns.
 - Migration 0026, `@lbgos/modules/channels`, WhatsApp Cloud API and DLT SMS adapters, template matching in `@lbgos/domain`, template routes and public signed webhook routes; messages, reminders and campaigns are routed through the business's tested channel integration.
+- Web: API Hub, Offers, Creative Studio and Campaigns screens; the side menu scrolls when taller than the window. Tests: Phase 7 exit browser test; each test harness starts with empty rate-limit counters.
+- Migration 0027 and `@lbgos/modules/agents`: agent runs and steps, five assistants and their tools, approval requests with expected effects, agent API routes; the mock AI adapter can play agent steps.
 
 ## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 

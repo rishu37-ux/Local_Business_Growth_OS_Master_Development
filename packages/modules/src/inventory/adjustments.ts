@@ -177,6 +177,8 @@ export async function adjustStock(
   canApprove: boolean,
   action: AdjustmentAction,
   requestId?: string,
+  /** The expected effect shown to the approver (agents compute it; FR-AGT-4 AC2). */
+  effect?: string,
 ): Promise<AdjustmentOutcome> {
   return withTenant(db, ctx, async (trx) => {
     if (canApprove) {
@@ -202,6 +204,7 @@ export async function adjustStock(
       payload: action,
       requiredPermission: 'inventory.adjust.approve',
       reason: action.reason.trim(),
+      effect,
     });
     return { status: 'PENDING_APPROVAL', approvalRequestId: created.id, payloadSha256: created.payloadSha256 };
   });

@@ -405,3 +405,20 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Opt-out:** inbound STOP, UNSUBSCRIBE, STOP ALL, OPT OUT (whole message, any case) → suppression and marketing consent withdrawn (6.2 hook). Configurable keywords are deferred (FR-MSG-5 AC3 partly).
 - **System actor:** webhook work runs with the all-zero UUID as user; the database records no user for it and the audit log marks it SYSTEM.
 - Routing: without an injected provider (tests), messages, reminders and campaigns use the business's tested WhatsApp / SMS integration through `callProvider` (quota, retries, usage).
+
+### D-060 · 2026-10-28 · Accepted
+**Decision (Phase 7 screens, increment 7.7):**
+- Four screens in the business menu: Offers, Creative Studio, Campaigns (permission `marketing.draft`) and API Hub (`integrations.view`); actions appear only for the permissions that allow them, and the API checks again.
+- API Hub shows each integration's real status with a plain explanation (WORKFLOWS §10), the credential only as `••••` + its last 4 characters, health, usage and cost this month, recent calls, and for WhatsApp/SMS the webhook address and templates. WhatsApp and SMS credentials are entered as separate fields and stored together as one sealed JSON credential.
+- Studio shows each post-check flag with what it means; an approver can accept a checked value; any text change is saved as a new version that needs approval again. Campaigns show the audience preview (in the group / would receive now / left out with reasons) and, after sending, results counted from the messages; "Sent" means accepted by the provider, never "delivered" (FR-MSG-4 AC2).
+- The side menu scrolls on its own when it is taller than the window.
+- Test infrastructure: each test harness clears Better Auth's rate-limit counters at start (shared test database); production behaviour is unchanged.
+
+### D-061 · 2026-10-28 · Accepted
+**Decision (agent runtime and tools, increments 8.1–8.3):**
+- Runs (migration 0027) follow WORKFLOWS §12 in the database; finished runs are immutable, usage only grows, steps are append-only. Idempotency key unique per business and user. Defaults: timeout 120 s, 20 tool calls, 3 retries for invalid model output, 4,000 units per run, 20,000 units per business per day (`business_settings.agent_daily_unit_limit`).
+- The model talks through the hub's LLM integration (`callProvider`: quota, retries, usage) with a one-JSON-step protocol (`{"tool", "arguments"}` or `{"final": {"suggestions"}}`); the question goes in `<data>` markers; only the assistant's tools the user may use are offered. Anything else is not executed.
+- Tools run as the session user in the session business: each declares its permission (checked against the user's permissions), arguments are strict schemas, any business/tenant argument is refused (FOREIGN_SCOPE). Read tools return facts (value, source, period) from the existing report and stock functions; the answer's facts come only from tool results and the model's suggestions are post-checked (7.4 grounding check). Consequential tools create an approval request (stock adjustment, with a deterministically computed expected effect stored on the request — new column `approval_requests.effect`) or a draft that has its own approval flow (Studio caption, campaign submitted for approval). Model-supplied values are recomputed (VALUE_MISMATCH).
+- An approval-request proposal puts the run in AWAITING_APPROVAL; the run's user continues it after the decision (the decision is recorded as a step); cancelling withdraws a pending proposal. Runs are visible to their user and to holders of `audit.view`; reading stays possible in read-only mode.
+- Stored questions, arguments and results mask email addresses and digit runs of 10 or more ("[number]"); tools never return contact details.
+- The mock adapter scripts the model for tests; nothing here has run against a real model (Q4).

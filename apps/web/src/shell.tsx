@@ -22,9 +22,17 @@ type IconName =
   | 'person'
   | 'file'
   | 'bell'
-  | 'wallet';
+  | 'wallet'
+  | 'tag'
+  | 'spark'
+  | 'megaphone'
+  | 'plug';
 
 const ICON_PATHS: Readonly<Record<IconName, string>> = {
+  tag: 'M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Zm5-4.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z',
+  spark: 'M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18m0-12-2.5 2.5m-7 7L6 18',
+  megaphone: 'M3 10v4h3l7 4V6L6 10H3Zm13-1a4 4 0 0 1 0 6m-9 3 1.5 3',
+  plug: 'M9 3v5m6-5v5M6 8h12v3a6 6 0 0 1-12 0V8Zm6 9v4',
   bell: 'M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0',
   wallet: 'M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7Zm0 0 12-3v3m0 7h2',
   chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
@@ -74,6 +82,10 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['suppliers', 'Suppliers', 'suppliers.view', 'truck'],
   ['approvals', 'Approvals', 'approvals.decide', 'check'],
   ['expenses', 'Expenses', 'expenses.manage', 'wallet'],
+  ['offers', 'Offers', 'marketing.draft', 'tag'],
+  ['studio', 'Creative Studio', 'marketing.draft', 'spark'],
+  ['campaigns', 'Campaigns', 'marketing.draft', 'megaphone'],
+  ['integrations', 'API Hub', 'integrations.view', 'plug'],
   ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];
@@ -162,7 +174,7 @@ export function BusinessShell() {
   const screens = SCREENS.filter(([, , permission]) => business.can(permission));
   return (
     <div className="business-shell mx-auto flex max-w-[90rem] flex-col lg:flex-row">
-      <aside className="border-b border-ink-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:border-b-0 lg:bg-transparent">
+      <aside className="border-b border-ink-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:bg-transparent">
         <div className="hidden border-b border-ink-100 px-5 py-5 lg:block">
           <p className="truncate text-sm font-semibold text-ink-900">{b.display_name ?? b.legal_name}</p>
           <div className="mt-2">
