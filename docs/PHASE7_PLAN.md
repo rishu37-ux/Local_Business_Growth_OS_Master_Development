@@ -29,6 +29,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC5: every category has an interface and a mock adapter; business logic depends only on interfaces; the messaging gate of 6.2 uses the configured messaging integration when one is `TESTED` or better, otherwise it stays "not configured".
 
 ## Increment 7.4 — Offers and the AI Creative Studio (FR-AIC-1, -2, -5, T10)
+**Status: done in the API (TR-0036, D-057); screens in 7.7.**
 - AC1: offer records (discount, valid from/to, terms) with approval; an offer past its end date cannot be used.
 - AC2: a generation is a job (status, provider, model, estimated cost before, recorded cost after where reported); without a configured provider the studio shows "not configured" and creates nothing.
 - AC3: prompts are built from structured data only (chosen products' name/specs/price from the catalogue, an approved offer, business branding); untrusted text is passed as delimited data.

@@ -16,6 +16,7 @@ export default defineConfig({
         'src/discount-limits.ts',
         'src/messaging.ts',
         'src/reminders.ts',
+        'src/grounding.ts',
       ],
       reporter: ['text'],
       thresholds: { branches: 95, lines: 95, functions: 95, statements: 95 },

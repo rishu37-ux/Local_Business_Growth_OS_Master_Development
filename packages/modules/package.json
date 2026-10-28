@@ -23,6 +23,7 @@
     "./reports": "./src/reports/index.ts",
     "./sales": "./src/sales/index.ts",
     "./secrets": "./src/secrets/index.ts",
+    "./studio": "./src/studio/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

@@ -64,11 +64,11 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-RPT-4 | Reports | Export | 5–6 | Implemented + tested (CSV for every report, XLSX for sales, stock and tax summaries and more, PDF for sales summary, tax summary and customer statements; `reports.export` plus the report's permission; every export audited) | `modules/reports/export.ts`, `routes/reports.ts` | TR-0024 #8–9 |
 | FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
 | FR-EXP-1 | Expenses | Expenses (optional module) | 6 | Done (AC1–2) | migration 0020, `modules/expenses/`, `routes/expenses.ts` | TR-0029 #1–6, #8–11, TR-0032 #5 |
-| FR-AIC-1 | Creative | Generation | 7 | Specified | — | — |
-| FR-AIC-2 | Creative | Grounding | 7 | Specified | — | — |
-| FR-AIC-3 | Creative | Approval | 7 | Specified | — | — |
-| FR-AIC-4 | Creative | Variants and scheduling | 7 | Specified | — | — |
-| FR-AIC-5 | Creative | Cost and asset tracking | 7 | Specified | — | — |
+| FR-AIC-1 | Creative | Generation | 7 | Done in API (generation jobs with provider, model, units, cost; not configured without a tested integration); screens in 7.7 | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #2, #4, #8 |
+| FR-AIC-2 | Creative | Grounding | 7 | Done in API (structured prompts, deterministic post-check with approver acknowledgement, ended offers refused) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #1, #3–7 |
+| FR-AIC-3 | Creative | Approval | 7 | In progress (AC1 exact-version approval and edit-clears-approval for content; bulk sends and publishing in 7.5; AC2 safe policies exist for reminders, D-049) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #5, #11 |
+| FR-AIC-4 | Creative | Variants and scheduling | 7 | In progress (AC1 formats 1:1, 4:5, 9:16, 16:9; AC3 per-platform length checks; AC2 scheduling in 7.5) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #6, #9 |
+| FR-AIC-5 | Creative | Cost and asset tracking | 7 | Done in API (usage per generation via the hub; assets private with prompt reference, inputs and approval status; quota) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #4, #9–10 |
 | FR-HUB-1 | API Hub | Adapters | 7 | Done in API (interfaces, a mock per category, custom REST test-only); provider adapters in 7.6 | `modules/integrations/` | TR-0035 #1, #3, #7 |
 | FR-HUB-2 | API Hub | Configuration fields | 7 | Done in API | migration 0023, `modules/integrations/` | TR-0035 #2, #9 |
 | FR-HUB-3 | API Hub | Secret handling | 7 | Done in API (AC1–4: write-only with 4-character hint, envelope encryption with KEK outside the DB, redaction tested, re-auth and audit); integration screens in 7.7 | migration 0022, `modules/secrets/`, `routes/secrets.ts` | TR-0034 #1–13 |
