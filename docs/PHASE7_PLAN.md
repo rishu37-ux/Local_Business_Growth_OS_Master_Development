@@ -44,6 +44,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC4: approved items can be scheduled and cancelled until sent; no paid-ad spend exists in this phase (FR-SUB-3 AC3 stays unbuilt and is shown as unavailable).
 
 ## Increment 7.6 — Selected official integrations (FR-MSG-1, -2, -4, NFR-18)
+**Status: done in the API against local mocks of the documented endpoints (TR-0038, D-059); no provider account exists.**
 - AC1: WhatsApp Business Platform (Cloud API) adapter against the documented API: template messages only for business-initiated sends, template list sync where the API allows; tested with a local mock of the documented endpoints, **not** against Meta until credentials exist.
 - AC2: inbound webhook endpoint: signature verification, replays older than 5 minutes rejected, idempotent processing; delivery/read statuses and STOP replies feed `recordProviderStatus` and the opt-out hook of 6.2.
 - AC3: SMS DLT fields (entity ID, header, template ID per template) required before an SMS integration can be configured; promotional and transactional kept separate.

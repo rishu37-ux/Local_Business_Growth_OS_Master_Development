@@ -9,6 +9,7 @@
     "./campaigns": "./src/campaigns/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
+    "./channels": "./src/channels/index.ts",
     "./customers": "./src/customers/index.ts",
     "./expenses": "./src/expenses/index.ts",
     "./integrations": "./src/integrations/index.ts",

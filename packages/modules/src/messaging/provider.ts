@@ -1,11 +1,12 @@
 // Messaging provider adapter (FR-MSG-1, ADR-19, D-048). No provider is
 // connected in this phase (WhatsApp Business Platform, SMS/DLT and email are
 // `planned`); the production default is NOT_CONFIGURED, so nothing is sent.
-import type { MessageChannel } from '@lbgos/domain';
+import type { MessageChannel, MessagePurpose } from '@lbgos/domain';
 
 export interface OutboundMessage {
   readonly messageId: string;
   readonly channel: MessageChannel;
+  readonly purpose: MessagePurpose;
   readonly to: string;
   readonly body: string;
 }
@@ -19,6 +20,8 @@ export interface MessageProvider {
   readonly name: string;
   readonly configured: boolean;
   send(message: OutboundMessage): Promise<ProviderResult>;
+  /** A provider routing per channel (the hub, 7.6) returns the one for this channel. */
+  select?(channel: MessageChannel): MessageProvider;
 }
 
 export const NOT_CONFIGURED: MessageProvider = {

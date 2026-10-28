@@ -560,14 +560,14 @@ export async function launchCampaign(
   id: string,
   now: Date = new Date(),
 ): Promise<Campaign> {
-  if (!provider.configured) {
-    throw new CampaignError(
-      'PROVIDER_NOT_CONFIGURED',
-      'Connect and test a messaging provider before sending a campaign.',
-    );
-  }
   await withTenant(db, ctx, async (trx) => {
     const r = await rowIn(trx, ctx, id, true);
+    if (!(provider.select?.(r.channel) ?? provider).configured) {
+      throw new CampaignError(
+        'PROVIDER_NOT_CONFIGURED',
+        'Connect and test a messaging provider before sending a campaign.',
+      );
+    }
     if (r.status !== 'APPROVED' && r.status !== 'SCHEDULED') {
       throw new CampaignError('INVALID_STATE', 'Only an approved campaign can be sent.');
     }
@@ -632,10 +632,11 @@ export async function runDueCampaigns(
   const notStarted: { id: string; reason: string }[] = [];
   for (const { id } of due.rows) {
     try {
-      if (!provider.configured)
-        throw new CampaignError('PROVIDER_NOT_CONFIGURED', 'No messaging provider is configured.');
       await withTenant(db, ctx, async (trx) => {
         const r = await rowIn(trx, ctx, id, true);
+        if (!(provider.select?.(r.channel) ?? provider).configured) {
+          throw new CampaignError('PROVIDER_NOT_CONFIGURED', 'No messaging provider is configured.');
+        }
         if (r.status === 'SCHEDULED') await launchIn(trx, ctx, r, now);
       });
       started.push(id);

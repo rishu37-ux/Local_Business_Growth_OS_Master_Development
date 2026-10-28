@@ -627,7 +627,7 @@ export type DispatchOutcome =
 export async function dispatchMessage(
   db: Db,
   ctx: TenantContext,
-  provider: MessageProvider,
+  router: MessageProvider,
   id: string,
   now: Date = new Date(),
 ): Promise<DispatchOutcome> {
@@ -638,6 +638,7 @@ export async function dispatchMessage(
       return { outcome: 'DEFERRED' as const, notBefore: m.not_before.toISOString() };
     }
     await lockAddress(trx, m.channel, m.to_address);
+    const provider = router.select?.(m.channel) ?? router;
     const c = m.customer_id ? await customerIn(trx, ctx, m.customer_id) : null;
     const decision = gateDecision({
       purpose: m.purpose,
@@ -672,15 +673,16 @@ export async function dispatchMessage(
       return { outcome: 'FAILED' as const, reason: 'PROVIDER_NOT_CONFIGURED' };
     }
     await set('SUBMITTED', null, sql`, provider = ${provider.name}`);
-    return { outcome: 'SUBMIT' as const, message: m };
+    return { outcome: 'SUBMIT' as const, message: m, provider };
   });
   if (step.outcome !== 'SUBMIT') return step;
 
   let result: Awaited<ReturnType<MessageProvider['send']>>;
   try {
-    result = await provider.send({
+    result = await step.provider.send({
       messageId: id,
       channel: step.message.channel,
+      purpose: step.message.purpose,
       to: step.message.to_address,
       body: step.message.body,
     });
@@ -740,7 +742,14 @@ export async function recordProviderStatus(
          and provider_message_id = ${providerMessageId} for update`.execute(trx);
     const m = rows[0];
     if (!m) return false;
-    if (m.status === status || (m.status === 'READ' && status === 'DELIVERED')) return true; // repeated or late receipt
+    // A repeated or late receipt changes nothing: DELIVERED after READ, or a failure reported after delivery.
+    if (
+      m.status === status ||
+      (m.status === 'READ' && status === 'DELIVERED') ||
+      (status === 'FAILED' && (m.status === 'DELIVERED' || m.status === 'READ'))
+    ) {
+      return true;
+    }
     await sql`update lbg.messages set status = ${status},
                      status_reason = ${status === 'FAILED' ? (reason ?? 'PROVIDER_FAILED').slice(0, 200) : null}
                where business_id = ${ctx.businessId} and id = ${m.id}`.execute(trx);

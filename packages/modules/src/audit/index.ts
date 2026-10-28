@@ -2,7 +2,7 @@
 // the change, so the event and the change commit or roll back together.
 // Metadata must hold identifiers and outcomes, never secrets or full personal data.
 import { sql } from 'kysely';
-import type { TenantContext, Trx } from '@lbgos/db';
+import { SYSTEM_ACTOR, type TenantContext, type Trx } from '@lbgos/db';
 
 export interface AuditEvent {
   readonly action: string;
@@ -21,9 +21,11 @@ function checkAction(action: string): void {
 /** A tenant-scope event, visible to the business (tenant role, RLS-checked). */
 export async function recordTenantEvent(trx: Trx, ctx: TenantContext, event: AuditEvent): Promise<void> {
   checkAction(event.action);
+  const system = ctx.userId === SYSTEM_ACTOR;
   await sql`insert into lbg.audit_events (scope, business_id, actor_type, actor_user_id, action, target_type,
                                           target_id, request_id, metadata)
-            values ('TENANT', ${ctx.businessId}, 'USER', ${ctx.userId}, ${event.action}, ${event.targetType ?? null},
+            values ('TENANT', ${ctx.businessId}, ${system ? 'SYSTEM' : 'USER'}, ${system ? null : ctx.userId},
+                    ${event.action}, ${event.targetType ?? null},
                     ${event.targetId ?? null}, ${event.requestId ?? null}, ${JSON.stringify(event.metadata ?? {})}::jsonb)`.execute(
     trx,
   );

@@ -6,6 +6,13 @@
 import { Kysely, PostgresDialect, sql, type Transaction } from 'kysely';
 import pg from 'pg';
 
+/**
+ * The actor for work done on a provider's behalf (verified webhooks), not a
+ * user: the database records no user for it (migration 0026) and the audit log
+ * marks it SYSTEM.
+ */
+export const SYSTEM_ACTOR = '00000000-0000-0000-0000-000000000000';
+
 export interface TenantContext {
   readonly businessId: string;
   readonly userId: string;

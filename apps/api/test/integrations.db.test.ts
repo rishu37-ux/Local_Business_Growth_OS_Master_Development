@@ -412,7 +412,7 @@ describe('secrets, access and production behaviour', () => {
       const p = (await get(prod, `${s.base}/integrations/providers`, s.owner)).json<{
         providers: { provider: string }[];
       }>();
-      expect(p.providers.map((x) => x.provider)).toEqual(['custom_rest']);
+      expect(p.providers.map((x) => x.provider)).toEqual(['whatsapp_cloud', 'sms_dlt_json', 'custom_rest']);
       const res = await post(prod, `${s.base}/integrations`, llm, s.owner);
       expect(errorCode(res)).toBe('PROVIDER_UNKNOWN');
     } finally {

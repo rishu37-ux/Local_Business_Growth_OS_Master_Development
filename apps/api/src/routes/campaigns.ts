@@ -23,9 +23,9 @@ import {
   updateCampaign,
   type CampaignInput,
 } from '@lbgos/modules/campaigns';
-import { NOT_CONFIGURED } from '@lbgos/modules/messaging';
 import { MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
+import { messagingProviderFor } from '../hub.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
 const idParams = z.strictObject({ businessId: z.uuid(), id: z.uuid() });
@@ -54,7 +54,6 @@ const fields = {
 };
 
 export function registerCampaignRoutes(app: FastifyInstance, s: AppServices): void {
-  const provider = s.messaging ?? NOT_CONFIGURED;
   const ctxOf = (request: FastifyRequest) => ({
     businessId: (request.params as { businessId: string }).businessId,
     userId: request.principal?.userId ?? '',
@@ -85,7 +84,10 @@ export function registerCampaignRoutes(app: FastifyInstance, s: AppServices): vo
 
   app.get(base, { config: { permission: MEMBER }, schema: { params: businessParams } }, async (request, reply) =>
     canRead(request, reply)
-      ? { campaigns: await listCampaigns(s.appDb, ctxOf(request)), provider: { configured: provider.configured } }
+      ? {
+          campaigns: await listCampaigns(s.appDb, ctxOf(request)),
+          provider: { configured: (await messagingProviderFor(s, request)).configured },
+        }
       : reply,
   );
   app.get(
@@ -96,7 +98,7 @@ export function registerCampaignRoutes(app: FastifyInstance, s: AppServices): vo
         ? {
             campaign: await getCampaign(s.appDb, ctxOf(request), idOf(request)),
             audience: await previewAudience(s.appDb, ctxOf(request), idOf(request)),
-            provider: { configured: provider.configured },
+            provider: { configured: (await messagingProviderFor(s, request)).configured },
           }
         : reply,
     ),
@@ -197,14 +199,19 @@ export function registerCampaignRoutes(app: FastifyInstance, s: AppServices): vo
     `${base}/:id/send`,
     { config: { permission: 'marketing.send' }, schema: { params: idParams } },
     guarded(async (request) => ({
-      campaign: await launchCampaign(s.appDb, ctxOf(request), provider, idOf(request)),
+      campaign: await launchCampaign(s.appDb, ctxOf(request), await messagingProviderFor(s, request), idOf(request)),
     })),
   );
   app.post(
     `${base}/:id/dispatch`,
     { config: { permission: 'marketing.send' }, schema: { params: idParams } },
     guarded(async (request) => {
-      const results = await dispatchCampaign(s.appDb, ctxOf(request), provider, idOf(request));
+      const results = await dispatchCampaign(
+        s.appDb,
+        ctxOf(request),
+        await messagingProviderFor(s, request),
+        idOf(request),
+      );
       return { campaign: await getCampaign(s.appDb, ctxOf(request), idOf(request)), results };
     }),
   );
@@ -218,6 +225,6 @@ export function registerCampaignRoutes(app: FastifyInstance, s: AppServices): vo
   app.post(
     `${base}/run-due`,
     { config: { permission: 'marketing.send' }, schema: { params: businessParams } },
-    async (request) => runDueCampaigns(s.appDb, ctxOf(request), provider),
+    async (request) => runDueCampaigns(s.appDb, ctxOf(request), await messagingProviderFor(s, request)),
   );
 }

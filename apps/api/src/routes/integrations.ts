@@ -8,14 +8,18 @@ import {
   CATEGORIES,
   createIntegration,
   disableIntegration,
+  disableTemplate,
   enableIntegration,
   getIntegration,
   IntegrationError,
   integrationHealth,
   listIntegrations,
+  listTemplates,
   providers,
+  registerDltTemplate,
   revokeIntegration,
   setIntegrationSecret,
+  syncTemplates,
   testIntegration,
   updateIntegration,
   type HubDeps,
@@ -47,6 +51,8 @@ const config = {
   monthlyUnitLimit: z.number().int().min(1).max(1_000_000_000).nullable().optional(),
   timeoutMs: z.number().int().min(1000).max(60_000).optional(),
   maxRetries: z.number().int().min(0).max(3).optional(),
+  // Non-secret provider settings (WhatsApp IDs, DLT entity and headers); checked per provider.
+  config: z.record(z.string().max(40), z.unknown()).optional(),
 };
 const secret = z.string().min(1).max(4096);
 
@@ -61,6 +67,10 @@ const STATUS = {
   INVALID_STATE: 409,
   NOT_CONFIGURED: 409,
   QUOTA_EXCEEDED: 429,
+  CONFIG_INVALID: 422,
+  OPERATION_NOT_SUPPORTED: 422,
+  TEMPLATE_INVALID: 422,
+  SYNC_FAILED: 502,
 } as const satisfies Record<IntegrationError['code'], number>;
 
 export function registerIntegrationRoutes(app: FastifyInstance, s: AppServices): void {
@@ -203,6 +213,61 @@ export function registerIntegrationRoutes(app: FastifyInstance, s: AppServices):
     { config: { permission: 'integrations.manage', freshAuth: true }, schema: { params: idParams } },
     guarded(async (request) => ({
       integration: await revokeIntegration(s.appDb, ctxOf(request), idOf(request), request.id),
+    })),
+  );
+
+  // Provider templates (7.6): WhatsApp templates are read from Meta; SMS templates are entered as registered on DLT.
+  app.get(
+    `${base}/:id/templates`,
+    { config: { permission: 'integrations.view' }, schema: { params: idParams } },
+    guarded(async (request) => ({ templates: await listTemplates(s.appDb, ctxOf(request), idOf(request)) })),
+  );
+  app.post(
+    `${base}/:id/templates/sync`,
+    { config: { permission: 'integrations.manage' }, schema: { params: idParams } },
+    guarded(async (request) => ({
+      templates: await syncTemplates(deps, ctxOf(request), idOf(request), request.id),
+    })),
+  );
+  app.post(
+    `${base}/:id/templates`,
+    {
+      config: { permission: 'integrations.manage' },
+      schema: {
+        params: idParams,
+        body: z.strictObject({
+          name: z.string().trim().min(1).max(100),
+          purpose: z.enum(['MARKETING', 'TRANSACTIONAL']),
+          body: z.string().trim().min(1).max(1024),
+          dltTemplateId: z.string().regex(/^\d{10,25}$/),
+        }),
+      },
+    },
+    guarded(async (request, reply) =>
+      reply.status(201).send({
+        template: await registerDltTemplate(
+          s.appDb,
+          ctxOf(request),
+          idOf(request),
+          request.body as { name: string; purpose: 'MARKETING' | 'TRANSACTIONAL'; body: string; dltTemplateId: string },
+          request.id,
+        ),
+      }),
+    ),
+  );
+  app.post(
+    `${base}/:id/templates/:templateId/disable`,
+    {
+      config: { permission: 'integrations.manage' },
+      schema: { params: z.strictObject({ businessId: z.uuid(), id: z.uuid(), templateId: z.uuid() }) },
+    },
+    guarded(async (request) => ({
+      template: await disableTemplate(
+        s.appDb,
+        ctxOf(request),
+        idOf(request),
+        (request.params as { templateId: string }).templateId,
+      ),
     })),
   );
 }

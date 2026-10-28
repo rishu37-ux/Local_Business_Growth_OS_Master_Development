@@ -177,3 +177,16 @@ export {
   type GroundingFlag,
   type Platform,
 } from './grounding.ts';
+export {
+  channelConfigProblem,
+  DLT_VAR_MAX,
+  matchTemplate,
+  templateBodyValid,
+  whatsappPurpose,
+  type ChannelTemplate,
+  type DltConfig,
+  type TemplateChannel,
+  type TemplateMatch,
+  type TemplatePurpose,
+  type WhatsAppConfig,
+} from './channel-templates.ts';

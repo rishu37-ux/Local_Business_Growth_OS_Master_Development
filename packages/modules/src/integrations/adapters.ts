@@ -2,7 +2,9 @@
 // interfaces. Every category has a mock adapter (development and tests only:
 // it contacts nothing and says so). `custom_rest` can only test a REST/JSON
 // endpoint through the guarded client; operations need a provider-specific
-// adapter. Real provider adapters are added only with evidence (7.6).
+// adapter. 7.6 adds the WhatsApp Cloud API adapter (Meta's documented Graph
+// API; tested only against a local mock of it) and a DLT-aware SMS adapter
+// speaking a platform-defined JSON contract (D-059).
 import { guardedRequest, OutboundError, type OutboundOptions } from '../outbound/index.ts';
 
 export const CATEGORIES = [
@@ -30,6 +32,8 @@ export interface AdapterCall {
   readonly scopes: readonly string[];
   readonly modelId: string | null;
   readonly timeoutMs: number;
+  /** Non-secret provider configuration (WhatsApp IDs, DLT entity and headers). */
+  readonly config: Readonly<Record<string, unknown>>;
   readonly secret: string | null;
   /** DNS/transport injection for tests; production uses the system resolver and https. */
   readonly outbound?: Pick<OutboundOptions, 'resolver' | 'transport'> | undefined;
@@ -69,6 +73,33 @@ export interface ProviderAdapter {
     call: AdapterCall,
     req: { readonly prompt: string; readonly aspect: string },
   ): Promise<AdapterResult<ImageGeneration>>;
+  /** Sends one business-initiated message as a provider template; `ok` = accepted, with the provider's reference. */
+  sendMessage?(call: AdapterCall, req: SendRequest): Promise<AdapterResult<{ readonly providerMessageId: string }>>;
+  /** Reads the provider's templates (WhatsApp); SMS DLT templates are entered as registered. */
+  syncTemplates?(call: AdapterCall): Promise<AdapterResult<readonly ProviderTemplate[]>>;
+}
+
+export interface SendRequest {
+  readonly messageId: string;
+  /** E.164 with "+". */
+  readonly to: string;
+  readonly purpose: 'MARKETING' | 'TRANSACTIONAL';
+  readonly template: {
+    readonly name: string;
+    readonly language: string;
+    readonly params: readonly string[];
+    /** SMS: the DLT template ID and the full text. */
+    readonly dltTemplateId?: string | null;
+    readonly text: string;
+  };
+}
+
+export interface ProviderTemplate {
+  readonly name: string;
+  readonly language: string;
+  readonly category: string;
+  readonly status: string;
+  readonly body: string;
 }
 
 /** A provider the hub offers: which categories, auth methods and fields it uses. */
@@ -91,6 +122,24 @@ export const PROVIDERS: readonly ProviderSpec[] = [
     needsBaseUrl: false,
     mock: true,
     note: 'Development and automated tests only. Contacts nothing; results are synthetic.',
+  },
+  {
+    provider: 'whatsapp_cloud',
+    name: 'WhatsApp Business Platform (Cloud API)',
+    categories: ['MESSAGING'],
+    authMethods: ['BEARER'],
+    needsBaseUrl: true,
+    mock: false,
+    note: 'Meta Graph API, e.g. https://graph.facebook.com/v21.0 (check the current version). Credential: JSON with accessToken, appSecret and verifyToken. Approved templates only for business-initiated messages.',
+  },
+  {
+    provider: 'sms_dlt_json',
+    name: 'SMS gateway (DLT, JSON)',
+    categories: ['SMS'],
+    authMethods: ['API_KEY'],
+    needsBaseUrl: true,
+    mock: false,
+    note: 'A gateway accepting the platform JSON contract (D-059) with DLT entity, header and template IDs. Credential: JSON with apiKey and webhookSecret.',
   },
   {
     provider: 'custom_rest',
@@ -245,5 +294,215 @@ export function customRestAdapter(): ProviderAdapter {
 export function adapterFor(provider: string, allowMocks: boolean): ProviderAdapter | null {
   if (provider === 'mock') return allowMocks ? mockAdapter() : null;
   if (provider === 'custom_rest') return customRestAdapter();
+  if (provider === 'whatsapp_cloud') return whatsappCloudAdapter();
+  if (provider === 'sms_dlt_json') return smsDltAdapter();
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Messaging channels (7.6)
+// ---------------------------------------------------------------------------
+
+/** A channel credential is JSON; returns the named string fields or null. */
+export function secretFields<K extends string>(secret: string | null, keys: readonly K[]): Record<K, string> | null {
+  if (!secret) return null;
+  let v: unknown;
+  try {
+    v = JSON.parse(secret);
+  } catch {
+    return null;
+  }
+  if (typeof v !== 'object' || v === null) return null;
+  const out = {} as Record<K, string>;
+  for (const k of keys) {
+    const f = (v as Record<string, unknown>)[k];
+    if (typeof f !== 'string' || f === '') return null;
+    out[k] = f;
+  }
+  return out;
+}
+
+const cfg = (call: AdapterCall, key: string) => {
+  const v = call.config[key];
+  return typeof v === 'string' ? v : '';
+};
+
+async function jsonRequest(
+  call: AdapterCall,
+  url: string,
+  init: { method?: 'GET' | 'POST'; headers: Record<string, string>; body?: unknown },
+): Promise<{ status: number; json: unknown } | AdapterFailure> {
+  try {
+    const res = await guardedRequest(url, {
+      method: init.method ?? 'GET',
+      headers: {
+        accept: 'application/json',
+        ...(init.body === undefined ? {} : { 'content-type': 'application/json' }),
+        ...init.headers,
+      },
+      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+      timeoutMs: call.timeoutMs,
+      maxBytes: 512 * 1024,
+      allowedPorts: call.allowedPort ? [call.allowedPort] : [],
+      ...(call.outbound ?? {}),
+    });
+    let json: unknown = null;
+    try {
+      json = JSON.parse(res.body.toString('utf8'));
+    } catch {
+      json = null;
+    }
+    return { status: res.status, json };
+  } catch (err) {
+    if (err instanceof OutboundError) {
+      return { ok: false, code: err.code, retryable: err.code === 'TIMEOUT' || err.code === 'NETWORK_ERROR' };
+    }
+    return { ok: false, code: 'ADAPTER_ERROR', retryable: false };
+  }
+}
+
+const httpFailure = (status: number, code: string): AdapterFailure => ({
+  ok: false,
+  code: code.slice(0, 40),
+  retryable: status === 429 || status >= 500,
+});
+
+/** Graph API error code, e.g. {"error":{"code":131026}} → WA_131026. */
+const graphError = (status: number, json: unknown): AdapterFailure => {
+  const code = (json as { error?: { code?: unknown } } | null)?.error?.code;
+  // 130429/131048/131056 are Meta's rate-limit codes: retryable.
+  const rate = code === 130429 || code === 131048 || code === 131056;
+  const f = httpFailure(status, typeof code === 'number' ? `WA_${String(code)}` : `HTTP_${String(status)}`);
+  return rate ? { ...f, retryable: true } : f;
+};
+
+const base = (call: AdapterCall) => (call.baseUrl ?? '').replace(/\/+$/, '');
+
+/**
+ * WhatsApp Business Platform, Cloud API (Graph API). Business-initiated
+ * messages are template messages (POST /{phone-number-id}/messages with
+ * type "template"); templates are read from /{waba-id}/message_templates.
+ */
+export function whatsappCloudAdapter(): ProviderAdapter {
+  const auth = (call: AdapterCall) => {
+    const s = secretFields(call.secret, ['accessToken']);
+    return s ? { authorization: `Bearer ${s.accessToken}` } : null;
+  };
+  return {
+    provider: 'whatsapp_cloud',
+    real: true,
+    async test(call) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const url = `${base(call)}/${encodeURIComponent(cfg(call, 'phoneNumberId'))}?fields=display_phone_number,verified_name`;
+      const res = await jsonRequest(call, url, { headers });
+      if ('ok' in res) return res;
+      return res.status === 200 ? { ok: true } : graphError(res.status, res.json);
+    },
+    async sendMessage(call, req) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const body = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: req.to.replace(/^\+/, ''),
+        type: 'template',
+        template: {
+          name: req.template.name,
+          language: { code: req.template.language },
+          ...(req.template.params.length > 0
+            ? {
+                components: [{ type: 'body', parameters: req.template.params.map((text) => ({ type: 'text', text })) }],
+              }
+            : {}),
+        },
+      };
+      const url = `${base(call)}/${encodeURIComponent(cfg(call, 'phoneNumberId'))}/messages`;
+      const res = await jsonRequest(call, url, { method: 'POST', headers, body });
+      if ('ok' in res) return res;
+      if (res.status !== 200) return graphError(res.status, res.json);
+      const id = (res.json as { messages?: { id?: unknown }[] } | null)?.messages?.[0]?.id;
+      if (typeof id !== 'string' || id === '' || id.length > 200) {
+        return { ok: false, code: 'NO_MESSAGE_ID', retryable: false };
+      }
+      return { ok: true, value: { providerMessageId: id }, units: 1 };
+    },
+    async syncTemplates(call) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const url = `${base(call)}/${encodeURIComponent(cfg(call, 'wabaId'))}/message_templates?fields=name,language,status,category,components&limit=200`;
+      const res = await jsonRequest(call, url, { headers });
+      if ('ok' in res) return res;
+      if (res.status !== 200) return graphError(res.status, res.json);
+      const data = (res.json as { data?: unknown } | null)?.data;
+      if (!Array.isArray(data)) return { ok: false, code: 'BAD_RESPONSE', retryable: false };
+      const out: ProviderTemplate[] = [];
+      for (const t of data as Record<string, unknown>[]) {
+        const comps = Array.isArray(t.components) ? (t.components as Record<string, unknown>[]) : [];
+        const text = comps.find((c) => c.type === 'BODY')?.text;
+        if (typeof t.name !== 'string' || typeof t.language !== 'string' || typeof text !== 'string') continue;
+        out.push({
+          name: t.name,
+          language: t.language,
+          category: typeof t.category === 'string' ? t.category : '',
+          status: typeof t.status === 'string' ? t.status : '',
+          body: text,
+        });
+      }
+      return { ok: true, value: out };
+    },
+  };
+}
+
+/**
+ * SMS through a gateway that accepts the platform JSON contract (D-059):
+ * POST {base}/v1/sms {to, text, category, dlt: {entityId, header, templateId},
+ * reference} → {id}. Promotional and transactional traffic use their own
+ * registered headers; a message without a DLT template never leaves.
+ */
+export function smsDltAdapter(): ProviderAdapter {
+  const auth = (call: AdapterCall) => {
+    const s = secretFields(call.secret, ['apiKey']);
+    return s ? { 'x-api-key': s.apiKey } : null;
+  };
+  return {
+    provider: 'sms_dlt_json',
+    real: true,
+    async test(call) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const res = await jsonRequest(call, `${base(call)}${call.testPath ?? '/v1/account'}`, { headers });
+      if ('ok' in res) return res;
+      return res.status === 200 ? { ok: true } : httpFailure(res.status, `HTTP_${String(res.status)}`);
+    },
+    async sendMessage(call, req) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const senders = (call.config.headers ?? {}) as Record<string, string | undefined>;
+      const header = senders[req.purpose];
+      if (!header) return { ok: false, code: 'DLT_HEADER_MISSING', retryable: false };
+      if (!req.template.dltTemplateId) return { ok: false, code: 'NO_DLT_TEMPLATE', retryable: false };
+      const body = {
+        to: req.to,
+        text: req.template.text,
+        category: req.purpose === 'MARKETING' ? 'PROMOTIONAL' : 'TRANSACTIONAL',
+        dlt: { entityId: cfg(call, 'dltEntityId'), header, templateId: req.template.dltTemplateId },
+        reference: req.messageId,
+      };
+      const res = await jsonRequest(call, `${base(call)}/v1/sms`, { method: 'POST', headers, body });
+      if ('ok' in res) return res;
+      if (res.status < 200 || res.status >= 300) {
+        const code = (res.json as { code?: unknown } | null)?.code;
+        return httpFailure(
+          res.status,
+          typeof code === 'string' && /^[A-Z0-9_]{1,30}$/.test(code) ? `SMS_${code}` : `HTTP_${String(res.status)}`,
+        );
+      }
+      const id = (res.json as { id?: unknown } | null)?.id;
+      if (typeof id !== 'string' || id === '' || id.length > 200) {
+        return { ok: false, code: 'NO_MESSAGE_ID', retryable: false };
+      }
+      return { ok: true, value: { providerMessageId: id }, units: 1 };
+    },
+  };
 }

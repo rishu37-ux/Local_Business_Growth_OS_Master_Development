@@ -2,8 +2,9 @@
 // AC1–2, WORKFLOWS §10, D-056). Configuration is stored here; credentials go
 // to the secret store (7.2) and are opened only for a call. Every test and
 // call is recorded with result, latency, units and cost; quotas stop calls.
+import { channelConfigProblem, templateBodyValid, whatsappPurpose, type TemplatePurpose } from '@lbgos/domain';
 import { sql } from 'kysely';
-import { withTenant, type Db, type TenantContext, type Trx } from '@lbgos/db';
+import { SYSTEM_ACTOR, withTenant, type Db, type TenantContext, type Trx } from '@lbgos/db';
 import { recordTenantEvent } from '../audit/index.ts';
 import { checkTarget, OutboundError, type OutboundOptions } from '../outbound/index.ts';
 import { readSecretValue, revokeSecret, rotateSecret, storeSecret, type Keyring } from '../secrets/index.ts';
@@ -24,6 +25,11 @@ export {
   customRestAdapter,
   mockAdapter,
   PROVIDERS,
+  secretFields,
+  smsDltAdapter,
+  whatsappCloudAdapter,
+  type ProviderTemplate,
+  type SendRequest,
   type AdapterCall,
   type AdapterResult,
   type AuthMethod,
@@ -47,7 +53,11 @@ export class IntegrationError extends Error {
     | 'SECRET_REQUIRED'
     | 'INVALID_STATE'
     | 'NOT_CONFIGURED'
-    | 'QUOTA_EXCEEDED';
+    | 'QUOTA_EXCEEDED'
+    | 'CONFIG_INVALID'
+    | 'OPERATION_NOT_SUPPORTED'
+    | 'TEMPLATE_INVALID'
+    | 'SYNC_FAILED';
   readonly detail: string | undefined;
 
   constructor(code: IntegrationError['code'], message: string, detail?: string) {
@@ -86,6 +96,8 @@ export interface Integration {
   readonly monthlyUnitLimit: number | null;
   readonly timeoutMs: number;
   readonly maxRetries: number;
+  /** Non-secret provider configuration. */
+  readonly config: Readonly<Record<string, unknown>>;
   readonly secretId: string | null;
   readonly status: IntegrationStatus;
   readonly statusReason: string | null;
@@ -111,6 +123,7 @@ interface Row {
   monthly_unit_limit: number | null;
   timeout_ms: number;
   max_retries: number;
+  config: Record<string, unknown>;
   secret_id: string | null;
   status: IntegrationStatus;
   status_reason: string | null;
@@ -121,7 +134,7 @@ interface Row {
 }
 
 const COLUMNS = sql`id, category, provider, label, owner, auth_method, base_url, token_url, test_path, allowed_port, scopes,
-                    model_id, monthly_unit_limit, timeout_ms, max_retries, secret_id, status, status_reason,
+                    model_id, monthly_unit_limit, timeout_ms, max_retries, config, secret_id, status, status_reason,
                     last_success_at, last_error_at, last_error_code, created_at`;
 
 const toIntegration = (r: Row): Integration => ({
@@ -140,6 +153,7 @@ const toIntegration = (r: Row): Integration => ({
   monthlyUnitLimit: r.monthly_unit_limit,
   timeoutMs: r.timeout_ms,
   maxRetries: r.max_retries,
+  config: r.config,
   secretId: r.secret_id,
   status: r.status,
   statusReason: r.status_reason,
@@ -193,6 +207,8 @@ export interface IntegrationInput {
   readonly monthlyUnitLimit?: number | null | undefined;
   readonly timeoutMs?: number | undefined;
   readonly maxRetries?: number | undefined;
+  /** Non-secret provider configuration (checked per provider). */
+  readonly config?: Readonly<Record<string, unknown>> | undefined;
   /** The credential; stored sealed, never returned. */
   readonly secret?: string | undefined;
 }
@@ -216,6 +232,8 @@ export async function createIntegration(
   if (input.authMethod === 'OAUTH2_CLIENT_CREDENTIALS' && !input.tokenUrl) {
     throw new IntegrationError('BASE_URL_REQUIRED', 'A token URL is required for OAuth2 client credentials.');
   }
+  const problem = channelConfigProblem(input.provider, input.config ?? {});
+  if (problem) throw new IntegrationError('CONFIG_INVALID', problem);
   await checkEndpoint(deps, input.baseUrl, input.allowedPort);
   await checkEndpoint(deps, input.tokenUrl, input.allowedPort);
   const secretInfo =
@@ -233,11 +251,12 @@ export async function createIntegration(
     const { rows } = await sql<Row>`
       insert into lbg.integrations (business_id, category, provider, label, auth_method, base_url, token_url, test_path,
                                     allowed_port, scopes, model_id, monthly_unit_limit, timeout_ms, max_retries,
-                                    secret_id, status, created_by)
+                                    config, secret_id, status, created_by)
       values (${ctx.businessId}, ${input.category}, ${input.provider}, ${input.label.trim()}, ${input.authMethod},
               ${input.baseUrl ?? null}, ${input.tokenUrl ?? null}, ${input.testPath ?? null}, ${input.allowedPort ?? null},
               ${[...(input.scopes ?? [])]}::text[], ${input.modelId ?? null}, ${input.monthlyUnitLimit ?? null},
-              ${input.timeoutMs ?? 15_000}, ${input.maxRetries ?? 3}, ${secretInfo?.id ?? null},
+              ${input.timeoutMs ?? 15_000}, ${input.maxRetries ?? 3}, ${JSON.stringify(input.config ?? {})}::jsonb,
+              ${secretInfo?.id ?? null},
               ${configured ? 'CONFIGURED' : 'PLANNED'}, ${ctx.userId})
       returning ${COLUMNS}`.execute(trx);
     const row = rows[0];
@@ -298,6 +317,7 @@ export type IntegrationPatch = Partial<
     | 'monthlyUnitLimit'
     | 'timeoutMs'
     | 'maxRetries'
+    | 'config'
   >
 >;
 
@@ -325,14 +345,17 @@ export async function updateIntegration(
       limit: patch.monthlyUnitLimit === undefined ? cur.monthly_unit_limit : patch.monthlyUnitLimit,
       timeoutMs: patch.timeoutMs ?? cur.timeout_ms,
       maxRetries: patch.maxRetries ?? cur.max_retries,
+      config: patch.config ?? cur.config,
     };
+    const problem = channelConfigProblem(cur.provider, m.config);
+    if (problem) throw new IntegrationError('CONFIG_INVALID', problem);
     const retest = ['TESTED', 'VERIFIED', 'FAILED'].includes(cur.status);
     const { rows } = await sql<Row>`
       update lbg.integrations
          set label = ${m.label}, base_url = ${m.baseUrl}, token_url = ${m.tokenUrl}, test_path = ${m.testPath},
              allowed_port = ${m.allowedPort}, scopes = ${m.scopes}::text[], model_id = ${m.modelId},
              monthly_unit_limit = ${m.limit}, timeout_ms = ${m.timeoutMs}, max_retries = ${m.maxRetries},
-             status = ${retest ? 'CONFIGURED' : cur.status},
+             config = ${JSON.stringify(m.config)}::jsonb, status = ${retest ? 'CONFIGURED' : cur.status},
              status_reason = ${retest ? 'Configuration changed; test again.' : cur.status_reason}
        where business_id = ${ctx.businessId} and id = ${id}
       returning ${COLUMNS}`.execute(trx);
@@ -633,6 +656,7 @@ async function openCall(deps: HubDeps, ctx: TenantContext, row: Row): Promise<Ad
     scopes: row.scopes,
     modelId: row.model_id,
     timeoutMs: row.timeout_ms,
+    config: row.config,
     secret,
     outbound: deps.outbound,
   };
@@ -780,3 +804,244 @@ export async function callProvider<T>(
 }
 
 export const isCategory = (c: string): c is Category => (CATEGORIES as readonly string[]).includes(c);
+
+/**
+ * A delivered or read receipt is a real operation confirmed by the provider:
+ * a tested integration becomes VERIFIED (WORKFLOWS §10).
+ */
+export async function markVerified(appDb: Db, ctx: TenantContext, id: string): Promise<void> {
+  await withTenant(appDb, ctx, (trx) =>
+    sql`update lbg.integrations set status = 'VERIFIED', status_reason = 'Confirmed by a provider receipt.'
+         where business_id = ${ctx.businessId} and id = ${id} and status = 'TESTED'`.execute(trx),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Provider templates (7.6: FR-MSG-1 AC1, FR-MSG-2 AC1)
+// ---------------------------------------------------------------------------
+
+export interface MessageTemplate {
+  readonly id: string;
+  readonly integrationId: string;
+  readonly channel: 'WHATSAPP' | 'SMS';
+  readonly name: string;
+  readonly language: string;
+  readonly purpose: TemplatePurpose;
+  readonly providerCategory: string | null;
+  readonly body: string;
+  readonly dltTemplateId: string | null;
+  readonly status: 'APPROVED' | 'PENDING' | 'REJECTED' | 'PAUSED' | 'DISABLED';
+  readonly source: 'SYNC' | 'MANUAL';
+  readonly syncedAt: string | null;
+}
+
+interface TemplateRow {
+  id: string;
+  integration_id: string;
+  channel: MessageTemplate['channel'];
+  name: string;
+  language: string;
+  purpose: TemplatePurpose;
+  provider_category: string | null;
+  body: string;
+  dlt_template_id: string | null;
+  status: MessageTemplate['status'];
+  source: MessageTemplate['source'];
+  synced_at: Date | null;
+}
+const TEMPLATE_COLUMNS = sql`id, integration_id, channel, name, language, purpose, provider_category, body, dlt_template_id,
+                             status, source, synced_at`;
+const toTemplate = (r: TemplateRow): MessageTemplate => ({
+  id: r.id,
+  integrationId: r.integration_id,
+  channel: r.channel,
+  name: r.name,
+  language: r.language,
+  purpose: r.purpose,
+  providerCategory: r.provider_category,
+  body: r.body,
+  dltTemplateId: r.dlt_template_id,
+  status: r.status,
+  source: r.source,
+  syncedAt: r.synced_at?.toISOString() ?? null,
+});
+
+export async function listTemplates(appDb: Db, ctx: TenantContext, integrationId: string): Promise<MessageTemplate[]> {
+  return withTenant(appDb, ctx, async (trx) => {
+    await rowIn(trx, ctx, integrationId);
+    const { rows } = await sql<TemplateRow>`
+      select ${TEMPLATE_COLUMNS} from lbg.message_templates
+       where business_id = ${ctx.businessId} and integration_id = ${integrationId}
+       order by name, language`.execute(trx);
+    return rows.map(toTemplate);
+  });
+}
+
+/** Approved templates of the channel's active integration, in a stable order (for matching). */
+export async function approvedTemplatesIn(
+  trx: Trx,
+  ctx: TenantContext,
+  integrationId: string,
+): Promise<MessageTemplate[]> {
+  const { rows } = await sql<TemplateRow>`
+    select ${TEMPLATE_COLUMNS} from lbg.message_templates
+     where business_id = ${ctx.businessId} and integration_id = ${integrationId} and status = 'APPROVED'
+     order by created_at, id`.execute(trx);
+  return rows.map(toTemplate);
+}
+
+const WA_STATUS: Record<string, MessageTemplate['status']> = {
+  APPROVED: 'APPROVED',
+  PENDING: 'PENDING',
+  IN_APPEAL: 'PENDING',
+  REJECTED: 'REJECTED',
+  PAUSED: 'PAUSED',
+  DISABLED: 'DISABLED',
+};
+
+/** Reads the WhatsApp templates from the provider; templates no longer listed are disabled here. */
+export async function syncTemplates(
+  deps: HubDeps,
+  ctx: TenantContext,
+  integrationId: string,
+  requestId?: string,
+): Promise<MessageTemplate[]> {
+  const row = await withTenant(deps.appDb, ctx, (trx) => rowIn(trx, ctx, integrationId));
+  if (!['TESTED', 'VERIFIED'].includes(row.status)) {
+    throw new IntegrationError('INVALID_STATE', 'Test the integration before reading its templates.');
+  }
+  const adapter = adapterFor(row.provider, deps.allowMocks);
+  if (!adapter?.syncTemplates) {
+    throw new IntegrationError(
+      'OPERATION_NOT_SUPPORTED',
+      'This provider has no template list; enter templates instead.',
+    );
+  }
+  const result = await adapter.syncTemplates(await openCall(deps, ctx, row));
+  if (!result.ok) throw new IntegrationError('SYNC_FAILED', 'The provider did not return its templates.', result.code);
+  await withTenant(deps.appDb, ctx, async (trx) => {
+    const seen: string[] = [];
+    for (const t of result.value) {
+      const lang = /^[a-z]{2,3}(_[A-Z]{2})?$/.test(t.language) ? t.language : null;
+      if (!lang || t.body.length > 1024 || t.name.length > 512) continue;
+      const valid = templateBodyValid({ channel: 'WHATSAPP', body: t.body });
+      const status = valid ? (WA_STATUS[t.status.toUpperCase()] ?? 'PENDING') : 'DISABLED';
+      const { rows } = await sql<{ id: string }>`
+        insert into lbg.message_templates (business_id, integration_id, channel, name, language, purpose,
+                                           provider_category, body, status, source, synced_at, created_by)
+        values (${ctx.businessId}, ${integrationId}, 'WHATSAPP', ${t.name}, ${lang}, ${whatsappPurpose(t.category)},
+                ${t.category.slice(0, 40) || null}, ${t.body}, ${status}, 'SYNC', now(), ${ctx.userId})
+        on conflict (business_id, integration_id, name, language) do update
+           set purpose = excluded.purpose, provider_category = excluded.provider_category, body = excluded.body,
+               status = excluded.status, synced_at = excluded.synced_at
+        returning id`.execute(trx);
+      if (rows[0]) seen.push(rows[0].id);
+    }
+    await sql`update lbg.message_templates set status = 'DISABLED', synced_at = now()
+               where business_id = ${ctx.businessId} and integration_id = ${integrationId} and source = 'SYNC'
+                 and status <> 'DISABLED' and not (id = any(${seen}::uuid[]))`.execute(trx);
+    await recordTenantEvent(trx, ctx, {
+      action: 'integration.templates_sync',
+      targetType: 'integration',
+      targetId: integrationId,
+      metadata: { received: result.value.length, stored: seen.length },
+      ...(requestId ? { requestId } : {}),
+    });
+  });
+  return listTemplates(deps.appDb, ctx, integrationId);
+}
+
+/** An SMS template as registered on the DLT portal (FR-MSG-2 AC1). */
+export async function registerDltTemplate(
+  appDb: Db,
+  ctx: TenantContext,
+  integrationId: string,
+  input: {
+    readonly name: string;
+    readonly purpose: TemplatePurpose;
+    readonly body: string;
+    readonly dltTemplateId: string;
+  },
+  requestId?: string,
+): Promise<MessageTemplate> {
+  if (!templateBodyValid({ channel: 'SMS', body: input.body })) {
+    throw new IntegrationError('TEMPLATE_INVALID', 'The template text is empty.');
+  }
+  return withTenant(appDb, ctx, async (trx) => {
+    const row = await rowIn(trx, ctx, integrationId);
+    if (row.category !== 'SMS') throw new IntegrationError('OPERATION_NOT_SUPPORTED', 'Only SMS uses DLT templates.');
+    if (row.status === 'REVOKED') throw new IntegrationError('INVALID_STATE', 'A revoked integration cannot change.');
+    const { rows } = await sql<TemplateRow>`
+      insert into lbg.message_templates (business_id, integration_id, channel, name, language, purpose, body,
+                                         dlt_template_id, status, source, created_by)
+      values (${ctx.businessId}, ${integrationId}, 'SMS', ${input.name.trim()}, 'en', ${input.purpose},
+              ${input.body.trim()}, ${input.dltTemplateId}, 'APPROVED', 'MANUAL', ${ctx.userId})
+      on conflict (business_id, integration_id, name, language) do nothing
+      returning ${TEMPLATE_COLUMNS}`.execute(trx);
+    const t = rows[0];
+    if (!t) throw new IntegrationError('TEMPLATE_INVALID', 'A template with this name already exists.');
+    await recordTenantEvent(trx, ctx, {
+      action: 'integration.template_register',
+      targetType: 'integration',
+      targetId: integrationId,
+      metadata: { templateId: t.id, purpose: input.purpose },
+      ...(requestId ? { requestId } : {}),
+    });
+    return toTemplate(t);
+  });
+}
+
+export async function disableTemplate(
+  appDb: Db,
+  ctx: TenantContext,
+  integrationId: string,
+  templateId: string,
+): Promise<MessageTemplate> {
+  return withTenant(appDb, ctx, async (trx) => {
+    const { rows } = await sql<TemplateRow>`
+      update lbg.message_templates set status = 'DISABLED'
+       where business_id = ${ctx.businessId} and integration_id = ${integrationId} and id = ${templateId}
+      returning ${TEMPLATE_COLUMNS}`.execute(trx);
+    const t = rows[0];
+    if (!t) throw new IntegrationError('NOT_FOUND', 'Template not found.');
+    await recordTenantEvent(trx, ctx, {
+      action: 'integration.template_disable',
+      targetType: 'integration',
+      targetId: integrationId,
+      metadata: { templateId },
+    });
+    return toTemplate(t);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Webhook targets (NFR-18)
+// ---------------------------------------------------------------------------
+
+export interface WebhookTarget {
+  /** Tenant context with the system actor. */
+  readonly ctx: TenantContext;
+  readonly integrationId: string;
+  readonly provider: string;
+  readonly category: Category;
+  readonly config: Readonly<Record<string, unknown>>;
+  /** The opened channel credential (JSON); never logged. */
+  readonly secret: string;
+}
+
+/** The tested channel integration behind a webhook URL, with its opened credential; null when there is none. */
+export async function webhookTarget(deps: HubDeps, integrationId: string): Promise<WebhookTarget | null> {
+  if (!deps.secrets) return null;
+  const { rows } = await sql<{
+    business_id: string;
+    provider: string;
+    category: Category;
+    secret_id: string | null;
+    config: Record<string, unknown>;
+  }>`select * from lbg.webhook_target(${integrationId}::uuid)`.execute(deps.appDb);
+  const t = rows[0];
+  if (!t?.secret_id) return null;
+  const ctx = { businessId: t.business_id, userId: SYSTEM_ACTOR };
+  const secret = await readSecretValue(deps.secrets.db, deps.secrets.keyring, ctx, t.secret_id);
+  return { ctx, integrationId, provider: t.provider, category: t.category, config: t.config, secret };
+}

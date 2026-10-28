@@ -4,7 +4,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { MESSAGE_CHANNELS, REMINDER_TYPES, type ReminderType } from '@lbgos/domain';
-import { NOT_CONFIGURED } from '@lbgos/modules/messaging';
 import {
   listReminders,
   ReminderError,
@@ -14,12 +13,12 @@ import {
   type ReminderSettingInput,
 } from '@lbgos/modules/reminders';
 import type { AppServices } from '../services.ts';
+import { messagingProviderFor } from '../hub.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
 const type = z.enum(REMINDER_TYPES);
 
 export function registerReminderRoutes(app: FastifyInstance, s: AppServices): void {
-  const provider = s.messaging ?? NOT_CONFIGURED;
   const ctxOf = (request: FastifyRequest) => ({
     businessId: (request.params as { businessId: string }).businessId,
     userId: request.principal?.userId ?? '',
@@ -76,7 +75,7 @@ export function registerReminderRoutes(app: FastifyInstance, s: AppServices): vo
   app.post(
     `${base}/run`,
     { config: { permission: 'marketing.draft' }, schema: { params: businessParams } },
-    async (request) => ({ run: await runReminders(s.appDb, ctxOf(request), provider) }),
+    async (request) => ({ run: await runReminders(s.appDb, ctxOf(request), await messagingProviderFor(s, request)) }),
   );
 
   app.get(
