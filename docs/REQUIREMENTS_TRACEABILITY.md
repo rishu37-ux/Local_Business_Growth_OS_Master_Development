@@ -73,7 +73,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-HUB-2 | API Hub | Configuration fields | 7 | Specified | — | — |
 | FR-HUB-3 | API Hub | Secret handling | 7 | Specified | — | — |
 | FR-HUB-4 | API Hub | Lifecycle and health | 7 | Specified | — | — |
-| FR-HUB-5 | API Hub | SSRF protection | 7 | Specified | — | — |
+| FR-HUB-5 | API Hub | SSRF protection | 7 | Done (AC1–5: guarded client, lint rule, address checks, pinned connection, redirects) | `modules/outbound/`, `tooling/eslint/no-raw-http.js` | TR-0033 #1–7 |
 | FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | Specified | — | — |
 | FR-MSG-1 | Messaging | WhatsApp | 7 | In progress (AC3 send blocked without opt-in, AC4 provider-confirmed statuses only — adapter interface, no provider connected) | `modules/messaging/` | TR-0027 #3, #8–9 |
 | FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Specified | — | — |

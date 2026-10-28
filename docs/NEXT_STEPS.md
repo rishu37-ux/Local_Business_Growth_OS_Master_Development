@@ -1,19 +1,22 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 6: all increments done; exit test passes locally)
+Last updated: 2026-10-28 (Phase 6 complete; Phase 7 started — 7.1 done)
 
-## Phase 6 — CRM, analytics, consent and reminders (in progress)
+## Phase 7 — API Hub, AI Creative Studio, selected official integrations (in progress)
 
-Plan and acceptance criteria: `PHASE6_PLAN.md`.
+Plan and acceptance criteria: `PHASE7_PLAN.md`. Mock adapters only until provider accounts exist (Q4).
 
-1. ~~6.1 customer profile and customer export~~ — done (TR-0026, D-047); screen fields follow in 6.7.
-2. ~~6.2 consent, suppression, messages with the send-time gate and provider adapter~~ — done (TR-0027, D-048); no provider connected.
-3. ~~6.3 reminders~~ — done (TR-0028, D-049); a daily scheduler waits for the job runner.
-4. ~~6.4 expenses and the operating-profit estimate~~ — done (TR-0029, D-050).
-5. ~~6.5 dashboard tiles with definitions~~ — done in the API (TR-0030, D-051); shown on the overview in 6.7.
-6. ~~6.6 erase personal data; tenant data export~~ — done in the API (TR-0031, D-052); legal review of retention still needed.
-7. ~~6.7 screens and the Phase 6 exit browser test~~ — done (TR-0032, D-053).
-8. **Next:** confirm CI green, record the Phase 6 exit, then plan Phase 7 (campaigns and AI creative) per the master prompt.
+1. ~~7.1 guarded outbound HTTP client and no-raw-HTTP lint rule~~ — done (TR-0033, D-054).
+2. **Next:** 7.2 secret store with envelope encryption (write-only secrets, redaction tests, re-authentication).
+3. 7.3 integration records, status machine, test connection, health, usage per tenant; adapter interfaces with mocks.
+4. 7.4 offers and the AI Creative Studio (grounded prompts, deterministic post-check, usage and quota).
+5. 7.5 approval of exact versions, campaigns to segments through the send-time gate, scheduling.
+6. 7.6 WhatsApp Cloud API and SMS DLT adapters against documented APIs (mocked), signed webhooks.
+7. 7.7 screens and the Phase 7 exit browser test.
+
+## Phase 6 (complete)
+
+All increments 6.1–6.7 done; exit recorded in `PHASE6_PLAN.md` (CI #40 green). Open: legal review of retention and erasure (NFR-12); a daily scheduler for reminders and queued messages (job runner); no messaging provider connected.
 
 ## Phase 5 (complete)
 

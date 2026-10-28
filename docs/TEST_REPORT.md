@@ -723,3 +723,19 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 11 | — | **Defects found by the browser test and fixed:** (a) a reminder setting form re-mounted after saving (its key included saved values), losing the "saved" message; (b) the erase message disappeared with the erase section as the profile reloaded — the test now checks the erased profile itself, which says so. The Phase 5 reports browser test's "no profit anywhere" check was narrowed to allow the separately defined operating-profit estimate (FR-LED-3 AC2 forbids calling sales profit) | **Fixed** |
 | 12 | — | Negative control: the send-time gate ignores the opt-out list → exit test 3 fails. Restored | **Detected** |
 | 13 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 295 (includes Phase 3–6 browser tests) | **Pass**, exit 0 |
+| 14 | Exit | CI on GitHub for commit `8a40b2f`: run #40 (Node 22 and Node 24 jobs: lint, format, typecheck, build, unit, DB and browser tests, memory checks, audit, secret scan) | **Pass** (success) |
+
+## TR-0033 · 2026-10-28 · Phase 7 increment 7.1 — guarded outbound HTTP client
+
+**Environment:** dev container; unit tests in `apps/api/test/outbound.test.ts` (no network: DNS and transport injected; the real https transport is exercised only with blocked targets, which never connect), ESLint rule tests in `tooling/eslint/no-raw-http.test.js`.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-HUB-5 AC3 | 36 addresses blocked: 0/8, 10/8, 100.64/10, 127/8, 169.254/16 incl. 169.254.169.254, 172.16/12, 192.168/16, documentation and benchmarking ranges, multicast, reserved, broadcast, `::`, `::1`, fc00::/7, fe80::/10 (also with a zone id), ff00::/8, 2001:db8::/32, IPv4-mapped (dotted and hex), IPv4-compatible, NAT64 and 6to4 forms of private/metadata addresses, and non-IP strings; 7 public addresses (incl. 100.128.0.1, 172.32.0.1, a public IPv6 and a mapped public IPv4) allowed | **Pass** |
+| 2 | FR-HUB-5 AC5 | URL encodings: decimal `2130706433`, hex `0x7f.0.0.1`, octal `0177.0.0.1`, short `127.1`, hex `0xa9fea9fe`, bracketed IPv6 loopback/mapped/ULA → all `BLOCKED_ADDRESS`; `http`, `ftp`, `file` refused; port 8443 refused unless allowed; credentials in the URL refused; invalid URL refused | **Pass** |
+| 3 | FR-HUB-5 AC3 | A name resolving to a private, mixed (public + loopback) or IPv6 link-local answer is refused; an unresolvable name → `DNS_FAILED` | **Pass** |
+| 4 | FR-HUB-5 AC3 (rebinding) | A resolver that answers public first and metadata afterwards is called **once**; the transport connects to the public address that was checked, with the host name for TLS and Host | **Pass** |
+| 5 | FR-HUB-5 AC4 | A redirect to a private address or to `http` is refused; a redirect loop stops after 3 redirects (4 requests); 303 switches POST to GET; the final URL is reported | **Pass** |
+| 6 | FR-HUB-5 AC1 | Lint rule `lbgos/no-raw-http` (server packages and API source, outbound module exempt): 5 valid and 10 invalid cases (http/https/undici/axios/net imports, re-export, dynamic import, require, `fetch`, `globalThis.fetch`); the existing server code passes it | **Pass** |
+| 7 | — | Negative control: the 169.254.0.0/16 range removed → 8 tests fail. Restored | **Detected** |
+| 8 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 102, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 295 | **Pass**, exit 0 |

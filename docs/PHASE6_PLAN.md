@@ -45,7 +45,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - Screens: customer profile (fields, consents, communications, owned units), reminders (settings, templates, drafts), expenses, dashboard tiles, export/erase actions; axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
 
 ## Phase 6 exit
-**Status: exit test passes locally (TR-0032); Phase 6 complete once CI is green on the pushed commit.**
+**Status: Phase 6 complete.** Exit test TR-0032; CI #40 green on `8a40b2f` (TR-0032 #14).
 In a real browser, for a synthetic shop: the owner records WhatsApp marketing consent for one customer and none for another; a warranty reminder run drafts reminders only for customers with a recorded warranty end date in range; a birthday reminder is drafted only for the customer with a DOB and consent; one customer opts out and a send attempt to them is blocked at send time with the reason shown; communications history shows each attempt; with the test adapter a permitted message reaches `SENT` and without a provider it fails as not configured; an expense changes the operating-profit estimate by exactly its amount; a customer export contains only the selected fields and is audited; erasing a customer anonymises the profile while the old invoice still prints the original details; the tenant export ZIP contains the expected files; the dashboard shows the expected figures with definitions; cross-tenant tests pass; CI is green.
 
 Not in Phase 6 (by design): real message delivery (needs provider accounts, Q4); campaigns and AI creative (Phase 7); agents (Phase 8).

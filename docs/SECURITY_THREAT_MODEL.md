@@ -124,9 +124,10 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | Card data in payment references (PCI scope) | **Implemented + tested**: 13–19-digit sequences refused in the API and by a DB check; only references/last 4 digits stored | TR-0019 #12; TR-0002 T24 |
 | T29 manipulated supplier invoices | **Implemented + tested**: OCR creates drafts only after confirmation of flagged fields; posting needs `purchases.post`; totals recomputed with mismatches shown; duplicate supplier-invoice check | TR-0012 #8, TR-0015 #6–8 |
 | T14 stock ledger tampering (application) | **Implemented + tested**: append-only movements, projection writable only by trigger, reconciliation detects tampering | TR-0013 #3 |
+| T11 SSRF | **Implemented + tested**: one guarded outbound client (https, port 443, every resolved address public, connection pinned to the checked address, redirects re-checked), lint rule against raw HTTP; host egress firewall still recommended | TR-0033 #1–7 |
 | T17 unlawful marketing / consent | **Implemented + tested (no provider connected)**: consent records, suppression list checked at dispatch under a per-address lock, marketing approval, quiet hours; provider-confirmed statuses only (DB-enforced). DLT templates and verified webhooks wait for a provider | TR-0027 #2–10, #13 |
 | Personal-data erasure and bulk export (AS2) | **Implemented + tested**: owner-only with re-authentication; erasure anonymises, suppresses, cancels and redacts in one transaction, audit holds no personal data; export audited, tenant-scoped (no other business's IDs), formula guard on | TR-0031 #1–7 |
-| All other threats (T5, T6, T11–T13, T16, T19–T22, T30–T31) | Specified in SRS / ADR; not implemented | — |
+| All other threats (T5, T6, T12–T13, T16, T19–T22, T30–T31) | Specified in SRS / ADR; not implemented | — |
 
 ## 7. Known limitations and statements
 

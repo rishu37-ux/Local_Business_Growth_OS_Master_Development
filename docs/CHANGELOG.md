@@ -1,6 +1,12 @@
 # Changelog
 
-## [Unreleased] — Phase 6 (CRM, consent, reminders, expenses, analytics)
+## [Unreleased] — Phase 7 (API Hub, AI Creative Studio, integrations)
+
+### Added
+- Phase 7 plan (`docs/PHASE7_PLAN.md`).
+- `@lbgos/modules/outbound`: the guarded outbound HTTP client (SSRF protection) and ESLint rule `lbgos/no-raw-http`.
+
+## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 
 ### Added
 - Phase 6 plan (`docs/PHASE6_PLAN.md`).

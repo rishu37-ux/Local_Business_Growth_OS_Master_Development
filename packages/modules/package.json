@@ -15,6 +15,7 @@
     "./notifications": "./src/notifications/index.ts",
     "./ocr": "./src/ocr/index.ts",
     "./onboarding": "./src/onboarding/index.ts",
+    "./outbound": "./src/outbound/index.ts",
     "./privacy": "./src/privacy/index.ts",
     "./purchasing": "./src/purchasing/index.ts",
     "./reminders": "./src/reminders/index.ts",
