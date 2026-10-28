@@ -64,6 +64,7 @@ beforeAll(async () => {
     ...[
       'assistants',
       'pos',
+      'online',
       'invoices',
       'customers',
       'reminders',
@@ -82,6 +83,7 @@ beforeAll(async () => {
       'reports',
       'members',
       'account',
+      'branding',
       'tax-rates',
     ].map((p): [string, string] => [p, `${b}/${p}`]),
     ['product detail', `${b}/catalogue/${productId}`],
@@ -145,6 +147,6 @@ describe('accessibility and responsive sweep (NFR-1, NFR-16)', () => {
     expect(problems).toEqual([]);
     expect(focusMissing).toEqual([]);
     expect(results.length).toBe(pages.length * 3);
-    expect(pages.length).toBe(25);
+    expect(pages.length).toBe(27);
   }, 600_000);
 });

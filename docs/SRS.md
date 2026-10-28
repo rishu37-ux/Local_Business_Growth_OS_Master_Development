@@ -555,6 +555,28 @@ AC:
 
 ---
 
+## 12a. Branding, the shop's website and online sales channels (added 2026-10-28, D-069)
+
+### FR-CHN-1 Shop branding (white-label)
+AC:
+1. The owner sets a logo and a brand colour. The logo is PNG or JPEG only, checked by its bytes, with at most 1 MB and 2000 px a side. Changes are audited.
+2. Documents issued afterwards print the logo and an accent in the brand colour, taken from the issue-time snapshot. A reprint matches what was issued, and documents issued earlier are unchanged.
+3. The dashboard is the same for every shop; it shows the shop's logo next to its name.
+
+### FR-CHN-2 Sales channels and stock sync
+AC:
+1. Channels per business: the shop's website and marketplace channels. Each marketplace channel is bound to a tested marketplace connector and has a stock buffer.
+2. Available-to-sell per channel = available stock − reservations of open, unbilled channel orders − the channel's buffer, floored at 0.
+3. Every change of available stock queues a push to that variant's marketplace listings in the same transaction. The job runner sends the queue with retries and backoff; failures are shown.
+4. Channel orders are imported once per channel and external ID. They reserve stock until billed through the normal sale or cancelled. Orders larger than available are flagged, and unknown SKUs need attention.
+5. Amazon, Flipkart and other marketplaces connect only through a connector. The platform JSON contract applies until marketplace-specific adapters are built and tested with the shop's seller accounts.
+
+### FR-CHN-3 The shop's public website
+AC:
+1. The website is separate from the dashboard. Each enabled store has its own address and is server-rendered, with no scripts and a strict CSP. Only published website listings with public fields (name, variant, price, availability) are shown.
+2. Order requests take no online payment. They reserve stock and are refused above available-to-sell. They are idempotent, rate-limited and spam-trapped, and they tell the visitor who receives their details.
+3. A disabled store, an unknown address or an inactive business answers 404.
+
 ## 13. Audit and continuity (M12)
 
 ### FR-AUD-1 Audit log
@@ -596,7 +618,7 @@ AC:
 ## 15. Out of scope for the pilot (explicit)
 
 - Native mobile apps / PWA offline mode (unless separately approved).
-- Custom domains/branded portals (planned later).
+- Custom domains per shop (planned later). The shop's branding on documents and a public website at a platform address were added on 2026-10-28 (FR-CHN-1, FR-CHN-3, D-069).
 - Multi-location inventory transfers (data model supports a location column; UI later).
 - Automatic ad buying.
 - E-invoice/e-way bill (only if legally applicable and approved — FR-TAX-4).

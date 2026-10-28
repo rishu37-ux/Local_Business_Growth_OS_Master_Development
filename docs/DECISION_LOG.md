@@ -467,3 +467,27 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Payments:** a payment is only a manual record (method `MANUAL`, reference, date, recorded by) because no gateway exists (Q4).
 - **GST:** `tax_status` is fixed at `NOT_COMPUTED` until the tax review (Q5).
 - **Who sees what:** the owner (`subscription.manage`) sees the business's invoices, also in read-only mode; other businesses see none. Every action is a platform audit event linked to the business.
+
+### D-069 · 2026-10-28 · Accepted
+**Decision (Phase 11 scope, at the user's request):** add three things:
+- **Branding:** shop branding on documents and the website, and the shop logo in the dashboard.
+- **Public website:** a separate public website per shop.
+- **Channels:** online sales channels with stock sync.
+
+The dashboard stays one central app with one sign-in and the same design for every shop. That is what the user asked for, and it was already the architecture (ADR-05).
+
+Defaults chosen without blocking the user:
+1. **Order requests, no payment.** The website takes order requests and no online payment, because payment collection from shop customers stays out of scope (SRS §15). The shop confirms, bills and collects payment as today.
+2. **Website address.** The website lives at `/s/<address>` on the platform domain; custom domains per shop wait for Q6 and DNS/TLS automation.
+3. **Branding is snapshotted.** The logo and colour are part of the issue-time snapshot of each document. The colour is an accent only and never text colour. On the website, the header text colour is chosen for contrast.
+4. **Logo files.** Logos must be PNG or JPEG; SVG is refused because it can carry scripts.
+5. **Public reads.** The website reads only through definer functions that return public fields. It writes order requests through the commerce module as the system actor.
+
+### D-070 · 2026-10-28 · Accepted
+**Decision (channels and stock sync, 11.2–11.3):**
+- **One stock.** Stock stays only in the stock ledger. A channel sees available-to-sell = AVAILABLE − reservations of open, unbilled channel orders (all channels) − the channel's buffer, floored at 0.
+- **Orders.** Orders reserve stock until they are billed through the normal sale (POS draft with the order's lines, prices and customer; issuing writes the SALE movement, number and GST) or cancelled.
+- **Stock push.** A trigger on `stock_levels` queues pushes in the same transaction, so no change is missed. The job runner imports orders first and pushes stock second. Failures retry with backoff (1, 2, 4 … minutes, at most 60), and a newer change resets the backoff.
+- **Marketplace connectors.** Marketplaces are integrations of a new category, MARKETPLACE. The platform defines a JSON connector contract (`marketplace_json`: POST /v1/inventory, GET /v1/orders with a cursor). Feeds are validated strictly; anything malformed is rejected whole.
+- **Amazon and Flipkart.** Their own APIs (Selling Partner API, Seller API) are **not** called. Each needs the shop's seller account and app approval, and its contract must be checked and tested against the real service (Q4). Until then a connector or aggregator service can sit in between.
+- **Known gap.** A counter sale in POS is not blocked by reservations. The buffer and the push after each sale limit the risk, and the order list flags an order larger than stock.

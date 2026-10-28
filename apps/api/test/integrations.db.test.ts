@@ -101,6 +101,7 @@ describe('records and configuration (FR-HUB-1, -2)', () => {
       'STORAGE',
       'PAYMENTS',
       'SOCIAL',
+      'MARKETPLACE',
     ]);
     expect(p.providers.find((x) => x.provider === 'mock')?.categories).toEqual(p.categories); // a mock per category
     expect(p.providers.some((x) => x.provider === 'custom_rest')).toBe(true);
@@ -412,7 +413,12 @@ describe('secrets, access and production behaviour', () => {
       const p = (await get(prod, `${s.base}/integrations/providers`, s.owner)).json<{
         providers: { provider: string }[];
       }>();
-      expect(p.providers.map((x) => x.provider)).toEqual(['whatsapp_cloud', 'sms_dlt_json', 'custom_rest']);
+      expect(p.providers.map((x) => x.provider)).toEqual([
+        'whatsapp_cloud',
+        'sms_dlt_json',
+        'marketplace_json',
+        'custom_rest',
+      ]);
       const res = await post(prod, `${s.base}/integrations`, llm, s.owner);
       expect(errorCode(res)).toBe('PROVIDER_UNKNOWN');
     } finally {

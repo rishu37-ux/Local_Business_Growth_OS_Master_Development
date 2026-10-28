@@ -67,6 +67,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   STORAGE: 'Storage',
   PAYMENTS: 'Payments',
   SOCIAL: 'Social',
+  MARKETPLACE: 'Marketplace',
 };
 const AUTH_LABELS: Record<string, string> = {
   NONE: 'None',

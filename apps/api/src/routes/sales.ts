@@ -2,6 +2,7 @@
 // core, FR-TAX-2 AC2), selling and invoices (increment 5.3: FR-POS-1…3,
 // FR-INV-5 AC2–4, FR-LED-1).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { dataUri, logoFile } from '@lbgos/modules/branding';
 import { z } from 'zod';
 import { CONTACT_CHANNELS } from '@lbgos/domain';
 import {
@@ -445,7 +446,11 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
     const ctx = ctxOf(request);
     const invoice = await getInvoice(s.appDb, ctx, idOf(request), { canSeeCost: false });
     const size = (request.query as { size?: PaperSize }).size ?? (await getPrintSettings(s.appDb, ctx)).printSize;
-    return { invoice, size };
+    // 11.1: the logo of the document's own snapshot, so a reprint matches what was issued.
+    const logoId = (invoice?.partySnapshot as { seller?: { logoUploadId?: string | null } } | null)?.seller
+      ?.logoUploadId;
+    const logo = logoId && s.ocr ? await logoFile(s.appDb, s.ocr, ctx, logoId) : null;
+    return { invoice, size, logoDataUri: logo ? dataUri(logo) : null };
   };
 
   app.get(
@@ -483,11 +488,12 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
     '/api/businesses/:businessId/invoices/:id/print',
     { config: { permission: 'customers.view' }, schema: { params: idParams, querystring: paperQuery } },
     async (request, reply) => {
-      const { invoice, size } = await printable(request);
+      const { invoice, size, logoDataUri } = await printable(request);
       if (!invoice) return notFound(request, reply);
       const base = `/api/businesses/${ctxOf(request).businessId}/invoices/${invoice.id}`;
       const html = renderDocumentHtml(invoice, {
         size,
+        logoDataUri,
         toolbar: { pdfHref: `${base}/pdf?size=${size}`, sizeHref: (p) => `${base}/print?size=${p}` },
       });
       return reply.header('content-security-policy', PRINT_CSP).type('text/html; charset=utf-8').send(html);
@@ -503,11 +509,11 @@ export function registerSalesRoutes(app: FastifyInstance, s: AppServices): void 
           error: { code: 'PDF_UNAVAILABLE', message: 'PDF download is not available.', requestId: request.id },
         });
       }
-      const { invoice, size } = await printable(request);
+      const { invoice, size, logoDataUri } = await printable(request);
       if (!invoice) return notFound(request, reply);
       let pdf: Buffer;
       try {
-        pdf = await s.pdf.render(renderDocumentHtml(invoice, { size }), size);
+        pdf = await s.pdf.render(renderDocumentHtml(invoice, { size, logoDataUri }), size);
       } catch (err) {
         if (err instanceof PdfBusyError) {
           return reply

@@ -128,6 +128,8 @@ describe('job runner (NFR-5)', () => {
       'agent_timeouts',
       'trial_notices',
       'quota_notices',
+      'channel_orders',
+      'channel_stock',
     ]);
     const camp = (await get(h, `${shop.base}/campaigns/${created.id}`, shop.owner)).json<{
       campaign: { status: string; counts: { sent: number } };

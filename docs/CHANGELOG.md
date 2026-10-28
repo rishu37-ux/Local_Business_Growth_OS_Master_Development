@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phases 7–10 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness)
+## [Unreleased] — Phases 7–11 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -21,6 +21,16 @@
 
 - Phase 10: migration 0029 and `@lbgos/modules/support` (owner-granted, time-boxed, audited, view-only support access); migration 0030 and `@lbgos/modules/billing` (platform billing invoices per financial year with manual payment); Billing and support screen; billing section on the platform page; Phase 10 exit browser test.
 - Phase 10 documents: `PHASE10_PLAN.md`, `ONBOARDING_GUIDE.md`, `SUPPORT_PROCEDURES.md`, `PRICING_VALIDATION.md`, `COMMERCIAL_READINESS.md`.
+
+- Phase 11 (D-069, D-070):
+  - Migration 0031 and `@lbgos/modules/branding`: logo and brand colour, printed on invoices from the issue-time snapshot, with the logo in the dashboard.
+  - Migration 0032 and `@lbgos/modules/commerce`: sales channels (website and marketplaces), listings, available-to-sell, a trigger-fed stock push queue, channel orders with reservations, billing through POS.
+  - Integration category MARKETPLACE, with the `marketplace_json` connector adapter and a mock marketplace.
+  - Job steps `channel_orders` and `channel_stock`.
+  - The shop's public website at `/s/<address>` with order requests.
+  - Screens: Branding and website, and Online selling. POS opens a billed online order.
+  - Phase 11 exit browser test.
+- Docs: `PHASE11_PLAN.md`, SRS FR-CHN-1…3.
 
 ### Fixed
 - Public webhook routes are rate-limited per source address (300/min, 429) — review finding SR-01.

@@ -39,6 +39,8 @@ const JOBS: Record<string, string> = {
   agent_timeouts: 'Assistant time limits',
   trial_notices: 'Trial notices',
   quota_notices: 'Usage notices',
+  channel_orders: 'Online orders received',
+  channel_stock: 'Stock sent to marketplaces',
 };
 const amount = (m: Metric['metric'], n: number) => (m === 'STORAGE' ? `${(n / 1024 / 1024).toFixed(1)} MB` : String(n));
 

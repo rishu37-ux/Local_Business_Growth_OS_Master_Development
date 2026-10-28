@@ -158,6 +158,9 @@ export interface SellerFacts {
   readonly phone: string | null;
   readonly email: string | null;
   readonly terms: string | null;
+  /** Branding printed on documents (11.1, D-069); kept in the issue-time snapshot. */
+  readonly logoUploadId: string | null;
+  readonly brandColor: string | null;
 }
 
 export function toDiscount(kind: string | null, value: string | number | null): Discount | null {
@@ -191,11 +194,14 @@ export async function sellerFacts(trx: Trx, ctx: TenantContext): Promise<SellerF
     business_phone: string | null;
     business_email: string | null;
     invoice_terms: string | null;
+    logo_upload_id: string | null;
+    brand_color: string | null;
   }>`
     select b.legal_name, b.display_name, t.registration_type, t.gstin, coalesce(t.state_code, b.state_code) as state_code,
            b.timezone, s.round_off, s.allow_negative_stock, s.business_address, s.business_phone,
-           s.business_email::text as business_email, s.invoice_terms
+           s.business_email::text as business_email, s.invoice_terms, br.logo_upload_id, br.brand_color
       from lbg.businesses b
+      left join lbg.business_branding br on br.business_id = b.id
       left join lbg.tax_profiles t on t.business_id = b.id
       left join lbg.business_settings s on s.business_id = b.id
      where b.id = ${ctx.businessId}`.execute(trx);
@@ -214,6 +220,8 @@ export async function sellerFacts(trx: Trx, ctx: TenantContext): Promise<SellerF
     phone: r.business_phone,
     email: r.business_email,
     terms: r.invoice_terms,
+    logoUploadId: r.logo_upload_id,
+    brandColor: r.brand_color,
   };
 }
 

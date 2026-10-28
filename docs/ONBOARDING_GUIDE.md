@@ -58,6 +58,16 @@ These are off, or not connected, until you choose them:
 
 No messaging or AI provider is connected yet, so messages are not sent (Q4).
 
+### A9a. Your logo, your website and online selling (Phase 11)
+- **Branding and website:**
+  - Upload your logo (PNG or JPEG) and choose a colour. Invoices issued from then on show them; earlier invoices stay as they were.
+  - Choose your website address and tick **Show my website**. Your website is `…/s/<your-address>`; it is separate from this dashboard.
+- **Online selling:**
+  - Offer products on **Website**, and on a marketplace once its connector is set up in the API Hub. "Kept back" is stock never offered online.
+  - Orders from the website or a marketplace appear under **Online orders** and keep their stock. **Bill in Point of sale** opens the sale; complete it as usual (choose the IMEI for phones).
+  - Cancel an order with a reason if you cannot supply it.
+  - Amazon and Flipkart are **not connected yet**: they need your seller accounts and their API approval.
+
 ### A10. Your data
 - **Overview → full data download:** a ZIP of CSVs of your business data. You must have signed in recently.
 - **Customer → erase personal data:** owner only, with a reason. Invoices keep the legally required snapshot.

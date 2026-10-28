@@ -131,5 +131,8 @@ export function channelConfigProblem(provider: string, config: unknown): string 
     }
     return Object.keys(config).length === 2 ? null : 'Unknown configuration fields.';
   }
+  // The mock may name a test store (its marketplace orders and pushes are kept per store, 11.2).
+  if (provider === 'mock' && isObject(config) && Object.keys(config).length === 1 && 'store' in config)
+    return typeof config.store === 'string' && /^[a-z0-9-]{1,40}$/.test(config.store) ? null : 'Invalid test store.';
   return isObject(config) && Object.keys(config).length === 0 ? null : 'This provider takes no configuration.';
 }

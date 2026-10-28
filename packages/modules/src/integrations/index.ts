@@ -24,13 +24,18 @@ export {
   adapterFor,
   CATEGORIES,
   customRestAdapter,
+  marketplaceJsonAdapter,
   mockAdapter,
+  mockMarketplace,
+  parseFeedOrders,
   PROVIDERS,
   secretFields,
   smsDltAdapter,
   whatsappCloudAdapter,
   type ProviderTemplate,
   type SendRequest,
+  type FeedOrder,
+  type InventoryItem,
   type AdapterCall,
   type AdapterResult,
   type AuthMethod,
@@ -769,7 +774,30 @@ export async function callProvider<T>(
 }> {
   const active = await activeIntegration(deps.appDb, ctx, category);
   if (!active) throw new IntegrationError('NOT_CONFIGURED', 'No tested integration is configured for this.');
-  const row = await withTenant(deps.appDb, ctx, (trx) => rowIn(trx, ctx, active.id));
+  return callIntegration(deps, ctx, active.id, purpose, op, estimate);
+}
+
+/**
+ * The same as callProvider for one named integration (a marketplace channel is
+ * bound to its own connector, 11.2). The integration must be TESTED or VERIFIED.
+ */
+export async function callIntegration<T>(
+  deps: HubDeps,
+  ctx: TenantContext,
+  integrationId: string,
+  purpose: string,
+  op: (adapter: ProviderAdapter, call: AdapterCall) => Promise<AdapterResult<T>> | null,
+  estimate: { readonly units: number; readonly costPaise: number | null } = { units: 0, costPaise: null },
+): Promise<{
+  readonly result: AdapterResult<T>;
+  readonly integration: Integration;
+  readonly usage: Usage;
+  readonly attempts: number;
+}> {
+  const row = await withTenant(deps.appDb, ctx, (trx) => rowIn(trx, ctx, integrationId));
+  if (row.status !== 'TESTED' && row.status !== 'VERIFIED')
+    throw new IntegrationError('NOT_CONFIGURED', 'This integration is not tested.');
+  const category = row.category;
   const before = await withTenant(deps.appDb, ctx, (trx) => usageIn(trx, ctx, row));
   if (before.limit !== null && before.monthUnits + estimate.units > before.limit) {
     throw new IntegrationError('QUOTA_EXCEEDED', 'The monthly usage limit for this integration has been reached.');

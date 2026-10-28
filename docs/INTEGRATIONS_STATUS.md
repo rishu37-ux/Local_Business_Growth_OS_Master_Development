@@ -3,7 +3,7 @@
 Status values: `planned` · `configured` · `tested` (against sandbox/mock) · `verified` (against real provider with confirmed response) · `failed` · `blocked`.
 **This file must never contain secrets, tokens, keys, passwords or account identifiers that grant access.**
 
-Last updated: 2026-10-28 (Phase 7, increment 7.6). No accounts or credentials have been provided; nothing is connected. Phase 2 chose the *approach* for some rows (shown in Notes); choosing an approach is not configuring an integration.
+Last updated: 2026-10-28 (Phase 11). No accounts or credentials have been provided; nothing is connected. Phase 2 chose the *approach* for some rows (shown in Notes); choosing an approach is not configuring an integration.
 
 | Integration | Purpose | Status | Permissions / approvals required (to confirm against current provider docs) | Limitations / notes |
 |---|---|---|---|---|
@@ -17,6 +17,10 @@ Last updated: 2026-10-28 (Phase 7, increment 7.6). No accounts or credentials ha
 | Email provider | Verification, reset, receipts | planned | Verified sending domain (SPF/DKIM/DMARC) | — |
 | Google Business Profile API | Local SEO, posts, reviews | planned | API access approval from Google, verified profile, OAuth consent | Feature set limited to what the API supports |
 | Meta Graph API (Facebook / Instagram) | Posts, insights | planned | App review, business account, page/IG professional account, scopes | Publishing limits per API rules |
+| Marketplace connector (`marketplace_json`, D-070) | Stock and orders for one marketplace through a connector service | planned — adapter built against the platform JSON contract; tested only with the **mock** marketplace (TR-0046) | A connector service linked to the shop's seller account | Contract: POST /v1/inventory, GET /v1/orders?cursor; strict feed validation |
+| Amazon (Selling Partner API) | Listings, stock, orders | **not built** | Amazon seller account; SP-API developer registration and app authorisation; roles for listings/inventory/orders (to confirm against current Amazon docs) — Q4 | Nothing calls Amazon. Use a connector meanwhile, or build and test a dedicated adapter once the accounts exist |
+| Flipkart (Seller API) | Listings, stock, orders | **not built** | Flipkart seller account and API access approval (to confirm against current Flipkart docs) — Q4 | Nothing calls Flipkart. Same approach as Amazon |
+| Shop website (built in, D-069) | Public catalogue and order requests | **implemented** (no external service) | — | At `/s/<address>`; custom domains need Q6; no online payment |
 | Payment gateway (subscriptions) | Platform billing | not configured — billing invoices exist (TR-0045) and payments are only recorded manually by a platform admin (method MANUAL); no gateway code | Merchant account, KYC (Q4) | Provider pending; webhook verification and reconciliation to be built for the chosen gateway |
 | GST e-invoice (IRP) / e-way bill | Only if legally applicable | planned (conditional) | GSP/IRP access; applicability depends on turnover thresholds | Requires tax-professional confirmation |
 | Malware scanning | Upload safety | planned (not configured) | Engine/service choice | Uploads record `malware_scan = NOT_CONFIGURED`; the scan screen says no scanner is configured (FR-OCR-6 AC4) |

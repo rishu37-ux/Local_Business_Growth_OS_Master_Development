@@ -4,9 +4,9 @@
 // single-item sale takes four interactions: scan, mobile, payment method,
 // complete.
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Form } from 'react-aria-components';
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { api, ApiError, formatPaise, formatQty, rupeesToPaise } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Badge, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
@@ -81,6 +81,8 @@ interface Line {
   quantity: string;
   /** Line discount in rupees as typed ("" = none). */
   discount: string;
+  /** A price agreed elsewhere (an online order's channel price, 11.3); kept when the draft is saved again. */
+  unitPricePaise?: number;
 }
 interface PaymentRow {
   key: string;
@@ -169,6 +171,7 @@ export function PosPage() {
       lines: next.lines.map((l) => ({
         variantId: l.variantId,
         ...(l.unitId ? { unitId: l.unitId } : { quantity: l.quantity || '1' }),
+        ...(l.unitPricePaise === undefined ? {} : { unitPricePaise: l.unitPricePaise }),
         ...(l.discount.trim() ? { discount: { kind: 'AMOUNT', paise: rupeesToPaise(l.discount) ?? 0 } } : {}),
       })),
     };
@@ -309,7 +312,7 @@ export function PosPage() {
     void queryClient.invalidateQueries({ queryKey: ['held-sales', businessId] });
   };
 
-  const resume = async (id: string) => {
+  const resume = async (id: string, keepPrices = false) => {
     try {
       const r = await api<{ sale: SaleView & { customer: Customer | null } }>(`${base}/sales/${id}`);
       setIssued(null);
@@ -326,6 +329,7 @@ export function PosPage() {
           unitId: l.unitId,
           quantity: l.quantity,
           discount: l.discount?.kind === 'AMOUNT' && l.discount.paise ? rupees(l.discount.paise) : '',
+          ...(keepPrices ? { unitPricePaise: l.unitPricePaise } : {}),
         })),
       );
       setPaymentsEdited(false);
@@ -336,6 +340,16 @@ export function PosPage() {
       setMessage({ text: errorText(err), tone: 'error' });
     }
   };
+  // An online order billed from Online selling opens here as its draft (11.3).
+  const [params, setParams] = useSearchParams();
+  const opened = useRef<string | null>(null);
+  useEffect(() => {
+    const id = params.get('sale');
+    if (!id || opened.current === id) return;
+    opened.current = id;
+    void resume(id, true);
+    setParams({}, { replace: true });
+  });
 
   const paid = payments.reduce((s, p) => s + (rupeesToPaise(p.amount) ?? 0), 0);
   const total = view?.totals.totalPaise ?? 0;

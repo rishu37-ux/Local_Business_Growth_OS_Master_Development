@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–9 complete, CI green — the pilot itself is blocked; Phase 10 complete, CI #62 green; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete locally at the user's request; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -24,6 +24,23 @@ Developer work that can follow those inputs:
 - the debit-note and payment-reversal screens;
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
+
+## Phase 11 — Branding, the shop's website, online channels (complete locally)
+
+Plan and acceptance criteria: `PHASE11_PLAN.md` (D-069, D-070).
+
+1. ~~11.1 branding: logo, colour, invoice snapshot, logo in the dashboard~~ — done (TR-0046).
+2. ~~11.2–11.3 channels, listings, available-to-sell, stock push queue, orders with reservations, billing in POS~~ — done with the mock connector (TR-0046).
+3. ~~11.4 the shop's public website with order requests~~ — done (TR-0046).
+4. ~~11.5 screens and exit~~ — done (TR-0046).
+
+**Still open from Phase 11 (needs the user):**
+- **Amazon and Flipkart:** seller accounts and API approval (Q4). Then build and test a dedicated adapter for each, or choose a connector service that implements the `marketplace_json` contract.
+- **Custom domains per shop:** need Q6 and DNS/TLS automation.
+
+Developer follow-ups:
+- POS could block counter sales of reserved stock (today only the buffer and the order-list flag protect it).
+- A webhook for marketplace orders (today they are polled by the job runner).
 
 ## Phase 10 — Commercial readiness, onboarding guides, support procedures, pricing validation (complete, CI #62 green)
 

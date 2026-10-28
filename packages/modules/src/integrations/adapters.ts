@@ -17,6 +17,7 @@ export const CATEGORIES = [
   'STORAGE',
   'PAYMENTS',
   'SOCIAL',
+  'MARKETPLACE',
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 export type AuthMethod = 'NONE' | 'API_KEY' | 'BEARER' | 'OAUTH2_CLIENT_CREDENTIALS';
@@ -77,6 +78,34 @@ export interface ProviderAdapter {
   sendMessage?(call: AdapterCall, req: SendRequest): Promise<AdapterResult<{ readonly providerMessageId: string }>>;
   /** Reads the provider's templates (WhatsApp); SMS DLT templates are entered as registered. */
   syncTemplates?(call: AdapterCall): Promise<AdapterResult<readonly ProviderTemplate[]>>;
+  /** Marketplace (11.2): sets the sellable quantity of each SKU on the channel. */
+  pushInventory?(
+    call: AdapterCall,
+    items: readonly InventoryItem[],
+  ): Promise<AdapterResult<{ readonly rejected: readonly { readonly sku: string; readonly code: string }[] }>>;
+  /** Marketplace (11.3): orders created or changed since the cursor, and the next cursor. */
+  fetchOrders?(
+    call: AdapterCall,
+    cursor: string | null,
+  ): Promise<AdapterResult<{ readonly orders: readonly FeedOrder[]; readonly cursor: string | null }>>;
+}
+
+export interface InventoryItem {
+  readonly sku: string;
+  readonly quantity: number;
+  readonly pricePaise: number;
+}
+
+/** An order as a marketplace reports it (never trusted for anything but its own content). */
+export interface FeedOrder {
+  readonly id: string;
+  readonly status: 'NEW' | 'CANCELLED';
+  readonly placedAt: string;
+  readonly lines: readonly {
+    readonly sku: string;
+    readonly quantity: number;
+    readonly unitPricePaise: number | null;
+  }[];
 }
 
 export interface SendRequest {
@@ -142,6 +171,15 @@ export const PROVIDERS: readonly ProviderSpec[] = [
     note: 'A gateway accepting the platform JSON contract (D-059) with DLT entity, header and template IDs. Credential: JSON with apiKey and webhookSecret.',
   },
   {
+    provider: 'marketplace_json',
+    name: 'Marketplace connector (JSON)',
+    categories: ['MARKETPLACE'],
+    authMethods: ['API_KEY'],
+    needsBaseUrl: true,
+    mock: false,
+    note: 'A connector for one marketplace (e.g. a service linked to your Amazon or Flipkart seller account) that accepts the platform JSON contract (D-070): POST /v1/inventory and GET /v1/orders. Credential: JSON with apiKey. Amazon and Flipkart are not contacted directly.',
+  },
+  {
     provider: 'custom_rest',
     name: 'Custom REST/JSON endpoint',
     categories: ['LLM', 'IMAGE_VIDEO', 'SMS', 'EMAIL', 'PAYMENTS', 'SOCIAL'],
@@ -187,6 +225,24 @@ export function mockAdapter(): ProviderAdapter {
     provider: 'mock',
     real: false,
     test: (call) => Promise.resolve(failFor(call) ?? { ok: true }),
+    // The mock marketplace is keyed by config.store, so a test can tell two channels apart.
+    pushInventory: (call, items) => {
+      const failed = failFor(call) ?? mockMarketplace.failure(call);
+      if (failed) return Promise.resolve(failed);
+      mockMarketplace.pushes.push({ label: cfg(call, 'store'), items: [...items] });
+      return Promise.resolve({ ok: true, value: { rejected: [] }, units: 1 });
+    },
+    fetchOrders: (call, cursor) => {
+      const failed = failFor(call) ?? mockMarketplace.failure(call);
+      if (failed) return Promise.resolve(failed);
+      const all = mockMarketplace.orders.get(cfg(call, 'store')) ?? [];
+      const from = cursor ? Number(cursor) : 0;
+      return Promise.resolve({
+        ok: true,
+        value: { orders: all.slice(from), cursor: String(all.length) },
+        units: 1,
+      });
+    },
     generateText: (call, req) => {
       const failed = failFor(call);
       if (failed) return Promise.resolve(failed);
@@ -347,6 +403,7 @@ export function adapterFor(provider: string, allowMocks: boolean): ProviderAdapt
   if (provider === 'custom_rest') return customRestAdapter();
   if (provider === 'whatsapp_cloud') return whatsappCloudAdapter();
   if (provider === 'sms_dlt_json') return smsDltAdapter();
+  if (provider === 'marketplace_json') return marketplaceJsonAdapter();
   return null;
 }
 
@@ -557,3 +614,123 @@ export function smsDltAdapter(): ProviderAdapter {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Marketplaces (11.2–11.3)
+// ---------------------------------------------------------------------------
+
+const SKU = /^[A-Za-z0-9._/-]{1,60}$/;
+const ORDER_ID = /^[A-Za-z0-9._:/-]{1,100}$/;
+
+/** Validates a feed from outside: anything malformed is dropped, never half-applied. */
+export function parseFeedOrders(json: unknown): FeedOrder[] | null {
+  const list = (json as { orders?: unknown } | null)?.orders;
+  if (!Array.isArray(list) || list.length > 500) return null;
+  const out: FeedOrder[] = [];
+  for (const o of list as unknown[]) {
+    const r = o as { id?: unknown; status?: unknown; placedAt?: unknown; lines?: unknown };
+    if (typeof r.id !== 'string' || !ORDER_ID.test(r.id)) return null;
+    if (r.status !== 'NEW' && r.status !== 'CANCELLED') return null;
+    const placed = typeof r.placedAt === 'string' ? new Date(r.placedAt) : null;
+    if (!placed || Number.isNaN(placed.getTime())) return null;
+    if (!Array.isArray(r.lines) || r.lines.length === 0 || r.lines.length > 100) return null;
+    const lines = [];
+    for (const l of r.lines as unknown[]) {
+      const x = l as { sku?: unknown; quantity?: unknown; unitPricePaise?: unknown };
+      if (typeof x.sku !== 'string' || !SKU.test(x.sku)) return null;
+      if (!Number.isInteger(x.quantity) || (x.quantity as number) < 1 || (x.quantity as number) > 1000) return null;
+      const price =
+        x.unitPricePaise === null || x.unitPricePaise === undefined
+          ? null
+          : Number.isInteger(x.unitPricePaise) && (x.unitPricePaise as number) >= 0
+            ? (x.unitPricePaise as number)
+            : undefined;
+      if (price === undefined) return null;
+      lines.push({ sku: x.sku, quantity: x.quantity as number, unitPricePaise: price });
+    }
+    out.push({ id: r.id, status: r.status, placedAt: placed.toISOString(), lines });
+  }
+  return out;
+}
+
+/**
+ * A marketplace connector that accepts the platform JSON contract (D-070):
+ * POST {base}/v1/inventory {items: [{sku, quantity, pricePaise}]} →
+ *   {rejected: [{sku, code}]};
+ * GET {base}/v1/orders?cursor=… → {orders: [FeedOrder], cursor}.
+ * Header x-api-key. It is not Amazon's or Flipkart's own API.
+ */
+export function marketplaceJsonAdapter(): ProviderAdapter {
+  const auth = (call: AdapterCall) => {
+    const s = secretFields(call.secret, ['apiKey']);
+    return s ? { 'x-api-key': s.apiKey } : null;
+  };
+  return {
+    provider: 'marketplace_json',
+    real: true,
+    async test(call) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const res = await jsonRequest(call, `${base(call)}${call.testPath ?? '/v1/account'}`, { headers });
+      if ('ok' in res) return res;
+      return res.status === 200 ? { ok: true } : httpFailure(res.status, `HTTP_${String(res.status)}`);
+    },
+    async pushInventory(call, items) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const res = await jsonRequest(call, `${base(call)}/v1/inventory`, { method: 'POST', headers, body: { items } });
+      if ('ok' in res) return res;
+      if (res.status < 200 || res.status >= 300) return httpFailure(res.status, `HTTP_${String(res.status)}`);
+      const rejected = (res.json as { rejected?: unknown } | null)?.rejected;
+      const list = Array.isArray(rejected)
+        ? (rejected as { sku?: unknown; code?: unknown }[])
+            .filter((r) => typeof r.sku === 'string' && typeof r.code === 'string')
+            .map((r) => ({
+              sku: String(r.sku),
+              code: String(r.code)
+                .replace(/[^A-Z0-9_]/g, '_')
+                .slice(0, 40),
+            }))
+        : [];
+      return { ok: true, value: { rejected: list }, units: 1 };
+    },
+    async fetchOrders(call, cursor) {
+      const headers = auth(call);
+      if (!headers) return { ok: false, code: 'SECRET_INVALID', retryable: false };
+      const q = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+      const res = await jsonRequest(call, `${base(call)}/v1/orders${q}`, { headers });
+      if ('ok' in res) return res;
+      if (res.status !== 200) return httpFailure(res.status, `HTTP_${String(res.status)}`);
+      const orders = parseFeedOrders(res.json);
+      if (!orders) return { ok: false, code: 'FEED_INVALID', retryable: false };
+      const next = (res.json as { cursor?: unknown }).cursor;
+      return {
+        ok: true,
+        value: { orders, cursor: typeof next === 'string' && next.length <= 500 ? next : cursor },
+        units: 1,
+      };
+    },
+  };
+}
+
+/**
+ * The mock marketplace (tests and development only): it records every
+ * inventory push and serves the orders a test places, per integration label.
+ * Model ID "mock-fail" fails every call; a store in `failing` fails until removed.
+ */
+export const mockMarketplace = {
+  pushes: [] as { label: string; items: InventoryItem[] }[],
+  orders: new Map<string, FeedOrder[]>(),
+  failing: new Set<string>(),
+  failure(call: AdapterCall): AdapterFailure | null {
+    return this.failing.has(cfg(call, 'store')) ? { ok: false, code: 'MOCK_UNAVAILABLE', retryable: false } : null;
+  },
+  place(label: string, order: FeedOrder): void {
+    this.orders.set(label, [...(this.orders.get(label) ?? []), order]);
+  },
+  reset(): void {
+    this.pushes.length = 0;
+    this.orders.clear();
+    this.failing.clear();
+  },
+};

@@ -599,6 +599,8 @@ export async function issueSale(
           address: priced.seller.address,
           phone: priced.seller.phone,
           email: priced.seller.email,
+          logoUploadId: priced.seller.logoUploadId,
+          brandColor: priced.seller.brandColor,
         },
         terms: priced.seller.terms,
         buyer: customer

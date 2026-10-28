@@ -1,7 +1,7 @@
 // Application chrome: the top bar and, inside a business, the side navigation
 // (a horizontal, scrollable bar on small screens). Menu entries appear only
 // for screens the member may use; the API checks every permission again.
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Link, NavLink, Outlet, useParams } from 'react-router';
 import { api, type Me } from './api.ts';
@@ -77,6 +77,7 @@ export function Icon(props: { name: IconName; className?: string }) {
 export const SCREENS: readonly (readonly [string, string, string, IconName])[] = [
   ['assistants', 'Assistants', 'agents.use', 'chat'],
   ['pos', 'Point of sale', 'pos.sell', 'receipt'],
+  ['online', 'Online selling', 'catalogue.view', 'cart'],
   ['invoices', 'Invoices', 'customers.view', 'file'],
   ['customers', 'Customers', 'customers.view', 'person'],
   ['reminders', 'Reminders', 'customers.view', 'bell'],
@@ -93,6 +94,7 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['integrations', 'API Hub', 'integrations.view', 'plug'],
   ['usage', 'Usage and monitoring', 'business.settings.view', 'gauge'],
   ['account', 'Billing and support', 'support.grant', 'wallet'],
+  ['branding', 'Branding and website', 'business.settings.view', 'spark'],
   ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];
@@ -183,6 +185,7 @@ export function BusinessShell() {
     <div className="business-shell mx-auto flex max-w-[90rem] flex-col lg:flex-row">
       <aside className="border-b border-ink-200 bg-white lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:w-64 lg:shrink-0 lg:overflow-y-auto lg:border-b-0 lg:bg-transparent">
         <div className="hidden border-b border-ink-100 px-5 py-5 lg:block">
+          <ShopLogo businessId={businessId} name={b.display_name ?? b.legal_name} />
           <p className="truncate text-sm font-semibold text-ink-900">{b.display_name ?? b.legal_name}</p>
           <div className="mt-2">
             <Badge tone={statusTone(b.status)}>{humanize(b.status)}</Badge>
@@ -205,5 +208,21 @@ export function BusinessShell() {
         <Outlet />
       </div>
     </div>
+  );
+}
+
+/** The shop's own logo above its name (11.1); nothing when none is set. */
+function ShopLogo(props: { businessId: string; name: string }) {
+  const branding = useQuery({
+    queryKey: ['branding', props.businessId],
+    queryFn: () => api<{ branding: { hasLogo: boolean } }>(`/api/businesses/${props.businessId}/branding`),
+  });
+  if (!branding.data?.branding.hasLogo) return null;
+  return (
+    <img
+      src={`/api/businesses/${props.businessId}/branding/logo?v=${String(branding.dataUpdatedAt)}`}
+      alt={`${props.name} logo`}
+      className="mb-2 max-h-12 max-w-full object-contain"
+    />
   );
 }

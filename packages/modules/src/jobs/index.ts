@@ -7,7 +7,9 @@
 import { sql } from 'kysely';
 import { SYSTEM_ACTOR, withTenant, type Db, type TenantContext } from '@lbgos/db';
 import { expireRuns } from '../agents/index.ts';
+import { importChannelOrders, pushChannelStock } from '../commerce/index.ts';
 import { runDueCampaigns } from '../campaigns/index.ts';
+import type { HubDeps } from '../integrations/index.ts';
 import { dispatchDue, type MessageProvider } from '../messaging/index.ts';
 import { quotaNoticesIn } from '../quotas/index.ts';
 import { runReminders } from '../reminders/index.ts';
@@ -16,6 +18,8 @@ export interface JobDeps {
   readonly appDb: Db;
   /** The message provider for a business (the hub's tested channel integrations in production). */
   readonly provider: (ctx: TenantContext) => Promise<MessageProvider>;
+  /** The integration hub; without it marketplace channels are not synced (11.2–11.3). */
+  readonly hub?: HubDeps | undefined;
 }
 
 export interface JobStep {
@@ -132,6 +136,9 @@ export async function runJobsOnce(deps: JobDeps, now: Date = new Date()): Promis
           ['agent_timeouts', () => expireRuns(deps.appDb, ctx, now)],
           ['trial_notices', () => trialNotices(deps.appDb, ctx, now)],
           ['quota_notices', async () => (await withTenant(deps.appDb, ctx, (trx) => quotaNoticesIn(trx, ctx))).length],
+          // Orders first, so the stock pushed next already accounts for their reservations.
+          ['channel_orders', () => (deps.hub ? importChannelOrders(deps.hub, ctx) : Promise.resolve(0))],
+          ['channel_stock', () => (deps.hub ? pushChannelStock(deps.hub, ctx, now) : Promise.resolve(0))],
         ];
         for (const [job, fn] of jobs) {
           const started = new Date();

@@ -20,6 +20,8 @@ interface Snapshot {
     address?: string | null;
     phone?: string | null;
     email?: string | null;
+    logoUploadId?: string | null;
+    brandColor?: string | null;
   };
   buyer?: {
     name?: string;
@@ -96,6 +98,7 @@ th { text-align: left; font-weight: 600; }
 const WIDE_CSS = `
 .head { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 10px; border-bottom: 2px solid #302b86; }
 .head .seller .name { font-size: 1.35em; font-weight: 700; }
+.logo { display: block; max-height: 18mm; max-width: 50mm; margin-bottom: 4px; object-fit: contain; }
 .head .doc { text-align: right; }
 .parties { display: flex; gap: 16px; margin: 12px 0; }
 .parties > div { flex: 1; border: 1px solid #d9dde9; border-radius: 6px; padding: 8px 10px; }
@@ -118,6 +121,7 @@ const NARROW_CSS = `
 @media screen { .sheet { padding: 4mm; } }
 h1 { font-size: 1.15em; text-align: center; }
 .rule { border-top: 1px dashed #5f6987; margin: 5px 0; }
+.logo { display: block; max-height: 12mm; max-width: 40mm; margin: 0 auto 3px; object-fit: contain; }
 .line td { padding: 1px 0; vertical-align: top; }
 .totals td { padding: 1px 0; }
 .totals .grand td { font-weight: 700; font-size: 1.15em; border-top: 1px solid #151a2d; padding-top: 3px; }
@@ -125,6 +129,8 @@ h1 { font-size: 1.15em; text-align: center; }
 
 interface Model {
   title: string;
+  /** A data: URI of the snapshot's logo, or null (11.1). */
+  logo: string | null;
   d: InvoiceDetail;
   s: Snapshot;
   taxed: boolean;
@@ -137,6 +143,7 @@ function model(d: InvoiceDetail): Model {
   const s = (d.partySnapshot ?? {}) as Snapshot;
   return {
     title: TITLES[d.documentType] ?? d.documentType,
+    logo: null,
     d,
     s,
     taxed:
@@ -282,8 +289,8 @@ function wide(m: Model): string {
     ? `<div><div class="label">${d.documentType === 'CREDIT_NOTE' ? 'Issued to' : 'Bill to'}</div><div class="bold">${esc(s.buyer.name)}</div>${partyLines(s.buyer)}</div>`
     : `<div><div class="label">Bill to</div><div>Walk-in customer</div></div>`;
   return `<div class="sheet">
-<div class="head">
-  <div class="seller"><div class="name">${esc(name)}</div>${legal}${partyLines(seller)}</div>
+${m.s.seller?.brandColor && HEX.test(m.s.seller.brandColor) ? '<div class="brandbar"></div>' : ''}<div class="head">
+  <div class="seller">${m.logo ? `<img class="logo" src="${esc(m.logo)}" alt="${esc(name)} logo">` : ''}<div class="name">${esc(name)}</div>${legal}${partyLines(seller)}</div>
   <div class="doc"><h1>${esc(m.title)}</h1>${m.composition ? '<div class="small">Composition taxable person, not eligible to collect tax on supplies</div>' : ''}${docMeta(m)}</div>
 </div>
 <div class="parties">${buyer}</div>
@@ -322,7 +329,7 @@ function narrow(m: Model): string {
     ? `<div class="bold">${esc(s.buyer.name)}</div>${partyLines(s.buyer)}`
     : '<div>Walk-in customer</div>';
   return `<div class="sheet">
-<div class="center"><div class="bold" style="font-size:1.2em">${esc(name)}</div>${partyLines(seller)}</div>
+<div class="center">${m.logo ? `<img class="logo" src="${esc(m.logo)}" alt="${esc(name)} logo">` : ''}<div class="bold" style="font-size:1.2em">${esc(name)}</div>${partyLines(seller)}</div>
 <div class="rule"></div>
 <h1>${esc(m.title)}</h1>${m.composition ? '<div class="center small">Composition taxable person, not eligible to collect tax on supplies</div>' : ''}
 <div class="small">${docMeta(m)}</div>
@@ -343,14 +350,28 @@ ${s.terms ? `<div class="rule"></div><div class="small">${esc(s.terms).replace(/
 
 export interface PrintOptions {
   readonly size: PaperSize;
+  /** The logo of the document's snapshot as a data: URI (the page loads nothing from the network). */
+  readonly logoDataUri?: string | null | undefined;
   /** Links in the on-screen toolbar (not printed); omitted for PDFs. */
   readonly toolbar?: { readonly pdfHref: string; readonly sizeHref: (size: PaperSize) => string } | undefined;
 }
 
+const LOGO_URI = /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/;
+const HEX = /^#[0-9a-f]{6}$/;
+
 export function renderDocumentHtml(d: InvoiceDetail, options: PrintOptions): string {
-  const m = model(d);
+  const m = {
+    ...model(d),
+    logo: options.logoDataUri && LOGO_URI.test(options.logoDataUri) ? options.logoDataUri : null,
+  };
   const isNarrow = options.size === '80MM' || options.size === '58MM';
-  const css = `${BASE_CSS}${isNarrow ? NARROW_CSS : WIDE_CSS}${PAGE_CSS[options.size]}`;
+  // The brand colour is an accent on rules only, never on text (contrast stays as designed).
+  const color = m.s.seller?.brandColor;
+  const accent =
+    color && HEX.test(color)
+      ? `.head { border-bottom-color: ${color}; } .totals .grand td { border-top-color: ${color}; } .brandbar { height: 4px; background: ${color}; margin-bottom: 8px; }`
+      : '';
+  const css = `${BASE_CSS}${isNarrow ? NARROW_CSS : WIDE_CSS}${PAGE_CSS[options.size]}${accent}`;
   const sizes: [PaperSize, string][] = [
     ['A4', 'A4'],
     ['A5', 'A5'],

@@ -46,6 +46,9 @@ const TABLE_FOR_SEGMENT: Readonly<Record<string, string>> = {
   'tax-rates': 'tax_rates',
   movements: 'stock_movements',
   reminders: 'reminders',
+  channels: 'sales_channels',
+  'channel-orders': 'channel_orders',
+  grants: 'support_grants',
 };
 
 function fill(url: string, businessId: string): string {
@@ -156,6 +159,34 @@ beforeAll(async () => {
     { agent: 'GROWTH', question: `${MARK} question`, idempotencyKey: 'iso-run-0001' },
     a.owner,
   );
+  const integ = await post(
+    h,
+    `${a.base}/integrations`,
+    { category: 'MARKETPLACE', provider: 'mock', label: `${MARK} marketplace`, authMethod: 'NONE' },
+    a.owner,
+  );
+  const integId = integ.json<{ integration: { id: string } }>().integration.id;
+  await post(h, `${a.base}/integrations/${integId}/test`, {}, a.owner);
+  await post(h, `${a.base}/channels`, { name: `${MARK} channel`, integrationId: integId }, a.owner);
+  const site = (
+    await h.app.inject({
+      method: 'GET',
+      url: `${a.base}/channels`,
+      remoteAddress: freshIp(),
+      headers: {
+        cookie: Object.entries(a.owner)
+          .map(([k, val]) => `${k}=${val}`)
+          .join('; '),
+      },
+    })
+  )
+    .json<{ channels: { id: string; kind: string }[] }>()
+    .channels.find((c) => c.kind === 'WEBSITE');
+  await sql`insert into lbg.channel_listings (business_id, channel_id, variant_id, external_sku)
+            values (${a.businessId}, ${site?.id ?? ''}, ${v}, 'ISO-WEB-1')`.execute(h.admin);
+  await sql`insert into lbg.channel_orders (business_id, channel_id, external_order_id, customer_name)
+            values (${a.businessId}, ${site?.id ?? ''}, 'ISO-ORDER-1', ${`${MARK} buyer`})`.execute(h.admin);
+  await post(h, `${a.base}/support/grants`, { purpose: `${MARK} support check`, hours: 1 }, a.owner);
   const all: string[] = [];
   for (const [seg, table] of Object.entries(TABLE_FOR_SEGMENT)) {
     const { rows } = await sql<{ id: string }>`select id::text as id from ${sql.table(`lbg.${table}`)}

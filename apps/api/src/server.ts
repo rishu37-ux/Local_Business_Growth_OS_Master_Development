@@ -114,7 +114,7 @@ const hub = { appDb, secrets: secrets ?? null, allowMocks: (config.NODE_ENV as s
 const stopJobs =
   config.JOBS_INTERVAL_SECONDS > 0
     ? startJobRunner(
-        { appDb, provider: (ctx) => hubMessagingProvider(hub, ctx) },
+        { appDb, provider: (ctx) => hubMessagingProvider(hub, ctx), hub },
         config.JOBS_INTERVAL_SECONDS,
         (err) => {
           app.log.error({ err }, 'job runner failed');

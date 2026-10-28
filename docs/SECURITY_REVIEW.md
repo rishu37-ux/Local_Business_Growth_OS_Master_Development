@@ -117,6 +117,7 @@ Status values: **Met** (implemented and shown by an executed test), **Partly** (
 |---|---|---|
 | 12.1 Size, page and pixel limits; request body limit 1 MiB (413), webhooks 256 KiB | Met | TR-0015, TR-0044 #8 |
 | 12.2 File type by magic bytes; random keys; private storage | Met | TR-0015 |
+| Logos: PNG/JPEG only, 1 MB, 2000 px, SVG refused (Phase 11) | Met | TR-0046 #1 |
 | 12.5 Downloads as attachments with `nosniff`; PDFs sandboxed | Met | TR-0015, TR-0044 #8 |
 | Malware scanning | **Not met** | SR-04 |
 | Processing isolation | **Partly** | SR-05 |
@@ -126,6 +127,8 @@ Status values: **Met** (implemented and shown by an executed test), **Partly** (
 |---|---|---|
 | 13.1 Same-origin API; Origin check; JSON only | Met | TR-0007 #17 |
 | 13.2 Webhooks: signature over the raw body, 5-minute window, applied once, rate-limited | Met | TR-0038 #9–12, TR-0044 #9 |
+| Public shop website (Phase 11): definer reads of public fields only, escaped server-rendered HTML, no scripts, strict CSP, rate-limited order requests | Met | TR-0046 #12–15 |
+| Marketplace feeds (Phase 11): strict validation, idempotent import, guarded outbound client | Met (mock connector) | TR-0046 #5–11 |
 
 ## V14 Configuration
 | Item | Status | Evidence |

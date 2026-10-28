@@ -24,6 +24,7 @@ Status values:
 | 12 | Operations | Production hosting, backups with a timed restore, monitoring with alerts, on-call | User, developer | **Blocked (Q2, Q6)** | `PILOT_CHECKLIST.md` #2–4, #19 |
 | 13 | Onboarding | Owner and staff guides checked with the pilot shop | Developer with the shop | **Prepared** | `ONBOARDING_GUIDE.md` |
 | 14 | Onboarding | Bulk import of opening stock and customers (CSV) — needed at more than a handful of shops | Developer | **Open** | Not built; screen-by-screen entry only |
+| 15a | Marketplaces | Amazon/Flipkart: seller accounts, API approval, a dedicated adapter tested against each, or an approved connector service; marketplace fees in the plan margin | User (accounts), developer | **Blocked (Q4)** | Connector contract and mock only (TR-0046) |
 | 15 | Integrations | Only the providers that are sold are connected with real accounts and tested; their costs are in the plan margin | User (accounts), developer | **Blocked (Q4)** | `INTEGRATIONS_STATUS.md` (all mock) |
 | 16 | Accessibility/devices | Firefox, Safari/WebKit and real Android/iOS devices tested; manual screen-reader check | Developer | **Open** | Chromium only (TR-0044 #10–12) |
 | 17 | Company | Legal entity, bank account and GST registration of the platform operator | User | **Open** | — |
