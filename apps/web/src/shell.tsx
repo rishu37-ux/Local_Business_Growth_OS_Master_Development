@@ -9,9 +9,24 @@ import { useBusiness } from './business.ts';
 import { Badge, BrandMark, humanize, statusTone } from './ui.tsx';
 
 type IconName =
-  'home' | 'box' | 'layers' | 'cart' | 'scan' | 'truck' | 'check' | 'users' | 'chart' | 'receipt' | 'person' | 'file';
+  | 'home'
+  | 'box'
+  | 'layers'
+  | 'cart'
+  | 'scan'
+  | 'truck'
+  | 'check'
+  | 'users'
+  | 'chart'
+  | 'receipt'
+  | 'person'
+  | 'file'
+  | 'bell'
+  | 'wallet';
 
 const ICON_PATHS: Readonly<Record<IconName, string>> = {
+  bell: 'M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0',
+  wallet: 'M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7Zm0 0 12-3v3m0 7h2',
   chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
   receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6m-6 4h3',
   person: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0',
@@ -51,12 +66,14 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['pos', 'Point of sale', 'pos.sell', 'receipt'],
   ['invoices', 'Invoices', 'customers.view', 'file'],
   ['customers', 'Customers', 'customers.view', 'person'],
+  ['reminders', 'Reminders', 'customers.view', 'bell'],
   ['catalogue', 'Catalogue', 'catalogue.view', 'box'],
   ['stock', 'Stock', 'inventory.view', 'layers'],
   ['purchases', 'Purchases', 'purchases.view', 'cart'],
   ['scans', 'Scans', 'ocr.scan', 'scan'],
   ['suppliers', 'Suppliers', 'suppliers.view', 'truck'],
   ['approvals', 'Approvals', 'approvals.decide', 'check'],
+  ['expenses', 'Expenses', 'expenses.manage', 'wallet'],
   ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];

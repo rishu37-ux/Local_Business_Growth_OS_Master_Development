@@ -1,5 +1,6 @@
 // Customers: list and search, and a customer's account — balance, what is
-// owed, advance, payments and statement (increments 5.2, 5.4, 5.8).
+// owed, advance, payments and statement (increments 5.2, 5.4, 5.8); profile,
+// consent, messages, erasure and export (increment 6.7).
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Form } from 'react-aria-components';
@@ -19,11 +20,17 @@ import {
   statusTone,
   Table,
 } from '../ui.tsx';
+import {
+  Communications,
+  ConsentSection,
+  CustomerExport,
+  EraseSection,
+  OwnedItems,
+  ProfileDetails,
+  type CrmCustomer,
+} from './customer-crm.tsx';
 
-interface Customer {
-  id: string;
-  name: string;
-  mobileE164: string | null;
+interface Customer extends CrmCustomer {
   gstin: string | null;
   stateCode: string | null;
   address: string | null;
@@ -129,6 +136,7 @@ export function CustomersPage() {
           </Form>
         </section>
       ) : null}
+      {business.can('customers.export') ? <CustomerExport base={base} /> : null}
     </Page>
   );
 }
@@ -185,6 +193,7 @@ export function CustomerPage() {
         message={message?.text ?? (customer.error ? errorText(customer.error) : null)}
         tone={message?.tone ?? 'error'}
       />
+      {c ? <ProfileDetails key={`${c.id}-${String(c.erased)}`} base={base} customer={c} can={business.can} /> : null}
       {a ? (
         <div className="mb-5 grid gap-3 sm:grid-cols-3">
           <div className="card mb-0">
@@ -376,6 +385,12 @@ export function CustomerPage() {
           ) : null}
           <p className="text-xs text-ink-600">Positive balance: the customer owes the shop. Negative: advance held.</p>
         </section>
+      ) : null}
+      <OwnedItems base={base} businessId={businessId} customerId={customerId} />
+      {c ? <ConsentSection base={base} businessId={businessId} customer={c} can={business.can} /> : null}
+      {c ? <Communications base={base} businessId={businessId} customer={c} can={business.can} /> : null}
+      {c && !c.erased && business.data?.access.roles.includes('Owner') ? (
+        <EraseSection base={base} customer={c} />
       ) : null}
     </Page>
   );

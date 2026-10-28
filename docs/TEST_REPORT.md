@@ -703,3 +703,23 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 6 | FR-PRV-2, BR-T4 | Another business's export holds only its own (no customers); a suspended (read-only) business can export but not erase (`TENANT_READ_ONLY`); a stale session `REAUTH_REQUIRED` | **Pass** |
 | 7 | — | Negative control: erasure without suppressing the contact → 2 tests fail. Restored | **Detected** |
 | 8 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 285 | **Pass**, exit 0 |
+
+## TR-0032 · 2026-10-28 · Phase 6 increment 6.7 — screens and the Phase 6 exit test
+
+**Environment:** as TR-0011; Chromium (Playwright 1.63) against the built web app (`phase6-exit.db.test.ts`), real clock (dates derived from today in IST). The API runs with a **recording test adapter** as the messaging provider (it contacts nobody); "not configured" is shown with the default adapter. Quiet hours opened all day for the run (quiet hours: TR-0027 #10). Synthetic shop: Asha (birthday today, phone whose 12-month warranty ends in 5 days), Bilal (birthday today, warranty ended last year, no consent), Chitra (phone bought today, email).
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | Exit, FR-CON-1 AC1 | The owner records WhatsApp marketing consent for Asha on her profile ("Allowed / Allowed" for WhatsApp); Bilal has none on any channel; Asha's owned phone shows its warranty end date | **Pass** |
+| 2 | Exit, FR-REM-1 | On Reminders the owner turns on birthday and warranty reminders and runs them: "2 drafted, 1 skipped" — Asha's birthday and warranty only; Bilal skipped with "no marketing consent"; Chitra not drafted | **Pass** |
+| 3 | Exit, FR-CON-1 AC2–3, FR-MSG-1 AC4 | Birthday reminder sent for approval, approved, sent → **Sent** (the test adapter received exactly Asha's number). The warranty reminder is approved, Asha is opted out of WhatsApp on her profile, then Send → **Blocked**; adapter not called again. Her Messages section shows "Reason: the contact opted out" and both histories (…→ Submitted → Sent; …→ Queued → Blocked) | **Pass** |
+| 4 | Exit, AC5 of 6.2 | Without a provider (default adapter) a queued message → `FAILED / PROVIDER_NOT_CONFIGURED`; Chitra's profile shows "Reason: no messaging provider is connected" | **Pass** |
+| 5 | Exit, FR-EXP-1, FR-RPT-1 | Expenses turned on and ₹1,234.56 electricity recorded on the Expenses screen → today's operating-profit estimate changes by exactly −₹1,234.56; the Reports screen shows the "Operating profit (estimate)" section with the expense | **Pass** |
+| 6 | Exit, FR-CRM-2 AC2 | Customer export with Name and Tags chosen: file header exactly `Name,Tags`, row `Asha Rao (synthetic),VIP`, no mobile numbers; one `customer.export` audit event with those fields | **Pass** |
+| 7 | Exit, FR-PRV-1 AC2 | Erasing Chitra on her profile: heading becomes "Erased customer", her email gone from the page; her invoice print still shows "Chitra Iyer (synthetic)" | **Pass** |
+| 8 | Exit, FR-PRV-2 | The overview's "Download all shop data" link returns a valid ZIP with README, customers, invoices, invoice lines, payments, expenses and messages CSVs; customers.csv anonymised, expenses.csv has the expense | **Pass** |
+| 9 | Exit, FR-LED-3 AC1 | Overview "At a glance": net sales today ₹12,000.00 with "Gross sales minus returns.", low stock and reminders tiles with definitions; equals `GET /dashboard` | **Pass** |
+| 10 | NFR-1, NFR-17 | axe (no serious/critical) at 1280/768/360 px on customer profile, reminders, expenses, customers and overview (15 audits); no horizontal overflow; no CSP violations or page errors | **Pass** |
+| 11 | — | **Defects found by the browser test and fixed:** (a) a reminder setting form re-mounted after saving (its key included saved values), losing the "saved" message; (b) the erase message disappeared with the erase section as the profile reloaded — the test now checks the erased profile itself, which says so. The Phase 5 reports browser test's "no profit anywhere" check was narrowed to allow the separately defined operating-profit estimate (FR-LED-3 AC2 forbids calling sales profit) | **Fixed** |
+| 12 | — | Negative control: the send-time gate ignores the opt-out list → exit test 3 fails. Restored | **Detected** |
+| 13 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 295 (includes Phase 3–6 browser tests) | **Pass**, exit 0 |

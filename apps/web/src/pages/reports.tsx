@@ -135,7 +135,15 @@ function Section(props: { id: string; title: string; children: ReactNode }) {
   );
 }
 
+interface OperatingProfit {
+  expensesPaise: number;
+  operatingProfitPaise: number;
+  grossMarginPaise: number;
+  notes: string[];
+  definitions: Record<string, Definition>;
+}
 interface ReportMap {
+  'operating-profit': OperatingProfit;
   'sales-summary': Summary;
   'sales-by-item': ByItem;
   margin: Margin;
@@ -168,6 +176,7 @@ export function ReportsPage() {
   const summary = useReport(base, 'sales-summary', query);
   const items = useReport(base, 'sales-by-item', `${query}&groupBy=model`);
   const margin = useReport(base, 'margin', query, financial);
+  const profit = useReport(base, 'operating-profit', query, financial);
   const payments = useReport(base, 'payments', query);
   const tax = useReport(base, 'tax', query);
   const ageing = useReport(base, 'receivables', '', financial);
@@ -281,6 +290,34 @@ export function ReportsPage() {
               {margin.data.report.linesWithoutCost} sold line(s) had no recorded cost.
             </p>
           ) : null}
+        </Section>
+      ) : null}
+
+      {financial && profit.data ? (
+        <Section id="profit-heading" title="Operating profit (estimate)">
+          {exportable ? <ExportLinks href={exportHref('operating-profit')} formats={['csv', 'xlsx', 'pdf']} /> : null}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Metric
+              label={profit.data.report.definitions.grossMargin?.label ?? 'Gross margin'}
+              value={formatPaise(profit.data.report.grossMarginPaise)}
+              definition={undefined}
+            />
+            <Metric
+              label={profit.data.report.definitions.expenses?.label ?? 'Expenses'}
+              value={formatPaise(profit.data.report.expensesPaise)}
+              definition={profit.data.report.definitions.expenses?.definition}
+            />
+            <Metric
+              label={profit.data.report.definitions.operatingProfit?.label ?? 'Operating profit (estimate)'}
+              value={formatPaise(profit.data.report.operatingProfitPaise)}
+              definition={profit.data.report.definitions.operatingProfit?.definition}
+            />
+          </div>
+          {profit.data.report.notes.map((n) => (
+            <p key={n} className="mt-3 text-sm text-ink-600">
+              {n}
+            </p>
+          ))}
         </Section>
       ) : null}
 

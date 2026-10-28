@@ -4,17 +4,20 @@
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  /** Itemised problems some errors carry (e.g. a refused reminder template). */
+  readonly problems: readonly string[];
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, problems: readonly string[] = []) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.problems = problems;
   }
 }
 
 interface ErrorShape {
-  readonly error?: { readonly code?: string; readonly message?: string };
+  readonly error?: { readonly code?: string; readonly message?: string; readonly problems?: readonly string[] };
   readonly code?: string;
   readonly message?: string;
 }
@@ -31,7 +34,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   if (!res.ok) {
     const code = data?.error?.code ?? data?.code ?? 'ERROR';
     const message = data?.error?.message ?? data?.message ?? 'Something went wrong.';
-    throw new ApiError(res.status, code, message);
+    throw new ApiError(res.status, code, message, data?.error?.problems ?? []);
   }
   return data as T;
 }

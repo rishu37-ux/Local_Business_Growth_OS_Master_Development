@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Form } from 'react-aria-components';
 import { Link, useParams } from 'react-router';
-import { api, ApiError, type Me } from '../api.ts';
+import { api, ApiError, formatPaise, type Me } from '../api.ts';
 import { Alert, Badge, Button, errorText, Field, humanize, NativeSelect, Page, statusTone } from '../ui.tsx';
 
 interface BusinessView {
@@ -27,8 +27,66 @@ const TASKS: readonly (readonly [string, string, string, string])[] = [
     'Sales, cash received, tax summary and what customers owe.',
     'reports.sales.view',
   ],
+  [
+    'reminders',
+    'Review reminders',
+    'Birthday, warranty, service and payment reminders waiting for you.',
+    'customers.view',
+  ],
+  ['expenses', 'Record an expense', 'Rent, salaries, bills — with the receipt.', 'expenses.manage'],
   ['members', 'Invite your team', 'Give staff the role they need, nothing more.', 'users.manage'],
 ];
+
+interface Tile {
+  key: string;
+  label: string;
+  definition: string;
+  unit: 'paise' | 'count';
+  today?: number;
+  month?: number;
+  now?: number;
+}
+
+const tileValue = (t: Tile, v: number | undefined) => (t.unit === 'paise' ? formatPaise(v ?? 0) : String(v ?? 0));
+
+/** FR-LED-3 AC1: overview figures, each with its definition (the API shows only those the member may see). */
+function DashboardTiles({ businessId }: { businessId: string }) {
+  const board = useQuery({
+    queryKey: ['dashboard', businessId],
+    queryFn: () => api<{ dashboard: { today: string; tiles: Tile[] } }>(`/api/businesses/${businessId}/dashboard`),
+  });
+  const tiles = board.data?.dashboard.tiles ?? [];
+  if (tiles.length === 0) return null;
+  return (
+    <section aria-labelledby="dashboard-heading">
+      <h2 id="dashboard-heading" className="section-title">
+        At a glance
+      </h2>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {tiles.map((t) => (
+          <li key={t.key} className="rounded-xl border border-ink-200 bg-white p-4" data-testid={`tile-${t.key}`}>
+            <p className="text-sm font-medium text-ink-600">{t.label}</p>
+            {t.now === undefined ? (
+              <dl className="mt-1 grid grid-cols-2 gap-2">
+                <div>
+                  <dt className="text-xs text-ink-500">Today</dt>
+                  <dd className="text-xl font-semibold tabular-nums">{tileValue(t, t.today)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-500">This month</dt>
+                  <dd className="text-xl font-semibold tabular-nums">{tileValue(t, t.month)}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-1 text-xl font-semibold tabular-nums">{tileValue(t, t.now)}</p>
+            )}
+            <p className="mt-2 border-t border-ink-100 pt-2 text-xs text-ink-500">{t.definition}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 interface Application {
   legal_name: string;
   status: string;
@@ -110,6 +168,7 @@ export function BusinessPage({ me }: { me: Me }) {
       }
     >
       {view.data.access.mode === 'SETUP' ? <SetupWizard businessId={businessId} me={me} /> : null}
+      {view.data.access.mode === 'SETUP' ? null : <DashboardTiles businessId={businessId} />}
       {tasks.length > 0 ? (
         <section aria-labelledby="tasks-heading">
           <h2 id="tasks-heading" className="section-title">
@@ -153,6 +212,14 @@ export function BusinessPage({ me }: { me: Me }) {
             <dd className="mt-0.5 font-medium">{String(view.data.access.permissions.length)} granted</dd>
           </div>
         </dl>
+        {view.data.access.roles.includes('Owner') && view.data.access.mode !== 'SETUP' ? (
+          <p className="mt-4 text-sm">
+            <a className="link" href={`/api/businesses/${businessId}/export/business-data`}>
+              Download all shop data (ZIP of CSV files)
+            </a>{' '}
+            <span className="text-ink-600">— needs a sign-in within the last 10 minutes.</span>
+          </p>
+        ) : null}
       </section>
     </Page>
   );

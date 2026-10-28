@@ -116,8 +116,13 @@ describe('reports screen', () => {
     expect(text).toContain('₹1,500.00');
     expect(text).toContain('Gross sales minus returns.');
     expect(text).toContain('not a GST return');
-    // FR-LED-3: no figure is called profit; "cash" only for cash received.
-    expect(text).not.toMatch(/profit/i);
+    // FR-LED-3: no sales figure is called profit; "profit" appears only in the
+    // separately defined operating-profit estimate (6.4), always labelled an estimate.
+    const profitSection = await page
+      .locator('section', { has: page.getByRole('heading', { name: 'Operating profit (estimate)' }) })
+      .innerText();
+    expect(text.replace(profitSection, '')).not.toMatch(/profit/i);
+    expect(profitSection).toMatch(/estimate/i);
     expect(await page.getByRole('link', { name: 'XLSX' }).count()).toBeGreaterThan(0);
     const csv = await page.getByRole('link', { name: 'CSV' }).first().getAttribute('href');
     expect(csv).toMatch(/\/reports\/sales-summary\/export\?period=month&format=csv$/);

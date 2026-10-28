@@ -16,6 +16,8 @@ import { ReportsPage } from './pages/reports.tsx';
 import { PosPage } from './pages/pos.tsx';
 import { InvoiceDetailPage, InvoicesPage } from './pages/invoices.tsx';
 import { CustomerPage, CustomersPage } from './pages/customers.tsx';
+import { ExpensesPage } from './pages/expenses.tsx';
+import { RemindersPage } from './pages/reminders.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
 import { StockPage } from './pages/stock.tsx';
 import { SuppliersPage } from './pages/suppliers.tsx';
@@ -90,6 +92,8 @@ const router = createBrowserRouter([
           { path: 'invoices/:invoiceId', element: <Authed>{() => <InvoiceDetailPage />}</Authed> },
           { path: 'customers', element: <Authed>{() => <CustomersPage />}</Authed> },
           { path: 'customers/:customerId', element: <Authed>{() => <CustomerPage />}</Authed> },
+          { path: 'reminders', element: <Authed>{() => <RemindersPage />}</Authed> },
+          { path: 'expenses', element: <Authed>{() => <ExpensesPage />}</Authed> },
         ],
       },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },

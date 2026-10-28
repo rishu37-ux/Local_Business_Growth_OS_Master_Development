@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 6: increments 6.1–6.6 done)
+Last updated: 2026-10-28 (Phase 6: all increments done; exit test passes locally)
 
 ## Phase 6 — CRM, analytics, consent and reminders (in progress)
 
@@ -12,7 +12,8 @@ Plan and acceptance criteria: `PHASE6_PLAN.md`.
 4. ~~6.4 expenses and the operating-profit estimate~~ — done (TR-0029, D-050).
 5. ~~6.5 dashboard tiles with definitions~~ — done in the API (TR-0030, D-051); shown on the overview in 6.7.
 6. ~~6.6 erase personal data; tenant data export~~ — done in the API (TR-0031, D-052); legal review of retention still needed.
-7. **Next:** 6.7 screens and the Phase 6 exit browser test.
+7. ~~6.7 screens and the Phase 6 exit browser test~~ — done (TR-0032, D-053).
+8. **Next:** confirm CI green, record the Phase 6 exit, then plan Phase 7 (campaigns and AI creative) per the master prompt.
 
 ## Phase 5 (complete)
 
