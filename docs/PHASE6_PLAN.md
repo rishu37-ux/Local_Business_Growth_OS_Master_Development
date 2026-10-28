@@ -36,6 +36,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - AC2: figures equal the report module's values (same queries).
 
 ## Increment 6.6 — Privacy requests and tenant export (FR-PRV-1, FR-PRV-2)
+**Status: done in the API (TR-0031, D-052); screens in 6.7.**
 - AC1 FR-PRV-1 AC2: "erase personal data" (owner, reason, fresh sign-in): customer name/contact/DOB/notes anonymised, consents withdrawn, contact suppressed, pending messages cancelled; issued invoices keep their party snapshot (what was legally printed); audited. Legal retention rules remain to be confirmed (NFR-12).
 - AC2 FR-PRV-2: owner exports all business data (catalogue, stock, invoices with lines, payments, customers, ledgers, expenses) as a ZIP of CSVs; audited; allowed in read-only mode.
 

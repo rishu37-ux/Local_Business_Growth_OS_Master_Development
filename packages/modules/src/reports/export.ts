@@ -85,7 +85,7 @@ function colName(i: number): string {
 }
 
 /** A minimal ZIP writer (deflate, UTF-8 names), enough for an XLSX package. */
-function zip(files: readonly { name: string; data: Buffer }[]): Buffer {
+export function zip(files: readonly { name: string; data: Buffer }[]): Buffer {
   const parts: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;

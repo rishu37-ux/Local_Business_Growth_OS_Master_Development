@@ -9,6 +9,7 @@
 - Migration 0019 and `@lbgos/modules/reminders`: reminder settings per type (off by default; auto-send needs `marketing.approve`), validated templates, idempotent runs drafting birthday, warranty-expiry, service-due and payment-due messages, auto-send through the send-time gate; reminder API routes; template helpers in `@lbgos/domain`.
 - Migration 0020 and `@lbgos/modules/expenses`: optional expenses module (off by default), entries with receipts, full reversals as corrections; expenses report and operating-profit estimate (CSV/XLSX/PDF); `storeUpload`/`getUploadFile` in the OCR module for non-scan files.
 - Dashboard API (`GET /dashboard`): net sales, cash received, receivables, customer advances, gross margin, low stock and reminders waiting, each with its definition and permission; metric definitions for low stock and reminders waiting.
+- Migration 0021 and `@lbgos/modules/privacy`: erase a customer's personal data (owner, reason, recent sign-in) and the owner's full data export as a ZIP of CSVs.
 
 ### Fixed
 - Message event order within one transaction (insertion sequence, migration 0019).

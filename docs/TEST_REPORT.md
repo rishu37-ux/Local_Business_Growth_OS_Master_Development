@@ -688,3 +688,18 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 4 | Access | Another business gets 404 on this shop's dashboard and zeros on its own; read-only (suspended) business still sees the dashboard | **Pass** |
 | 5 | — | Negative control: financial tiles shown without `reports.financial.view` → test 3 fails. Restored | **Detected** |
 | 6 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 279 | **Pass**, exit 0 |
+
+## TR-0031 · 2026-10-28 · Phase 6 increment 6.6 — erase personal data, tenant export
+
+**Environment:** as TR-0011 (`privacy.db.test.ts`); ZIPs read with Python's `zipfile` (an independent reader, CRC checked). Synthetic shop; customer "Meera Synthetic" with mobile, email, DOB, address, notes, tags, WhatsApp marketing consent, one issued invoice, one failed SMS and one approved (pending) WhatsApp message.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-PRV-1 AC2 | Manager (`OWNER_ONLY`) and Billing refused; reason under 10 characters 400; a session older than 10 minutes `REAUTH_REQUIRED`; another business 404 | **Pass** |
+| 2 | FR-PRV-1 AC2 (exit) | Erasure: name "Erased customer", mobile, alternate, email, address, DOB, notes, tags, channels cleared, `erased: true`; not found by name search; 6 consents withdrawn, nothing allowed on any channel; WhatsApp, SMS and email addresses suppressed (ERASED); the pending message cancelled (`CUSTOMER_ERASED`) and both messages redacted to `[erased]` with their status history kept; no new message can be created | **Pass** |
+| 3 | FR-PRV-1 AC2 (exit) | The issued invoice still prints "Meera Synthetic" (party snapshot) | **Pass** |
+| 4 | FR-PRV-1 AC2 | One audit event without name, number or reason; the reason is stored with the privacy request; second erasure `ALREADY_ERASED`; editing the erased customer 404; un-redacting a message refused (LB003); the number can be used for a new customer record and stays suppressed | **Pass** |
+| 5 | FR-PRV-2 (exit) | Export: Manager `OWNER_ONLY`, other business 404; owner gets `application/zip` with README and 22 CSVs (catalogue, purchases, stock, units/IMEIs, customers, consents, invoices, lines, payments, allocations, refunds, ledger, expenses, messages); customers.csv shows the erased customer anonymised, invoices.csv keeps the printed snapshot, messages redacted; no other business's ID anywhere; audited with file and row counts | **Pass** |
+| 6 | FR-PRV-2, BR-T4 | Another business's export holds only its own (no customers); a suspended (read-only) business can export but not erase (`TENANT_READ_ONLY`); a stale session `REAUTH_REQUIRED` | **Pass** |
+| 7 | — | Negative control: erasure without suppressing the contact → 2 tests fail. Restored | **Detected** |
+| 8 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 285 | **Pass**, exit 0 |

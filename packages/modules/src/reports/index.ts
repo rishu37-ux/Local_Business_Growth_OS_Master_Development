@@ -596,6 +596,7 @@ export {
   toCsv,
   toReportHtml,
   toXlsx,
+  zip,
   type ExportCell,
   type ExportColumn,
   type ExportFormat,
