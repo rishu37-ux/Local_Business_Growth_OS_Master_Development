@@ -29,7 +29,7 @@ It extends FR-OCR (scans), FR-POS-1 and FR-INV. Acceptance criteria (AC) are fix
 
 ## Status
 
-All four increments and the exit are done (TR-0047). Accuracy on real photos is not measured.
+All four increments and the exit are done (TR-0047). CI #66 green: Tesseract was installed in CI and the Phase 12 tests passed. Accuracy on real photos is not measured.
 
 ## Increment 12.1 — Real OCR engine (Tesseract adapter)
 - **AC1:** with `OCR_ENGINE=tesseract`, scans are read by the local `tesseract` program.
