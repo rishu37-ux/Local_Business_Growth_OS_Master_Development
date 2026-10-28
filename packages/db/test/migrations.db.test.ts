@@ -47,6 +47,7 @@ describe('migrations', () => {
       '0019_reminders',
       '0020_expenses',
       '0021_privacy',
+      '0022_secrets',
     ]);
   });
 });

@@ -739,3 +739,24 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 6 | FR-HUB-5 AC1 | Lint rule `lbgos/no-raw-http` (server packages and API source, outbound module exempt): 5 valid and 10 invalid cases (http/https/undici/axios/net imports, re-export, dynamic import, require, `fetch`, `globalThis.fetch`); the existing server code passes it | **Pass** |
 | 7 | — | Negative control: the 169.254.0.0/16 range removed → 8 tests fail. Restored | **Detected** |
 | 8 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 102, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 295 | **Pass**, exit 0 |
+
+## TR-0034 · 2026-10-28 · Phase 7 increment 7.2 — secret store with envelope encryption
+
+**Environment:** as TR-0011 (`secrets.db.test.ts`) plus unit tests (`secrets-crypto.test.ts`). Synthetic test keys (`Buffer.alloc(32, 7)` etc.) and synthetic values only; no real secret was used.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | ADR-13 | Keyring parsing: first version current; empty, missing key, 16-byte key, duplicate version, bad version name refused with messages that never contain key material; a malformed `SECRETS_KEK` stops the server without echoing it | **Pass** |
+| 2 | FR-HUB-3 AC2 | AES-256-GCM round trip; two seals of one value differ (fresh data key and nonce); ciphertext holds no plaintext; a flipped byte, another secret ID, another business, another purpose or a wrong KEK all fail to open | **Pass** |
+| 3 | ADR-13 | KEK rotation re-seals only the data key (payload unchanged); afterwards a keyring with only the new KEK opens it; already-current secrets are untouched | **Pass** |
+| 4 | FR-HUB-3 AC2, AC5 | Store: Manager 403 (no `integrations.manage`); owner 201 with metadata and hint `8e0d` only (exact field list), no value in the body; list (Manager allowed, Billing 403) shows metadata only; `secret.store` and `secret.list` audited | **Pass** |
+| 5 | FR-HUB-3 AC5 | A session older than 10 minutes: storing and revoking `REAUTH_REQUIRED`, listing still works | **Pass** |
+| 6 | FR-HUB-3 AC3 | The tenant role gets `permission denied` (42501) selecting the payload or `*`; the stored row holds no plaintext; KEK version recorded | **Pass** |
+| 7 | ADR-13 | The secrets role opens the value for its own business only; another business's context → not found; without a tenant context it sees no rows (RLS) | **Pass** |
+| 8 | FR-HUB-3 | Database refuses: replacing the payload (LB022), a rewrap by the tenant role (LB022), deleting (LB001), renaming (LB001); the secrets role cannot change the payload (42501) | **Pass** |
+| 9 | FR-HUB-4 AC2 | Rotate: new secret with `replacesSecretId`, the old one revoked with its material destroyed (null), opening it → `REVOKED`; rotating a revoked secret refused; revoke once, second revoke `REVOKED` | **Pass** |
+| 10 | ADR-13 | KEK rotation through the secrets role re-seals 1 live secret (revoked ones skipped), then 0; `rewrappedAt` set; only the new KEK needed afterwards | **Pass** |
+| 11 | FR-HUB-3 AC3 | Requests carrying the value with an unknown field or a bad purpose → 400 without the value; captured logs, audit metadata and responses never contain it | **Pass** |
+| 12 | Access | Other business 404; read-only business can list but not store (`TENANT_READ_ONLY`); a server without `SECRETS_KEK` answers `STORE_NOT_CONFIGURED` (503) and reports `storeConfigured: false` | **Pass** |
+| 13 | — | Negative control: `select` on the whole table granted to the tenant role → test 6 fails. Restored | **Detected** |
+| 14 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 305 | **Pass**, exit 0 |

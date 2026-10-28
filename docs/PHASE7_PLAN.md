@@ -13,6 +13,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC5: tests cover each blocked range, decimal/octal/hex/short IPv4 encodings, IPv6 forms and a DNS-rebinding scenario (first answer public, second private).
 
 ## Increment 7.2 — Secret store with envelope encryption (FR-HUB-3, ADR-13, T12)
+**Status: done (TR-0034, D-055).**
 - AC1: AES-256-GCM per secret with its own random data key, wrapped by a versioned KEK from the environment (never in the DB or repo); key rotation re-wraps data keys.
 - AC2: secrets are write-only through the API; responses show only the last 4 characters and created/rotated dates.
 - AC3: a dedicated DB role (or restricted columns) holds ciphertext; the app role cannot read plaintext columns because none exist.

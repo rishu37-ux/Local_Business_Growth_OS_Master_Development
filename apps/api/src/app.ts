@@ -21,6 +21,7 @@ import { registerReminderRoutes } from './routes/reminders.ts';
 import { registerReportRoutes } from './routes/reports.ts';
 import { registerSalesRoutes } from './routes/sales.ts';
 import { registerScanRoutes } from './routes/scans.ts';
+import { registerSecretRoutes } from './routes/secrets.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
 import type { AppServices } from './services.ts';
@@ -209,6 +210,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerReminderRoutes(app, services);
     registerExpenseRoutes(app, services);
     registerPrivacyRoutes(app, services);
+    registerSecretRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

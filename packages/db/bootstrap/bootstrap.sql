@@ -11,6 +11,7 @@ create role lbgos_owner login bypassrls;            -- owns objects; runs migrat
 create role lbgos_app login nobypassrls;            -- tenant requests (RLS)
 create role lbgos_platform login nobypassrls;       -- platform-admin requests (D-015)
 create role lbgos_auth login nobypassrls;           -- auth module only (D-019)
+create role lbgos_secrets login nobypassrls;        -- reads sealed integration secrets only (ADR-13, D-055)
 -- Better Auth uses unqualified table names; for this role they resolve to schema auth.
 alter role lbgos_auth set search_path = auth;
 

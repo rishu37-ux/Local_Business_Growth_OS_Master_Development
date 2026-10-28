@@ -21,6 +21,7 @@
     "./reminders": "./src/reminders/index.ts",
     "./reports": "./src/reports/index.ts",
     "./sales": "./src/sales/index.ts",
+    "./secrets": "./src/secrets/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

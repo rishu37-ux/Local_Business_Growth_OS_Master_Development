@@ -26,7 +26,7 @@ pnpm -F @lbgos/web build        # SPA → apps/web/dist (served by the API at /)
 **Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally.
 
 Running the API locally against a persistent database:
-1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store.
+1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store. Environments bootstrapped before migration 0022 must first run `create role lbgos_secrets login nobypassrls;` (D-055).
 2. Migrate: `LBGOS_MIGRATION_DATABASE_URL=postgres://lbgos_owner:...@host/db node packages/db/src/migrate-cli.ts`.
 3. Start: `SESSION_SECRET=<32+ random chars> PUBLIC_BASE_URL=http://localhost:3000 node apps/api/src/server.ts`. `DATABASE_URL_*` are optional locally (libpq `PG*` variables are used with the role names). Verification/invitation emails are printed to stdout by the development mailers.
 4. Grant a platform admin (operator action, owner role): `insert into lbg.platform_admins (user_id) select id from lbg.users where email = '<admin email>';` — the admin must then enrol MFA.
@@ -46,7 +46,7 @@ Notes: the Docker daemon is unavailable in the cloud session. Server code runs o
 
 **Migrations (expand/contract):** every migration must be backward-compatible with the previous app version. Step 1 adds columns/tables/policies; step 2 deploys code using them; step 3, in a later release, removes old structures. Destructive changes are never combined with the release that stops using them. Policies and grants are part of migrations and covered by the DB test suite.
 
-**Secrets:** injected as encrypted environment variables of the platform (DB URLs per role, session secret, KEK, provider keys). Never baked into images, never logged. Rotation is documented per secret in Phase 3.
+**Secrets:** injected as encrypted environment variables of the platform (DB URLs per role incl. `DATABASE_URL_SECRETS`, session secret, `SECRETS_KEK`, provider keys). KEK rotation: prepend the new `version:key` to `SECRETS_KEK`, deploy, run the rewrap for each business (`rewrapSecrets`, secrets role), then remove the old key. Never baked into images, never logged. Rotation is documented per secret in Phase 3.
 
 ## 4. Backup and recovery (design; restore test in Phase 9)
 

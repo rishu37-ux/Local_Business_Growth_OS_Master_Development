@@ -1,6 +1,7 @@
 import type { Db } from '@lbgos/db';
 import type { AuthService } from '@lbgos/modules/auth';
 import type { MessageProvider } from '@lbgos/modules/messaging';
+import type { Keyring } from '@lbgos/modules/secrets';
 import type { Mailer } from '@lbgos/modules/notifications';
 import type { OcrConfig } from '@lbgos/modules/ocr';
 import type { PdfRenderer } from './pdf.ts';
@@ -19,4 +20,6 @@ export interface AppServices {
   readonly pdf?: PdfRenderer;
   /** Messaging provider adapter; without it messages fail as PROVIDER_NOT_CONFIGURED (none is connected yet). */
   readonly messaging?: MessageProvider;
+  /** Integration secrets (ADR-13): the secrets-role pool and the key-encryption keys; without them the store is "not configured". */
+  readonly secrets?: { readonly db: Db; readonly keyring: Keyring };
 }

@@ -5,6 +5,7 @@
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
 - `@lbgos/modules/outbound`: the guarded outbound HTTP client (SSRF protection) and ESLint rule `lbgos/no-raw-http`.
+- Migration 0022, database role `lbgos_secrets` and `@lbgos/modules/secrets`: envelope-encrypted integration secrets (write-only API, rotation, revocation, KEK rotation); config `SECRETS_KEK`, `DATABASE_URL_SECRETS`.
 
 ## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 

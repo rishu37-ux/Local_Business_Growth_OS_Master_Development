@@ -43,6 +43,7 @@ const DB_ERRORS: Readonly<Record<string, Mapped>> = {
     message: 'Only the messaging provider can confirm this status.',
   },
   LB021: { status: 409, code: 'REVERSAL_MISMATCH', message: 'The reversal does not match the original expense.' },
+  LB022: { status: 409, code: 'SECRET_IMMUTABLE', message: 'A stored secret cannot be changed; store a new one.' },
   '23505': { status: 409, code: 'CONFLICT', message: 'A record with these details already exists.' },
   '23503': { status: 422, code: 'INVALID_REFERENCE', message: 'A referenced record does not exist.' },
   '23514': { status: 422, code: 'CONSTRAINT_VIOLATION', message: 'The data violates a business rule.' },

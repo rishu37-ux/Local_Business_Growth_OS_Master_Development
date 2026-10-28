@@ -1,14 +1,14 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 6 complete; Phase 7 started — 7.1 done)
+Last updated: 2026-10-28 (Phase 6 complete; Phase 7: 7.1–7.2 done)
 
 ## Phase 7 — API Hub, AI Creative Studio, selected official integrations (in progress)
 
 Plan and acceptance criteria: `PHASE7_PLAN.md`. Mock adapters only until provider accounts exist (Q4).
 
 1. ~~7.1 guarded outbound HTTP client and no-raw-HTTP lint rule~~ — done (TR-0033, D-054).
-2. **Next:** 7.2 secret store with envelope encryption (write-only secrets, redaction tests, re-authentication).
-3. 7.3 integration records, status machine, test connection, health, usage per tenant; adapter interfaces with mocks.
+2. ~~7.2 secret store with envelope encryption~~ — done (TR-0034, D-055); new DB role `lbgos_secrets`.
+3. **Next:** 7.3 integration records, status machine, test connection, health, usage per tenant; adapter interfaces with mocks.
 4. 7.4 offers and the AI Creative Studio (grounded prompts, deterministic post-check, usage and quota).
 5. 7.5 approval of exact versions, campaigns to segments through the send-time gate, scheduling.
 6. 7.6 WhatsApp Cloud API and SMS DLT adapters against documented APIs (mocked), signed webhooks.
