@@ -1,18 +1,22 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 5, after increment 5.8 and the exit test)
+Last updated: 2026-10-28 (Phase 5 complete; Phase 6 planned)
 
-## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
+## Phase 6 — CRM, analytics, consent and reminders (in progress)
 
-1. ~~CI green on the Phase 4 exit (#21)~~ · ~~`PHASE5_PLAN.md`~~ · ~~5.1 engines (P-01, allocation, formats)~~ (done, TR-0017).
-2. ~~5.2 / P-02 numbering service, customers, re-authentication~~ (done, TR-0018).
-3. ~~5.3 / P-03 API, P-04 drafts (carts), discount limits and approvals, atomic issue, IMEI race~~ (done, TR-0019, D-040).
-4. ~~5.4 / P-05 later payments, advance, refunds, reversal, statement, payment status~~ (done, TR-0020, D-041).
-5. ~~5.5 cancellation, credit/debit notes, returns into inspection~~ (done, TR-0021, D-042).
-5a. ~~Portal redesign (D-043, TR-0022)~~ done; the user could not run the portal locally on Windows (WSL password issue), so screenshots are shared from the dev container instead.
-6. ~~5.6 print/PDF~~ (done, TR-0023, D-044). Still needed before the pilot: manual print tests on real devices and an 80 mm thermal printer (FR-PRN-1 AC4).
-7. ~~5.7 reports and exports~~ (done, TR-0024, D-045; Reports screen in the portal). ~~5.8 POS screens~~ (done, TR-0025, D-046). Next: confirm CI on the 5.8 commit and record the Phase 5 exit; then Phase 6 (CRM, consent, reminders, expenses) per the master prompt. Before the pilot: manual print tests on real devices and an 80 mm thermal printer. Earlier note — 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
-8. CI: #22 (5.1), #23 (5.2), #25 (5.4, includes 5.3) green; #24 (5.3) was cancelled when #25 started. Check CI for the 5.5 push.
+Plan and acceptance criteria: `PHASE6_PLAN.md`.
+
+1. 6.1 customer profile (optional fields, owned units with warranty dates, history) and customer export (`customers.export`, selected fields, audited).
+2. 6.2 consent records, suppression list, messages with the send-time gate and provider adapter (no provider connected: nothing is really sent).
+3. 6.3 reminders (birthday, warranty, service due, payment due) as drafts; templates with recorded fields only.
+4. 6.4 expenses and the operating-profit estimate.
+5. 6.5 dashboard tiles with definitions.
+6. 6.6 erase personal data; tenant data export (ZIP of CSVs).
+7. 6.7 screens and the Phase 6 exit browser test.
+
+## Phase 5 (complete)
+
+All increments 5.1–5.8 done; exit recorded in `PHASE5_PLAN.md` (CI #32 green). Open before the pilot: manual print tests on real devices and an 80 mm thermal printer (FR-PRN-1 AC4); search timing on the reference environment; screens for debit notes and payment reversal.
 
 ## Phase 4 (complete)
 

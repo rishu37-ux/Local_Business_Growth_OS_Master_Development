@@ -63,7 +63,7 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 **Status (5.8):** done — TR-0025, D-046.
 
 ## Phase 5 exit
-**Status:** all browser steps pass (TR-0025 #1–8); cross-tenant tests pass in every Phase 5 suite; CI for the 5.8 commit is recorded once it has run. Not done in Phase 5: manual printer/device tests (FR-PRN-1 AC4), search timing on the reference environment, screens for debit notes and payment reversal.
+**Status: Phase 5 complete.** All browser steps pass (TR-0025 #1–8); cross-tenant tests pass in every Phase 5 suite; CI run #32 on `2cb0c4d` green (TR-0025 #12). Not done in Phase 5: manual printer/device tests (FR-PRN-1 AC4), search timing on the reference environment, screens for debit notes and payment reversal.
 
 In a real browser, a synthetic shop sells a phone (chosen by IMEI) and an accessory to a new customer at POS with a discount within the cashier's limit, part-paid by UPI and cash; the invoice is issued with the next consecutive number and prints in A4 and 80 mm and as a PDF; the customer's balance shows the amount due; a later payment clears it; a credit note returns the phone into inspection; the sales, tax and receivables reports equal the expected values for the seeded data; cross-tenant tests pass; CI is green.
 

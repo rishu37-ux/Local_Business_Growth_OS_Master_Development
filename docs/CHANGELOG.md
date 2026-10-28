@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phase 5 (in progress)
+## [0.5.0] — 2026-10-28 — Phase 5 (POS, invoices, payments, ledger, reports)
 
 ### Added
 - Phase 5 plan (`docs/PHASE5_PLAN.md`).
