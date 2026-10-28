@@ -761,3 +761,4 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 12 | Access | Other business 404; read-only business can list but not store (`TENANT_READ_ONLY`); a server without `SECRETS_KEK` answers `STORE_NOT_CONFIGURED` (503) and reports `storeConfigured: false` | **Pass** |
 | 13 | — | Negative control: `select` on the whole table granted to the tenant role → test 6 fails. Restored | **Detected** |
 | 14 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 305 | **Pass**, exit 0 |
+| 15 | — | CI run #43 on `c1fa6d8` (7.1 + 7.2 + the secret-scan fix): all jobs incl. secret scan | **Pass** (success) |
