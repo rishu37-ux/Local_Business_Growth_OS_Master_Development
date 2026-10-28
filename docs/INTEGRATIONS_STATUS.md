@@ -17,7 +17,7 @@ Last updated: 2026-10-28 (Phase 7, increment 7.6). No accounts or credentials ha
 | Email provider | Verification, reset, receipts | planned | Verified sending domain (SPF/DKIM/DMARC) | — |
 | Google Business Profile API | Local SEO, posts, reviews | planned | API access approval from Google, verified profile, OAuth consent | Feature set limited to what the API supports |
 | Meta Graph API (Facebook / Instagram) | Posts, insights | planned | App review, business account, page/IG professional account, scopes | Publishing limits per API rules |
-| Payment gateway (subscriptions) | Platform billing | planned | Merchant account, KYC | Provider pending |
+| Payment gateway (subscriptions) | Platform billing | not configured — billing invoices exist (TR-0045) and payments are only recorded manually by a platform admin (method MANUAL); no gateway code | Merchant account, KYC (Q4) | Provider pending; webhook verification and reconciliation to be built for the chosen gateway |
 | GST e-invoice (IRP) / e-way bill | Only if legally applicable | planned (conditional) | GSP/IRP access; applicability depends on turnover thresholds | Requires tax-professional confirmation |
 | Malware scanning | Upload safety | planned (not configured) | Engine/service choice | Uploads record `malware_scan = NOT_CONFIGURED`; the scan screen says no scanner is configured (FR-OCR-6 AC4) |
 | Hosting (DigitalOcean BLR1 proposed — D-022) | Compute, managed PostgreSQL | planned | Account owned by the business operator | Pending Q2; pricing unverified (COST_MODEL.md) |

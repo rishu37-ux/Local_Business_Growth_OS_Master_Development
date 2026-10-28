@@ -63,6 +63,29 @@ export const PLATFORM_PERMISSIONS = [
 ] as const;
 
 export type BusinessPermission = (typeof BUSINESS_PERMISSIONS)[number];
+
+/**
+ * What platform support may do under an owner's grant (FR-SUP-1): view only.
+ * No exports, no settings changes, no secrets, nothing owner-only.
+ */
+export const SUPPORT_PERMISSIONS: readonly BusinessPermission[] = [
+  'application.view',
+  'business.settings.view',
+  'users.view',
+  'audit.view',
+  'catalogue.view',
+  'catalogue.cost.view',
+  'inventory.view',
+  'suppliers.view',
+  'purchases.view',
+  'customers.view',
+  'customer_ledger.view',
+  'reports.sales.view',
+  'reports.financial.view',
+  'integrations.view',
+];
+/** The longest support grant an owner can give (FR-SUP-1 AC1). */
+export const SUPPORT_MAX_HOURS = 72;
 export type PlatformPermission = (typeof PLATFORM_PERMISSIONS)[number];
 
 const businessSet: ReadonlySet<string> = new Set(BUSINESS_PERMISSIONS);

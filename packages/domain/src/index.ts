@@ -30,6 +30,8 @@ export {
   type PermissionLimits,
   type PlatformPermission,
   type RoleTemplate,
+  SUPPORT_MAX_HOURS,
+  SUPPORT_PERMISSIONS,
 } from './permissions.ts';
 export {
   divRoundHalfUp,

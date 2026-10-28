@@ -139,6 +139,7 @@ V1 Architecture (this doc + ADRs) · V2 Authentication · V3 Session management 
 | T22 PII in logs / agent traces | **Implemented + tested**: log redaction, mobile numbers masked in agent runs, references not raw data in audit | TR-0040, TR-0043 #8, `app.test.ts` |
 | T30 consent evidence | **Implemented + tested**: append-only consent rows with source, actor and time | TR-0027 |
 | T31 forged scope from model output | **Implemented + tested**: tenant and user from the session only; a forged business ID in a tool argument is refused | TR-0040, TR-0043 #3 |
+| T8 platform support access to tenant data (FR-SUP-1, Phase 10) | **Implemented + tested**: only through an owner's grant (purpose, 1–72 h, DB-bounded, revocable once, never edited or deleted); view-only permission set, every non-GET refused, every request (including refused ones) audited and listed for the owner; expiry and revocation end access at once | TR-0045 #1–6, #11 |
 | Open after the Phase 9 review | See `SECURITY_REVIEW.md` findings SR-03…SR-10 (breached-password check, malware scan, OS sandbox for the file worker, KMS, production backups, branch protection, audit hash chain, external pen test) | — |
 
 ## 7. Known limitations and statements

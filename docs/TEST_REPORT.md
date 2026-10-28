@@ -978,3 +978,33 @@ Screenshots (Assistants, Usage and monitoring) were taken for review and are not
 | 13 | — | `pnpm check`: <br>• ESLint rules 26 <br>• domain 160 <br>• API unit 108 <br>• DB 54 + schema checks (83 PASS, 0 FAIL) <br>• Better Auth schema matches the migrations <br>• API DB 398 in 39 files, all browser tests included <br>Also `pnpm secrets` clean and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
 
 The security review itself is a document (`SECURITY_REVIEW.md`), not a test. Its evidence points to the entries above and to earlier TR entries.
+
+## TR-0045 · 2026-10-28 · Phase 10 — support access, platform billing, Phase 10 exit (browser)
+
+**Environment:** as TR-0044 (dev container, throwaway PostgreSQL 16, Chromium only, built web app). Synthetic data only. No payment gateway exists and none was contacted.
+
+**Test files:**
+- `support.db.test.ts`
+- `billing.db.test.ts`
+- `phase10-exit.db.test.ts`
+- `a11y-sweep.db.test.ts` (now 25 screens)
+- `isolation-sweep.db.test.ts` (it picks up the new routes automatically)
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-SUP-1 / 10.1 | Without a grant, a platform admin gets 404 on the business and its customers, like any non-member. | **Pass** |
+| 2 | 10.1 AC1 | Grant rules:<br>• Billing staff cannot grant (403) and cannot see the grants (403).<br>• A purpose under 10 characters, 0 h or 73 h → 400.<br>• A direct insert beyond 72 h is refused by the database check constraint.<br>• A grant from a sign-in older than the re-authentication window → 403 `REAUTH_REQUIRED`. | **Pass** |
+| 3 | 10.1 AC2 | Under a 2-hour grant, the admin reads the business:<br>• the overview shows mode READ_ONLY and the role "Platform support (read-only)";<br>• the customer list returns the synthetic customer.<br>The admin is refused:<br>• POST customer, PUT setup details and PATCH category → 403 `SUPPORT_READ_ONLY`;<br>• report CSV export, business data export, the support screen and expenses → 403. | **Pass** |
+| 4 | 10.1 AC3 | The owner's list shows:<br>• the grant (ACTIVE);<br>• `support.granted`;<br>• at least 9 `support.access` events, all with the admin as actor;<br>• the route pattern of the customers list;<br>• exactly the 3 refused writes (PATCH, POST, PUT), flagged as refused.<br>The query string is not stored. | **Pass** |
+| 5 | 10.1 cross-tenant | Business A's grant gives nothing in B (404). B's owner sees no grants of A and cannot revoke A's grant from either URL (404). | **Pass** |
+| 6 | 10.1 AC4 | Ending access:<br>• Revoke → REVOKED, and the admin gets 404 at once.<br>• A second revoke → 409 `ALREADY_REVOKED`.<br>• A DELETE or UPDATE of a revoked grant by the owner role is refused by the trigger.<br>• A grant moved into the past (trigger briefly disabled, test only) → 404 for the admin, EXPIRED for the owner.<br>**Negative control:** the gate's non-GET refusal disabled → the test fails; the write was still stopped by READ_ONLY mode (`TENANT_READ_ONLY`), the second layer. Restored. | **Pass** |
+| 7 | FR-SUB-1 AC3 / 10.2 AC1 | Invoice numbering and price:<br>• The invoice is issued at the plan price, status ISSUED, tax `NOT_COMPUTED`, number `LBG/2026-27/n`.<br>• The next business gets n+1.<br>• A March 2027 period is numbered in 2026-27; an April 2027 period is `LBG/2027-28/1`. | **Pass** |
+| 8 | 10.2 | Issuing rules:<br>• An overlapping period → 409 `PERIOD_BILLED`.<br>• An empty period → 422.<br>• A shop owner cannot issue or list platform invoices (403).<br>**Negative control:** the overlap check disabled → 3 assertions fail. Restored. | **Pass** |
+| 9 | 10.2 AC2 | Payment:<br>• A manual payment → PAID with method MANUAL.<br>• A second payment or a void of a paid invoice → 409.<br>• An UPDATE of the amount, or a DELETE, via the owner role is refused by the trigger.<br>• Audit trail: `billing.invoice_issued`, then `billing.payment_recorded` (method MANUAL).<br>Void:<br>• A void needs a reason of at least 10 characters (400 otherwise).<br>• A void frees the period; the re-issued invoice gets a new number.<br>• A direct insert claiming PAID is stored as ISSUED with no payment date. | **Pass** |
+| 10 | 10.2 AC3 | The owner sees only their own invoice. Another business's owner gets 404 on that URL and never sees A's invoice. An Accountant (no `subscription.manage`) gets 403. | **Pass** |
+| 11 | Phase 10 exit (browser) | In Chromium, step by step:<br>1. The admin issues an invoice on the platform page and records a manual payment ("Paid (manual) 2026-11-02").<br>2. The owner sees it as "Paid on 2026-11-02" under **Billing and support**.<br>3. The owner grants 1 hour of support.<br>4. The admin opens the shop's Customers screen and sees the customer.<br>5. A fetch POST by the admin → 403 `SUPPORT_READ_ONLY`.<br>6. The owner sees "customers" and "Tried to change (refused)" under "What support did".<br>7. The owner presses **End access** and the admin's next request → 404.<br>axe: 0 serious/critical at 1280/768/360 px on 2 screens (6 audits); no overflow, CSP violations or page errors. Run 3 times after a wait fix (the first run read the list before it had loaded): 3/3 pass. | **Pass** |
+| 12 | NFR-1 | The accessibility sweep now covers 25 screens (Billing and support added): 75 audits, 0 serious/critical, no overflow, focus indicator on every screen. | **Pass** |
+| 13 | NFR-11 | Restore drill with migrations 0029–0030. Every comparison is equal:<br>• 30 migrations<br>• 75 tables (1,350 rows)<br>• RLS 67<br>• 79 policies<br>• 742 grants<br>• 5,027 column grants<br>• 49 functions<br>• tenant isolation after restore<br>Result: "DRILL PASSED". | **Pass** |
+| 14 | — | `pnpm check`:<br>• ESLint rules 26<br>• domain 160<br>• API unit 108<br>• DB 54 + schema checks (83 PASS, 0 FAIL) — the first run failed because the migration list test did not yet name 0029/0030; fixed<br>• API DB 415 in 42 files<br>Also: `pnpm secrets` clean, `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
+
+Not tested: real payment collection (no gateway, Q4), GST on platform invoices (Q5), the guides with a real shop (Q1).

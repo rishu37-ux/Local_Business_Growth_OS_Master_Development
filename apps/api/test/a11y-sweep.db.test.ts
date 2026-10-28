@@ -81,6 +81,7 @@ beforeAll(async () => {
       'usage',
       'reports',
       'members',
+      'account',
       'tax-rates',
     ].map((p): [string, string] => [p, `${b}/${p}`]),
     ['product detail', `${b}/catalogue/${productId}`],
@@ -144,6 +145,6 @@ describe('accessibility and responsive sweep (NFR-1, NFR-16)', () => {
     expect(problems).toEqual([]);
     expect(focusMissing).toEqual([]);
     expect(results.length).toBe(pages.length * 3);
-    expect(pages.length).toBe(24);
+    expect(pages.length).toBe(25);
   }, 600_000);
 });

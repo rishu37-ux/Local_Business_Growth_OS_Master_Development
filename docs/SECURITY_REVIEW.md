@@ -59,6 +59,7 @@ Status values: **Met** (implemented and shown by an executed test), **Partly** (
 | 4.3 Platform admin cannot read tenant data | Met | TR-0002 T19*, TR-0008 #6–7 |
 | CSRF: SameSite plus an Origin check on state-changing requests | Met | TR-0007 #17 |
 | Approvals: payload hash, no self-approval when another approver exists | Met | TR-0013 #9–11, TR-0019, TR-0040 |
+| Platform support reads tenant data only under an owner's time-boxed grant; read-only; every request audited (added in Phase 10) | Met | TR-0045 #1–6 |
 
 ## V5 Validation, sanitisation and encoding
 | Item | Status | Evidence |

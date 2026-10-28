@@ -17,7 +17,7 @@ Version 1.0 (Phase 1) — 2026-10-27. Implements FR-RBAC-1. Status: **Specified,
 | Role | Description |
 |---|---|
 | `PLATFORM_ADMIN` | Manages applications/approvals, plans and pricing, platform integrations, platform health and usage. MFA mandatory (D-011). Has **no** access to tenant business records (D-015). |
-| `PLATFORM_SUPPORT` *(optional, later)* | Read-only view of application/subscription status; tenant data access only via owner-granted, time-boxed support session (FR-SUP-1). |
+| `PLATFORM_SUPPORT` *(optional, later)* | Read-only view of application/subscription status; tenant data access only via owner-granted, time-boxed support session (FR-SUP-1). Implemented in Phase 10 for platform admins: under an active grant they get the view-only set `SUPPORT_PERMISSIONS` and every non-GET request is refused (D-067). |
 
 Platform permissions: `platform.applications.review`, `platform.businesses.manage` (create, suspend, reinstate), `platform.plans.manage`, `platform.integrations.manage`, `platform.usage.view`, `platform.audit.view`, `platform.admins.manage`.
 

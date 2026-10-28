@@ -5,6 +5,7 @@ import {
   effectivePermissions,
   implicitPermissions,
   OWNER_ROLE_NAME,
+  SUPPORT_PERMISSIONS,
   type AccessMode,
   type BusinessStatus,
   type EffectiveGrant,
@@ -23,16 +24,45 @@ export interface BusinessAccess {
   readonly mode: AccessMode;
   /** Role grants plus mode-implicit grants; mode restrictions are applied by the caller. */
   readonly permissions: ReadonlyMap<string, EffectiveGrant>;
+  /** Set when the access comes from an owner's support grant (FR-SUP-1), not a membership. */
+  readonly support?: { readonly grantId: string; readonly expiresAt: Date };
 }
 
-export async function loadBusinessAccess(db: Db, businessId: string, userId: string): Promise<BusinessAccess | null> {
+/** The role name shown for access through a support grant. */
+export const SUPPORT_ROLE_NAME = 'Platform support (read-only)';
+
+export async function loadBusinessAccess(
+  db: Db,
+  businessId: string,
+  userId: string,
+  options: { readonly platformAdmin?: boolean } = {},
+): Promise<BusinessAccess | null> {
   return withTenant(db, { businessId, userId }, async (trx) => {
     const membership = await sql<{ id: string }>`
       select id from lbg.memberships where user_id = ${userId} and business_id = ${businessId} and status = 'ACTIVE'`.execute(
       trx,
     );
     const membershipId = membership.rows[0]?.id;
-    if (!membershipId) return null;
+    if (!membershipId) {
+      // FR-SUP-1: a platform admin who is not a member may read the business only under an active grant.
+      if (options.platformAdmin !== true) return null;
+      const grant = await sql<{ id: string; expires_at: Date; status: BusinessStatus }>`
+        select g.id, g.expires_at, b.status from lbg.support_grants g join lbg.businesses b on b.id = g.business_id
+         where g.business_id = ${businessId} and g.revoked_at is null and g.expires_at > now()
+         order by g.expires_at desc limit 1`.execute(trx);
+      const g = grant.rows[0];
+      if (!g) return null;
+      return {
+        businessId,
+        membershipId: '',
+        businessStatus: g.status,
+        isOwner: false,
+        roles: [SUPPORT_ROLE_NAME],
+        mode: 'READ_ONLY',
+        permissions: effectivePermissions(SUPPORT_PERMISSIONS.map((key) => ({ key }))),
+        support: { grantId: g.id, expiresAt: new Date(g.expires_at) },
+      };
+    }
 
     const business = await sql<{
       status: BusinessStatus;

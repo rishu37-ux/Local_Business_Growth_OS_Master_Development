@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phases 7–9 (API Hub, AI Creative Studio, integrations; agents; security review)
+## [Unreleased] — Phases 7–10 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -18,6 +18,9 @@
 - Phase 9 plan (`docs/PHASE9_PLAN.md`), security review (`docs/SECURITY_REVIEW.md`), pilot checklist (`docs/PILOT_CHECKLIST.md`), restore procedure in the runbook.
 - The app records its route table (`routeIndex`); tenant-isolation sweep over every route; accessibility sweep over 24 screens; security headers test for every response type.
 - `scripts/backup-restore-drill.sh` (`pnpm drill`), run in CI.
+
+- Phase 10: migration 0029 and `@lbgos/modules/support` (owner-granted, time-boxed, audited, view-only support access); migration 0030 and `@lbgos/modules/billing` (platform billing invoices per financial year with manual payment); Billing and support screen; billing section on the platform page; Phase 10 exit browser test.
+- Phase 10 documents: `PHASE10_PLAN.md`, `ONBOARDING_GUIDE.md`, `SUPPORT_PROCEDURES.md`, `PRICING_VALIDATION.md`, `COMMERCIAL_READINESS.md`.
 
 ### Fixed
 - Public webhook routes are rate-limited per source address (300/min, 429) — review finding SR-01.

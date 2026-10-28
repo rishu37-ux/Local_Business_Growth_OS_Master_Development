@@ -7,6 +7,7 @@
     "./agents": "./src/agents/index.ts",
     "./approvals": "./src/approvals/index.ts",
     "./audit": "./src/audit/index.ts",
+    "./billing": "./src/billing/index.ts",
     "./campaigns": "./src/campaigns/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
@@ -29,6 +30,7 @@
     "./sales": "./src/sales/index.ts",
     "./secrets": "./src/secrets/index.ts",
     "./studio": "./src/studio/index.ts",
+    "./support": "./src/support/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

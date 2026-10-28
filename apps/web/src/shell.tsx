@@ -92,6 +92,7 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['campaigns', 'Campaigns', 'marketing.draft', 'megaphone'],
   ['integrations', 'API Hub', 'integrations.view', 'plug'],
   ['usage', 'Usage and monitoring', 'business.settings.view', 'gauge'],
+  ['account', 'Billing and support', 'support.grant', 'wallet'],
   ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];

@@ -1,4 +1,4 @@
-export { loadBusinessAccess, type BusinessAccess } from './access.ts';
+export { loadBusinessAccess, SUPPORT_ROLE_NAME, type BusinessAccess } from './access.ts';
 export {
   activateBusiness,
   myBusinesses,

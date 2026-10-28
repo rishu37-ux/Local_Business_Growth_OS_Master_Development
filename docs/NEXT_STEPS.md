@@ -1,8 +1,39 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 7–8 complete, CI green; Phase 9 complete locally except the pilot; Phase 10 next)
+Last updated: 2026-10-28 (Phases 0–9 complete, CI green — the pilot itself is blocked; Phase 10 complete locally; everything left needs the user's inputs)
 
-## Phase 9 — Security review, isolation, accessibility, restore, pilot readiness
+## What is left — all of it needs the user
+
+Every phase of the prompt (0–10) has been built and tested with synthetic data and mock providers. What remains cannot be done or verified without the user:
+
+1. **Q1 pilot shop** — run the pilot (`PILOT_CHECKLIST.md`), check the onboarding guide with the shop, interview for pricing (`PRICING_VALIDATION.md`).
+2. **Q2 hosting/budget** — staging and production, provider backups with a timed restore, monitoring and alerts, edge WAF.
+3. **Q3 auth** — confirm self-hosted auth (D-019/D-024) or name a managed provider.
+4. **Q4 accounts** — email, WhatsApp Cloud API + templates, SMS with DLT, AI provider, OCR engine, malware scanner, payment gateway.
+5. **Q5 tax review** — GST rules, invoice format, the platform's own invoices.
+6. **Q6 domain** — TLS, email sending.
+7. **Legal review** — terms, privacy notice, DPDP Act, retention/erasure, consent wording, CERT-In duties.
+8. **Repository owner** — branch protection on `main` with the CI checks required.
+9. **Product decisions** — plan contents and allowances, trial length, yearly prices; support contacts and hours.
+10. **External penetration test** before broad launch.
+
+Developer work that can follow those inputs:
+- CSV bulk import of opening stock and customers;
+- Firefox/WebKit and real-device tests;
+- a manual screen-reader pass;
+- the debit-note and payment-reversal screens;
+- the reconciliation job for receipts older than the webhook window;
+- a plans screen for the platform admin.
+
+## Phase 10 — Commercial readiness, onboarding guides, support procedures, pricing validation (complete locally)
+
+Plan and acceptance criteria: `PHASE10_PLAN.md`.
+
+1. ~~10.1 owner-granted support access~~ — done (TR-0045, D-067).
+2. ~~10.2 platform billing invoices with manual payment~~ — done (TR-0045, D-068).
+3. ~~10.3 guides, procedures, pricing validation, commercial readiness~~ — written; to be checked with a real shop.
+
+## Phase 9 — Security review, isolation, accessibility, restore, pilot readiness (complete, CI #61 green; pilot blocked)
 
 Plan and acceptance criteria: `PHASE9_PLAN.md`.
 
@@ -11,8 +42,6 @@ Plan and acceptance criteria: `PHASE9_PLAN.md`.
 3. ~~9.3 accessibility and responsive sweep~~ — done in Chromium (TR-0044 #10–11); Firefox/WebKit and a screen reader not tested.
 4. ~~9.4 security review~~ — `SECURITY_REVIEW.md` (SR-01 fixed, no high finding open; SR-03…SR-10 owned).
 5. 9.5 pilot — `PILOT_CHECKLIST.md` written; **blocked on Q1–Q6**, tax review (Q5) and legal review.
-
-**Next: Phase 10** — onboarding guides, support procedures, pricing validation material (documents; real validation needs pilot shops).
 
 ## Phase 8 — Agents, approvals, monitoring, cost limits, analytics (complete)
 

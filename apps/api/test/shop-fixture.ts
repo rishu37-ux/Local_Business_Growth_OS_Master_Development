@@ -19,17 +19,27 @@ export interface Shop {
 }
 
 let adminSession: Session | undefined;
+let adminLogin: { email: string; secret: string } | undefined;
 
 async function platformAdmin(h: Harness, prefix: string): Promise<Session> {
   if (adminSession) return adminSession;
   const a = await newUser(h, `${prefix}-admin@example.test`, SHOP_PW);
   await sql`insert into lbg.platform_admins (user_id) values (${a.id})`.execute(h.admin);
-  adminSession = (await enrolMfa(h, a.cookies, SHOP_PW)).session;
+  const enrolled = await enrolMfa(h, a.cookies, SHOP_PW);
+  adminSession = enrolled.session;
+  adminLogin = { email: a.email, secret: enrolled.secret };
   return adminSession;
 }
 
 export function resetFixture(): void {
   adminSession = undefined;
+  adminLogin = undefined;
+}
+
+/** Email and TOTP secret of the fixture's platform admin (for signing in through the browser). */
+export function fixtureAdminLogin(): { email: string; secret: string } {
+  if (!adminLogin) throw new Error('call activeShop first');
+  return adminLogin;
 }
 
 /** The platform admin created by the first `activeShop` since `resetFixture`. */

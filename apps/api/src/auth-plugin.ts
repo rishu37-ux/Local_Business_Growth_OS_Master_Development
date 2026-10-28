@@ -80,6 +80,28 @@ function deny(reply: FastifyReply, request: FastifyRequest, status: number, code
 }
 
 export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, publicOrigin: string): void {
+  /**
+   * FR-SUP-1: access through a support grant reads only. Any other method is
+   * refused before the handler; each allowed request is audited for the owner.
+   */
+  const supportAllowed = async (request: FastifyRequest, reply: FastifyReply, access: BusinessAccess) => {
+    if (!access.support || !gate) return false;
+    const refused = !SAFE_METHODS.has(request.method);
+    // Refused attempts are recorded too: the owner sees everything support tried.
+    await gate.recordSupportAccess(access.businessId, request.principal?.userId ?? '', {
+      grantId: access.support.grantId,
+      method: request.method,
+      route: request.routeOptions.url ?? '',
+      requestId: request.id,
+      refused,
+    });
+    if (refused) {
+      void deny(reply, request, 403, 'SUPPORT_READ_ONLY', 'Support access can only view this business.');
+      return false;
+    }
+    return true;
+  };
+
   app.addHook('onRequest', async (request, reply) => {
     const config = request.routeOptions.config;
     // Unmatched URLs go straight to the 404 handler; nothing exists to protect.
@@ -108,9 +130,10 @@ export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, p
       const businessId = (request.params as { businessId?: unknown }).businessId;
       const access =
         typeof businessId === 'string' && isUuid(businessId)
-          ? await gate.businessAccess(businessId, principal.userId)
+          ? await gate.businessAccess(businessId, principal.userId, principal.platformAdmin)
           : null;
       if (!access) return deny(reply, request, 404, 'NOT_FOUND', 'Not found.');
+      if (access.support && !(await supportAllowed(request, reply, access))) return reply;
       if (!MEMBER_MODES.has(access.mode)) {
         return deny(
           reply,
@@ -136,9 +159,10 @@ export function registerAuth(app: FastifyInstance, gate: AuthGate | undefined, p
       // Non-members get 404, so business IDs cannot be probed.
       const access =
         typeof businessId === 'string' && isUuid(businessId)
-          ? await gate.businessAccess(businessId, principal.userId)
+          ? await gate.businessAccess(businessId, principal.userId, principal.platformAdmin)
           : null;
       if (!access) return deny(reply, request, 404, 'NOT_FOUND', 'Not found.');
+      if (access.support && !(await supportAllowed(request, reply, access))) return reply;
       if (!permittedInMode(permission, access.mode)) {
         const code = access.mode === 'READ_ONLY' ? 'TENANT_READ_ONLY' : 'BUSINESS_NOT_AVAILABLE';
         return deny(reply, request, 403, code, 'This action is not available for this business right now.');

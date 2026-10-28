@@ -22,6 +22,7 @@ import { IntegrationsPage } from './pages/integrations.tsx';
 import { OffersPage } from './pages/offers.tsx';
 import { StudioPage } from './pages/studio.tsx';
 import { AssistantsPage } from './pages/assistants.tsx';
+import { AccountPage } from './pages/account.tsx';
 import { UsagePage } from './pages/usage.tsx';
 import { RemindersPage } from './pages/reminders.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
@@ -106,6 +107,7 @@ const router = createBrowserRouter([
           { path: 'integrations', element: <Authed>{() => <IntegrationsPage />}</Authed> },
           { path: 'assistants', element: <Authed>{() => <AssistantsPage />}</Authed> },
           { path: 'usage', element: <Authed>{() => <UsagePage />}</Authed> },
+          { path: 'account', element: <Authed>{() => <AccountPage />}</Authed> },
         ],
       },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },

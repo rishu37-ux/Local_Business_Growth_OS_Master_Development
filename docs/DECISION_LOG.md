@@ -448,3 +448,22 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Empty catalogue name changes:** an empty change to a category or brand is a 400, not a 500.
 - **Open findings:** the remaining findings are owned by the user or wait on hosting (Q2) or provider choices (Q4).
 - **Pilot gate:** `PILOT_CHECKLIST.md` sets a go/no-go rule. The pilot does not start while Q1–Q6, the tax review or the legal review are open.
+
+### D-067 · 2026-10-28 · Accepted
+**Decision (support access, increment 10.1, FR-SUP-1):**
+- **Grants:** platform support reaches a business only through an owner's grant (`lbg.support_grants`, migration 0029). The grant has a purpose of 10–500 characters and lasts 1–72 hours; the database checks both. Granting needs `support.grant` and a recent sign-in.
+- **Revoking:** a grant can be revoked once and can never be edited or deleted; triggers enforce this, and the time is taken from the database clock.
+- **What support sees:** while a grant is active, `loadBusinessAccess` gives a platform admin who is not a member READ_ONLY access with a fixed view-only permission set (`SUPPORT_PERMISSIONS`: no exports, no owner-only actions, no settings). The gate refuses every non-GET request with `SUPPORT_READ_ONLY`, and READ_ONLY mode is a second layer behind that.
+- **Audit:** every request under a grant is a tenant audit event `support.access` (actor PLATFORM_ADMIN, route pattern, method, grant, refused flag), and refused attempts are recorded too. The query and the body are never recorded.
+- **Owner's view:** the owner sees the grants and the actions under **Billing and support**.
+- **Not built:** there is no platform-side list of businesses that granted access. The owner tells support the business ID, because a platform role reading tenant grants would weaken D-015.
+
+### D-068 · 2026-10-28 · Accepted
+**Decision (platform billing, increment 10.2, FR-SUB-1 AC3):**
+- **Invoices:** billing invoices (`lbg.billing_invoices`, migration 0030) are issued by a platform admin for a subscription period at the plan price of that moment.
+- **Numbering:** invoices are numbered `LBG/<FY>/<n>` per Indian financial year (April start, Asia/Kolkata), from a series row locked by upsert.
+- **Periods:** a period can be billed once; a void invoice frees it, and its number is never reused.
+- **Status changes:** an invoice changes only ISSUED → PAID or ISSUED → VOID, once. Issued content is immutable, nothing is deleted, and an insert always starts as ISSUED.
+- **Payments:** a payment is only a manual record (method `MANUAL`, reference, date, recorded by) because no gateway exists (Q4).
+- **GST:** `tax_status` is fixed at `NOT_COMPUTED` until the tax review (Q5).
+- **Who sees what:** the owner (`subscription.manage`) sees the business's invoices, also in read-only mode; other businesses see none. Every action is a platform audit event linked to the business.

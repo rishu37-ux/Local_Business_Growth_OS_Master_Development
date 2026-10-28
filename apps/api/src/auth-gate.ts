@@ -3,6 +3,7 @@
 import { sql } from 'kysely';
 import type { Db } from '@lbgos/db';
 import type { AuthService } from '@lbgos/modules/auth';
+import { recordSupportAccess } from '@lbgos/modules/support';
 import { loadBusinessAccess, type BusinessAccess } from '@lbgos/modules/tenancy';
 
 export interface Principal {
@@ -22,8 +23,17 @@ export interface AuthGate {
   /** Better Auth's Fetch handler for /api/auth/*. */
   handler(request: Request): Promise<Response>;
   resolve(headers: Headers): Promise<Principal | null>;
-  /** The user's access in one business, or null if not an active member. */
-  businessAccess(businessId: string, userId: string): Promise<BusinessAccess | null>;
+  /**
+   * The user's access in one business, or null if not an active member. A
+   * platform admin also gets read-only access under an active support grant.
+   */
+  businessAccess(businessId: string, userId: string, platformAdmin?: boolean): Promise<BusinessAccess | null>;
+  /** Records one request made under a support grant (FR-SUP-1 AC2). */
+  recordSupportAccess(
+    businessId: string,
+    userId: string,
+    use: { grantId: string; method: string; route: string; requestId: string; refused: boolean },
+  ): Promise<void>;
 }
 
 /** FR-AUTH-1 AC3 idle timeouts. */
@@ -64,6 +74,8 @@ export function createAuthGate(deps: {
       };
     },
 
-    businessAccess: (businessId, userId) => loadBusinessAccess(deps.appDb, businessId, userId),
+    businessAccess: (businessId, userId, platformAdmin) =>
+      loadBusinessAccess(deps.appDb, businessId, userId, { platformAdmin: platformAdmin === true }),
+    recordSupportAccess: (businessId, userId, use) => recordSupportAccess(deps.appDb, { businessId, userId }, use),
   };
 }
