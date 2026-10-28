@@ -631,3 +631,97 @@ export async function auditExport(
     });
   });
 }
+
+// ---------------------------------------------------------------------------
+// Advanced analytics (increment 8.5: FR-RPT-1 remainder, D-063)
+// ---------------------------------------------------------------------------
+
+/** Net sales per week for the last `weeks` weeks up to the week containing `date` (business calendar). */
+export async function salesTrend(db: Db, ctx: TenantContext, req: { readonly weeks: number; readonly date?: string }) {
+  return withTenant(db, ctx, async (trx) => {
+    const cal = await calendarIn(trx, ctx);
+    const last = resolvePeriod({ kind: 'week', date: req.date ?? cal.today }, cal);
+    const { rows } = await sql<{ week_start: string; week_end: string; n: number; gross: string; returns: string }>`
+      with weeks as (
+        select (${last.from}::date - (7 * g))::date as week_start
+          from generate_series(0, ${req.weeks - 1}) g
+      )
+      select w.week_start::text, (w.week_start + 6)::text as week_end,
+             count(i.id) filter (where i.document_type in ('TAX_INVOICE', 'BILL_OF_SUPPLY'))::int as n,
+             coalesce(sum(i.total_paise) filter (where i.document_type <> 'CREDIT_NOTE'), 0)::text as gross,
+             coalesce(sum(i.total_paise) filter (where i.document_type = 'CREDIT_NOTE'), 0)::text as returns
+        from weeks w
+        left join lbg.invoices i on i.business_id = ${ctx.businessId} and i.status = 'ISSUED'
+             and i.invoice_date between w.week_start and w.week_start + 6
+       group by w.week_start order by w.week_start`.execute(trx);
+    return {
+      period: { from: rows[0]?.week_start ?? last.from, to: last.to },
+      weeks: rows.map((r) => ({
+        weekStart: r.week_start,
+        weekEnd: r.week_end,
+        invoiceCount: r.n,
+        netSalesPaise: Number(r.gross) - Number(r.returns),
+      })),
+      definitions: definitions(['salesTrend', 'netSales']),
+    };
+  });
+}
+
+/** Named customers who bought in the period, and how many bought more than once. */
+export async function repeatCustomers(db: Db, ctx: TenantContext, req: PeriodRequest) {
+  return withTenant(db, ctx, async (trx) => {
+    const period = resolvePeriod(req, await calendarIn(trx, ctx));
+    const { rows } = await sql<{ buyers: number; repeat: number }>`
+      with per as (
+        select customer_id, count(*) as n from lbg.invoices
+         where business_id = ${ctx.businessId} and status = 'ISSUED' and customer_id is not null
+           and document_type in ('TAX_INVOICE', 'BILL_OF_SUPPLY')
+           and invoice_date between ${period.from}::date and ${period.to}::date
+         group by customer_id)
+      select count(*)::int as buyers, count(*) filter (where n >= 2)::int as repeat from per`.execute(trx);
+    const buyers = rows[0]?.buyers ?? 0;
+    const repeat = rows[0]?.repeat ?? 0;
+    return {
+      period,
+      buyers,
+      repeatBuyers: repeat,
+      // Basis points (1 % = 100); null without buyers.
+      repeatRateBp: buyers === 0 ? null : Math.round((repeat * 10_000) / buyers),
+      definitions: definitions(['repeatCustomerRate']),
+    };
+  });
+}
+
+/** Per campaign started in the period, the message outcomes (provider-confirmed statuses only). */
+export async function campaignResults(db: Db, ctx: TenantContext, req: PeriodRequest) {
+  return withTenant(db, ctx, async (trx) => {
+    const cal = await calendarIn(trx, ctx);
+    const period = resolvePeriod(req, cal);
+    const { rows } = await sql<{
+      id: string;
+      name: string;
+      channel: string;
+      status: string;
+      started: string;
+      messages: number;
+      sent: number;
+      delivered: number;
+      read: number;
+      blocked: number;
+      failed: number;
+    }>`
+      select c.id, c.name, c.channel, c.status, (c.started_at at time zone ${cal.timezone})::date::text as started,
+             count(m.id)::int as messages,
+             count(m.id) filter (where m.status in ('SENT', 'DELIVERED', 'READ'))::int as sent,
+             count(m.id) filter (where m.status in ('DELIVERED', 'READ'))::int as delivered,
+             count(m.id) filter (where m.status = 'READ')::int as read,
+             count(m.id) filter (where m.status = 'BLOCKED')::int as blocked,
+             count(m.id) filter (where m.status = 'FAILED')::int as failed
+        from lbg.campaigns c
+        left join lbg.messages m on m.business_id = c.business_id and m.campaign_id = c.id
+       where c.business_id = ${ctx.businessId} and c.started_at is not null
+         and (c.started_at at time zone ${cal.timezone})::date between ${period.from}::date and ${period.to}::date
+       group by c.id order by c.started_at, c.id`.execute(trx);
+    return { period, rows, definitions: definitions(['campaignResults']) };
+  });
+}

@@ -32,6 +32,7 @@ Version 1.0 — 2026-10-28. Master prompt §10 (AI agent orchestration) and §De
 - AC3: monitoring for the platform admin and the owner: job runs and failures, integration health and error rates, usage against quotas, agent runs by status; no tenant data in platform views beyond counts (D-015).
 
 ## Increment 8.5 — Advanced analytics (FR-RPT-1 remainder)
+**Status: done in the API (TR-0042, D-063); low/slow/dead stock and top products reuse existing reports.**
 - AC1: low, slow and dead stock (definitions: below reorder level; no sale in 60 days; no sale in 180 days with stock on hand), sales trend by week, top products, repeat-customer rate, campaign results (messages, sent, delivered, read, blocked, failed per campaign) — each with its definition, exact values on a seeded dataset, CSV export.
 
 ## Increment 8.6 — Screens and Phase 8 exit test

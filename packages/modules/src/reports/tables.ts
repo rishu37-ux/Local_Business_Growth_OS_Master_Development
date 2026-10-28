@@ -3,14 +3,17 @@
 import { METRICS, type DateRange, type MetricKey } from '@lbgos/domain';
 import type { ExportColumn, ExportTable } from './export.ts';
 import type {
+  campaignResults,
   expensesReport,
   marginSummary,
   operatingProfit,
   paymentMethodSummary,
   receivablesAgeing,
+  repeatCustomers,
   returnsReport,
   salesByItem,
   salesSummary,
+  salesTrend,
   stockValuation,
   taxSummary,
 } from './index.ts';
@@ -27,7 +30,10 @@ export type ReportName =
   | 'tax'
   | 'stock-valuation'
   | 'expenses'
-  | 'operating-profit';
+  | 'operating-profit'
+  | 'sales-trend'
+  | 'repeat-customers'
+  | 'campaign-results';
 
 /** Which formats each report offers (FR-RPT-4 AC1) and the permission needed to see it. */
 export const REPORTS: Readonly<
@@ -43,6 +49,9 @@ export const REPORTS: Readonly<
   'stock-valuation': { formats: ['csv', 'xlsx'], permission: 'reports.financial.view' },
   expenses: { formats: ['csv', 'xlsx', 'pdf'], permission: 'reports.financial.view' },
   'operating-profit': { formats: ['csv', 'xlsx', 'pdf'], permission: 'reports.financial.view' },
+  'sales-trend': { formats: ['csv', 'xlsx'], permission: 'reports.sales.view' },
+  'repeat-customers': { formats: ['csv', 'xlsx'], permission: 'reports.sales.view' },
+  'campaign-results': { formats: ['csv', 'xlsx'], permission: 'reports.sales.view' },
 };
 
 const CATEGORY_LABELS: Readonly<Record<string, string>> = {
@@ -74,6 +83,9 @@ export function reportTable(name: 'tax', r: Result<typeof taxSummary>, shop: str
 export function reportTable(name: 'stock-valuation', r: Result<typeof stockValuation>, shop: string): ExportTable;
 export function reportTable(name: 'expenses', r: Result<typeof expensesReport>, shop: string): ExportTable;
 export function reportTable(name: 'operating-profit', r: Result<typeof operatingProfit>, shop: string): ExportTable;
+export function reportTable(name: 'sales-trend', r: Result<typeof salesTrend>, shop: string): ExportTable;
+export function reportTable(name: 'repeat-customers', r: Result<typeof repeatCustomers>, shop: string): ExportTable;
+export function reportTable(name: 'campaign-results', r: Result<typeof campaignResults>, shop: string): ExportTable;
 export function reportTable(name: ReportName, r: unknown, shop: string): ExportTable;
 export function reportTable(name: ReportName, result: unknown, shop: string): ExportTable {
   switch (name) {
@@ -160,6 +172,62 @@ export function reportTable(name: ReportName, result: unknown, shop: string): Ex
           'Corrected entries are shown net of their reversals.',
           ...(r.enabled ? [] : ['Expenses are not enabled for this shop.']),
         ],
+        definitions: defs(r.definitions),
+      };
+    }
+    case 'sales-trend': {
+      const r = result as Result<typeof salesTrend>;
+      return {
+        title: 'Weekly net sales',
+        subtitle: `${range(r.period)} · ${shop}`,
+        columns: [
+          col('weekStart', 'Week from'),
+          col('weekEnd', 'Week to'),
+          col('invoiceCount', 'Invoices', 'int'),
+          col('netSalesPaise', METRICS.netSales.label, 'money'),
+        ],
+        rows: r.weeks.map((w) => ({ ...w })),
+        notes: [],
+        definitions: defs(r.definitions),
+      };
+    }
+    case 'repeat-customers': {
+      const r = result as Result<typeof repeatCustomers>;
+      return {
+        title: 'Repeat customers',
+        subtitle: `${range(r.period)} · ${shop}`,
+        columns: [col('metric', 'Metric'), col('value', 'Value')],
+        rows: [
+          { metric: 'Named customers who bought', value: String(r.buyers) },
+          { metric: 'Of them, with two or more invoices', value: String(r.repeatBuyers) },
+          {
+            metric: METRICS.repeatCustomerRate.label,
+            value: r.repeatRateBp === null ? '—' : `${(r.repeatRateBp / 100).toFixed(1)}%`,
+          },
+        ],
+        notes: [],
+        definitions: defs(r.definitions),
+      };
+    }
+    case 'campaign-results': {
+      const r = result as Result<typeof campaignResults>;
+      return {
+        title: 'Campaign results',
+        subtitle: `${range(r.period)} · ${shop}`,
+        columns: [
+          col('name', 'Campaign'),
+          col('channel', 'Channel'),
+          col('started', 'Started'),
+          col('status', 'Status'),
+          col('messages', 'Messages', 'int'),
+          col('sent', 'Sent', 'int'),
+          col('delivered', 'Delivered', 'int'),
+          col('read', 'Read', 'int'),
+          col('blocked', 'Blocked', 'int'),
+          col('failed', 'Failed', 'int'),
+        ],
+        rows: r.rows.map((x) => ({ ...x })),
+        notes: ['Sent means accepted by the provider; delivered and read only as confirmed by the provider.'],
         definitions: defs(r.definitions),
       };
     }

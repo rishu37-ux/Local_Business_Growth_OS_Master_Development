@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   auditExport,
+  campaignResults,
   dashboard,
   exportReport,
   expensesReport,
@@ -10,12 +11,14 @@ import {
   operatingProfit,
   paymentMethodSummary,
   receivablesAgeing,
+  repeatCustomers,
   REPORTS,
   ReportError,
   reportTable,
   returnsReport,
   salesByItem,
   salesSummary,
+  salesTrend,
   shopName,
   stockValuation,
   taxSummary,
@@ -42,6 +45,10 @@ const periodQuery = z
     message: 'from and to are required for a custom period',
   });
 const groupBy = z.enum(['brand', 'model', 'variant']).default('model');
+const trendQuery = z.strictObject({
+  weeks: z.coerce.number().int().min(1).max(52).optional(),
+  date: z.iso.date().optional(),
+});
 
 type PeriodQuery = z.infer<typeof periodQuery>;
 
@@ -74,7 +81,7 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
   /** Runs a report by name (permission already checked). */
   const run = async (request: FastifyRequest, name: ReportName) => {
     const ctx = ctxOf(request);
-    const q = request.query as PeriodQuery & { groupBy?: 'brand' | 'model' | 'variant' };
+    const q = request.query as PeriodQuery & { groupBy?: 'brand' | 'model' | 'variant'; weeks?: number };
     switch (name) {
       case 'sales-summary':
         return salesSummary(s.appDb, ctx, toPeriod(q));
@@ -99,6 +106,12 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
         return expensesReport(s.appDb, ctx, toPeriod(q));
       case 'operating-profit':
         return operatingProfit(s.appDb, ctx, toPeriod(q));
+      case 'sales-trend':
+        return salesTrend(s.appDb, ctx, { weeks: q.weeks ?? 12, ...(q.date ? { date: q.date } : {}) });
+      case 'repeat-customers':
+        return repeatCustomers(s.appDb, ctx, toPeriod(q));
+      case 'campaign-results':
+        return campaignResults(s.appDb, ctx, toPeriod(q));
     }
   };
 
@@ -115,7 +128,9 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
         ? z.strictObject({ ...periodFields, groupBy: groupBy.optional() })
         : name === 'receivables' || name === 'stock-valuation'
           ? z.strictObject({})
-          : periodQuery;
+          : name === 'sales-trend'
+            ? trendQuery
+            : periodQuery;
     app.get(
       `/api/businesses/:businessId/reports/${name}`,
       { config: { permission: spec.permission }, schema: { params: businessParams, querystring } },
@@ -165,6 +180,7 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
         querystring: z.strictObject({
           ...periodFields,
           groupBy: groupBy.optional(),
+          weeks: z.coerce.number().int().min(1).max(52).optional(),
           format: z.enum(['csv', 'xlsx', 'pdf']),
         }),
       },

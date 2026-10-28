@@ -46,6 +46,20 @@ export const METRICS = {
     label: 'Reminders waiting',
     definition: 'Reminder messages drafted and waiting for review or approval; nothing has been sent for them.',
   },
+  salesTrend: {
+    label: 'Weekly net sales',
+    definition: 'Net sales (gross sales minus returns) per week, weeks starting on the shop’s week start day.',
+  },
+  repeatCustomerRate: {
+    label: 'Repeat-customer rate',
+    definition:
+      'Of the named customers who bought in the period, the share with two or more invoices in it. Walk-in sales without a customer are not counted.',
+  },
+  campaignResults: {
+    label: 'Campaign results',
+    definition:
+      'Per campaign started in the period: messages created, accepted by the provider (sent), delivered and read as confirmed by the provider, blocked by consent or opt-out, and failed.',
+  },
   stockValuation: {
     label: 'Stock valuation',
     definition: 'On-hand quantity × cost (serialized: actual unit cost; others: current weighted average cost).',

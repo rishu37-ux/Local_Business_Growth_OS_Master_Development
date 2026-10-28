@@ -916,3 +916,18 @@ CI for Phase 7: #49 (7.5) green; #50 (7.6, push) red in `reports-browser` (fixed
 | 11 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 378; `pnpm secrets` clean | **Pass**, exit 0 |
 
 Plan limits stay empty in the seed plans (a product decision not yet made); quotas apply only once the platform admin sets them.
+
+## TR-0042 · 2026-10-28 · Phase 8 increment 8.5 — advanced analytics
+
+**Environment:** as TR-0011 (`analytics.db.test.ts`). Seeded: a ₹1,000 item without tax; sales on 2 Sep (Asha), 10 Sep (Bilal), 15 Sep (walk-in), 20 Sep (Asha), 5 Oct (Bilal); one campaign with a recording adapter.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-RPT-1, FR-RPT-3 | Weekly net sales for 3 weeks up to 20 Sep 2026 (Monday start): 31 Aug–6 Sep 1 invoice ₹1,000; 7–13 Sep 1 / ₹1,000; 14–20 Sep 2 / ₹2,000; definition shown | **Pass** |
+| 2 | FR-RPT-1, FR-RPT-2 | Repeat-customer rate, September: 2 named buyers, 1 with two invoices → 50 % (5000 bp); the walk-in is not counted; October 1 buyer → 0 %; another business: no buyers → no rate | **Pass** |
+| 3 | FR-RPT-1 | Campaign results this month: "VIP covers" 1 message, 1 sent, 1 delivered (provider receipt), 0 read/blocked/failed | **Pass** |
+| 4 | FR-RPT-4 | CSV exports carry the definition and the value ("50.0%"; the week rows); 2 export audit events; Billing 403; another business 404 | **Pass** |
+| 5 | — | Negative control: every buyer counted as repeat → tests 2 and 4 fail. Restored | **Detected** |
+| 6 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 382; `pnpm secrets` clean | **Pass**, exit 0 |
+
+Low, slow and dead stock already exist (aged-stock and reorder reports, Phase 4, TR-0012); top products are the sales-by-item report ordered by net sales (Phase 5).
