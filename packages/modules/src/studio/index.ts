@@ -522,6 +522,11 @@ export async function generateImage(
     bytes: result.value.bytes,
     originalName: 'generated.png',
     purpose: 'creative',
+  }).catch((err: unknown) => {
+    if ((err as { code?: unknown }).code === 'QUOTA_EXCEEDED') {
+      throw new StudioError('QUOTA_EXCEEDED', (err as Error).message);
+    }
+    throw err;
   });
   const out = await recordJob(
     deps.appDb,

@@ -29,6 +29,7 @@ const FILE_STATUS: Readonly<Record<string, number>> = {
   MALFORMED: 422,
   TOO_MANY_PAGES: 422,
   DIMENSIONS_TOO_LARGE: 422,
+  QUOTA_EXCEEDED: 429,
 };
 
 function sendScanError(err: unknown, request: FastifyRequest, reply: FastifyReply) {

@@ -12,6 +12,7 @@ import {
 import { sql } from 'kysely';
 import { withTenant, type Db, type TenantContext, type Trx } from '@lbgos/db';
 import { recordTenantEvent } from '../audit/index.ts';
+import { assertQuotaIn, QuotaError } from '../quotas/index.ts';
 import type { MessageProvider } from './provider.ts';
 
 export { NOT_CONFIGURED, type MessageProvider, type OutboundMessage, type ProviderResult } from './provider.ts';
@@ -611,7 +612,7 @@ export async function queueMessage(db: Db, ctx: TenantContext, id: string): Prom
 // ---------------------------------------------------------------------------
 
 export type DispatchOutcome =
-  | { readonly outcome: 'BLOCKED'; readonly reason: BlockReason }
+  | { readonly outcome: 'BLOCKED'; readonly reason: BlockReason | 'PLAN_QUOTA_EXCEEDED' }
   | { readonly outcome: 'DEFERRED'; readonly notBefore: string }
   | { readonly outcome: 'FAILED'; readonly reason: string }
   | { readonly outcome: 'SENT'; readonly providerMessageId: string }
@@ -671,6 +672,14 @@ export async function dispatchMessage(
     if (!provider.configured) {
       await set('FAILED', 'PROVIDER_NOT_CONFIGURED');
       return { outcome: 'FAILED' as const, reason: 'PROVIDER_NOT_CONFIGURED' };
+    }
+    // The plan's monthly message allowance (FR-SUB-3 AC2).
+    try {
+      await assertQuotaIn(trx, ctx, 'MESSAGES', 1);
+    } catch (err) {
+      if (!(err instanceof QuotaError)) throw err;
+      await set('BLOCKED', 'PLAN_QUOTA_EXCEEDED');
+      return { outcome: 'BLOCKED' as const, reason: 'PLAN_QUOTA_EXCEEDED' as const };
     }
     await set('SUBMITTED', null, sql`, provider = ${provider.name}`);
     return { outcome: 'SUBMIT' as const, message: m, provider };

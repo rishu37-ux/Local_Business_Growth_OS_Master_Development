@@ -12,6 +12,7 @@
 - Migration 0026, `@lbgos/modules/channels`, WhatsApp Cloud API and DLT SMS adapters, template matching in `@lbgos/domain`, template routes and public signed webhook routes; messages, reminders and campaigns are routed through the business's tested channel integration.
 - Web: API Hub, Offers, Creative Studio and Campaigns screens; the side menu scrolls when taller than the window. Tests: Phase 7 exit browser test; each test harness starts with empty rate-limit counters.
 - Migration 0027 and `@lbgos/modules/agents`: agent runs and steps, five assistants and their tools, approval requests with expected effects, agent API routes; the mock AI adapter can play agent steps.
+- Migration 0028, `@lbgos/modules/jobs` and `@lbgos/modules/quotas`: job runner (`JOBS_INTERVAL_SECONDS`), plan quotas and notices, usage, overage cap and monitoring routes; plan limits editable by the platform admin.
 
 ## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 

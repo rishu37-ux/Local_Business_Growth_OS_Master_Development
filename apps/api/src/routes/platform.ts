@@ -97,12 +97,20 @@ export function registerPlatformRoutes(app: FastifyInstance, s: AppServices): vo
           pricePaise: z.number().int().min(0).max(100_000_000).optional(),
           active: z.boolean().optional(),
           notes: z.string().max(500).optional(),
+          // Monthly allowances (FR-SUB-3 AC2); null removes a limit.
+          limits: z
+            .strictObject({
+              aiUnitsPerMonth: z.number().int().min(1).max(100_000_000).nullable().optional(),
+              messagesPerMonth: z.number().int().min(1).max(10_000_000).nullable().optional(),
+              storageMb: z.number().int().min(1).max(1_000_000).nullable().optional(),
+            })
+            .optional(),
         }),
       },
     },
     async (request, reply) => {
       const { planId } = request.params as { planId: string };
-      const body = request.body as { pricePaise?: number; active?: boolean; notes?: string };
+      const body = request.body as Parameters<typeof updatePlan>[3];
       const ok = await updatePlan(s.platformDb, request.principal?.userId ?? '', planId, body);
       return ok
         ? reply.status(204).send()

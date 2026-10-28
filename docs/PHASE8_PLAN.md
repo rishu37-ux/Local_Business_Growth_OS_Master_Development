@@ -26,6 +26,7 @@ Version 1.0 — 2026-10-28. Master prompt §10 (AI agent orchestration) and §De
 - AC2: the approval shows the exact proposed action, its inputs and the expected effect computed deterministically (e.g. "stock of X goes from 4 to 3"); approval executes once (idempotent); rejection or expiry ends the proposal and the run continues or completes with that outcome recorded.
 
 ## Increment 8.4 — Job runner, monitoring and cost limits (NFR-5, NFR-10, FR-SUB-3 AC2, FR-SUB-1 AC2)
+**Status: done in the API (TR-0041, D-062); screens in 8.6.**
 - AC1: one job runner (single active instance via a database lock) runs due work on a schedule: scheduled campaigns and queued messages (7.5), daily reminder runs (6.3), agent run timeouts, approval expiry, trial-end notices (7, 3, 1 days — FR-SUB-1 AC2) and integration health; each job is idempotent, recorded with status, duration and error, and safe to run twice.
 - AC2: per-plan monthly quotas for AI units, messages and storage (FR-SUB-3 AC2): 80 % alert (notification), hard stop at 100 % unless the owner opted into overage with a cap; the stop is enforced where the usage happens.
 - AC3: monitoring for the platform admin and the owner: job runs and failures, integration health and error rates, usage against quotas, agent runs by status; no tenant data in platform views beyond counts (D-015).

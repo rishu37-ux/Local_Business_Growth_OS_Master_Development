@@ -31,6 +31,8 @@ const schema = z
     // OCR worker limits (FR-OCR-6 AC3).
     OCR_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(30_000),
     OCR_MAX_MEMORY_MB: z.coerce.number().int().min(32).max(4096).default(256),
+    // Job runner tick (D-062): scheduled campaigns, queued messages, daily reminders, notices. 0 = off.
+    JOBS_INTERVAL_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
     // Key-encryption keys for integration secrets (ADR-13): "version:base64(32 bytes)", comma-separated,
     // the first is current. Unset: the secret store reports "not configured".
     SECRETS_KEK: z

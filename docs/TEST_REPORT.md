@@ -896,3 +896,23 @@ CI for Phase 7: #49 (7.5) green; #50 (7.6, push) red in `reports-browser` (fixed
 | 14 | — | Defects found by these tests and fixed: the number mask also masked dates in stored facts (now only runs of 10 or more digits); reading runs was blocked in read-only mode (now any member with `agents.use` or `audit.view`) | **Fixed** |
 | 15 | — | Negative control: the tool permission check disabled → test 4 fails. Restored | **Detected** |
 | 16 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 370; `pnpm secrets` clean | **Pass**, exit 0 |
+
+## TR-0041 · 2026-10-28 · Phase 8 increment 8.4 — job runner, plan quotas, monitoring
+
+**Environment:** as TR-0011 (`jobs.db.test.ts`). A recording messaging adapter and the mock AI adapter; a test plan of its own (removed afterwards). Synthetic data.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | NFR-5 | A scheduled campaign is not sent before it is due; one tick after → COMPLETED, 1 message, job record `campaigns` processed 1; the job steps run in order (campaigns, messages, reminders, agent timeouts, trial notices, quota notices); a second tick sends nothing more and records nothing for campaigns; the daily reminder run happens once per day, not per tick | **Pass** |
+| 2 | NFR-5 | While another session holds the runner lock, a tick does nothing (`ran: false`); a failing step (provider error) is recorded FAILED with its code while the other steps still run | **Pass** |
+| 3 | FR-SUB-1 AC2 | Trial ending in 7 days → one notice to the owner; repeated ticks send no duplicate; at 3 and 1 days the next notices, once each | **Pass** |
+| 4 | FR-AGT-5 | A run that never started and passed its deadline → LIMIT_REACHED "Time limit reached." | **Pass** |
+| 5 | FR-SUB-2, FR-SUB-3 AC2 | The platform admin sets plan limits (AI units, messages, storage MB); the owner sees usage against them; Billing cannot (403) | **Pass** |
+| 6 | FR-SUB-3 AC2 | AI use: an 80 % notice once; at 100 % generation refused (429, "This month's AI allowance in your plan has been used."); Billing cannot set the overage cap; after the owner sets one, generation works again; no duplicate 80 % notice from the job | **Pass** |
+| 7 | FR-SUB-3 AC2 | Messages: 3 a month allowed → the 4th and 5th dispatched are BLOCKED `PLAN_QUOTA_EXCEEDED`; storage full → an image is refused (429 QUOTA_EXCEEDED) | **Pass** |
+| 8 | NFR-10 | Owner monitoring: job records with the failure, integration calls in 24 h, assistant runs by status; Billing 403; another business 404; platform monitoring returns counts only (metric, label, n; no business ID); a shop owner cannot open it (403) | **Pass** |
+| 9 | — | Defects found by these tests and fixed: a queued run past its deadline could not be stopped (guard rebuilt in 0028 to allow QUEUED → LIMIT_REACHED); the AI plan check compared used + estimate with the limit, so a large per-call estimate refused even the first call — the AI stop is now at 100 % of actual use; the storage check was first added only to scan uploads, now also to receipts and generated images; the test's own plan leaked into a later test file — removed in afterAll | **Fixed** |
+| 10 | — | Negative control: the message quota check disabled → test 7 fails. Restored | **Detected** |
+| 11 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 378; `pnpm secrets` clean | **Pass**, exit 0 |
+
+Plan limits stay empty in the seed plans (a product decision not yet made); quotas apply only once the platform admin sets them.

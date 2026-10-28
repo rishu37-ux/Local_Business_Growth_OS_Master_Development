@@ -53,6 +53,7 @@ describe('migrations', () => {
       '0025_campaigns',
       '0026_channels',
       '0027_agents',
+      '0028_jobs_quotas',
     ]);
   });
 });

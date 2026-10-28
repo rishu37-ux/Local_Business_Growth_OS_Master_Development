@@ -3,6 +3,8 @@ import { sql } from 'kysely';
 import { createDb, type Db, type PoolOptions } from '@lbgos/db';
 import { createAuthService, DevConsoleEmailSender } from '@lbgos/modules/auth';
 import { DevConsoleMailer } from '@lbgos/modules/notifications';
+import { hubMessagingProvider } from '@lbgos/modules/channels';
+import { startJobRunner } from '@lbgos/modules/jobs';
 import { parseKeyring } from '@lbgos/modules/secrets';
 import { chromiumPdfRenderer } from './pdf.ts';
 import { DEFAULT_ADAPTER_URL, LocalFileStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
@@ -107,9 +109,23 @@ const ocrTimer = setInterval(() => {
     });
 }, 1000);
 
+// Scheduled work (D-062). Safe with several processes: one holds the runner lock.
+const hub = { appDb, secrets: secrets ?? null, allowMocks: (config.NODE_ENV as string) !== 'production' };
+const stopJobs =
+  config.JOBS_INTERVAL_SECONDS > 0
+    ? startJobRunner(
+        { appDb, provider: (ctx) => hubMessagingProvider(hub, ctx) },
+        config.JOBS_INTERVAL_SECONDS,
+        (err) => {
+          app.log.error({ err }, 'job runner failed');
+        },
+      )
+    : () => Promise.resolve();
+
 async function shutdown(signal: string) {
   app.log.info({ signal }, 'shutting down');
   clearInterval(ocrTimer);
+  await stopJobs();
   await app.close();
   await pdf.close();
   await Promise.all(pools.map((db) => db.destroy()));

@@ -7,6 +7,7 @@ import { sql } from 'kysely';
 import { SYSTEM_ACTOR, withTenant, type Db, type TenantContext, type Trx } from '@lbgos/db';
 import { recordTenantEvent } from '../audit/index.ts';
 import { checkTarget, OutboundError, type OutboundOptions } from '../outbound/index.ts';
+import { assertQuotaIn, QuotaError, quotaNoticesIn } from '../quotas/index.ts';
 import { readSecretValue, revokeSecret, rotateSecret, storeSecret, type Keyring } from '../secrets/index.ts';
 import {
   adapterFor,
@@ -773,6 +774,14 @@ export async function callProvider<T>(
   if (before.limit !== null && before.monthUnits + estimate.units > before.limit) {
     throw new IntegrationError('QUOTA_EXCEEDED', 'The monthly usage limit for this integration has been reached.');
   }
+  // The plan's monthly AI allowance (FR-SUB-3 AC2), across all AI integrations of the business.
+  const ai = category === 'LLM' || category === 'IMAGE_VIDEO';
+  if (ai) {
+    await withTenant(deps.appDb, ctx, (trx) => assertQuotaIn(trx, ctx, 'AI', estimate.units)).catch((err: unknown) => {
+      if (err instanceof QuotaError) throw new IntegrationError('QUOTA_EXCEEDED', err.message);
+      throw err;
+    });
+  }
   const adapter = adapterFor(row.provider, deps.allowMocks);
   if (!adapter) throw new IntegrationError('PROVIDER_UNKNOWN', 'No adapter is available for this provider.');
   const call = await openCall(deps, ctx, row);
@@ -799,6 +808,7 @@ export async function callProvider<T>(
     },
     null,
   );
+  if (ai) await withTenant(deps.appDb, ctx, (trx) => quotaNoticesIn(trx, ctx));
   const usage = await withTenant(deps.appDb, ctx, (trx) => usageIn(trx, ctx, updated));
   return { result, integration: toIntegration(updated), usage, attempts };
 }

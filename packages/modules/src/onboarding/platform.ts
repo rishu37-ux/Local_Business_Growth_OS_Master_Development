@@ -103,12 +103,23 @@ export async function updatePlan(
   db: Db,
   actorUserId: string,
   planId: string,
-  input: { readonly pricePaise?: number; readonly active?: boolean; readonly notes?: string },
+  input: {
+    readonly pricePaise?: number;
+    readonly active?: boolean;
+    readonly notes?: string;
+    /** Merged into plans.limits; a null value removes that limit. */
+    readonly limits?: Readonly<Record<string, number | null | undefined>>;
+  },
 ): Promise<boolean> {
   return withoutTenant(db, async (trx) => {
+    const set = Object.fromEntries(Object.entries(input.limits ?? {}).filter(([, v]) => typeof v === 'number'));
+    const drop = Object.entries(input.limits ?? {})
+      .filter(([, v]) => v === null)
+      .map(([k]) => k);
     const res = await sql`update lbg.plans set price_paise = coalesce(${input.pricePaise ?? null}::bigint, price_paise),
                                                active = coalesce(${input.active ?? null}::boolean, active),
-                                               notes = coalesce(${input.notes ?? null}, notes)
+                                               notes = coalesce(${input.notes ?? null}, notes),
+                                               limits = (limits - ${drop}::text[]) || ${JSON.stringify(set)}::jsonb
                            where id = ${planId}`.execute(trx);
     if (Number(res.numAffectedRows ?? 0) === 0) return false;
     await recordPlatformEvent(trx, actorUserId, {

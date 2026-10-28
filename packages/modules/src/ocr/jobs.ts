@@ -19,6 +19,7 @@ import { loadBusinessAccess } from '../tenancy/index.ts';
 import { runIsolated, type IsolationOptions } from './isolate.ts';
 import type { StorageAdapter } from './storage.ts';
 import { applyStructured } from './structuring.ts';
+import { assertQuotaIn, QuotaError } from '../quotas/index.ts';
 
 export type ScanType = 'PRODUCT_LABEL' | 'SUPPLIER_INVOICE';
 export type ScanStatus = 'UPLOADED' | 'QUEUED' | 'PROCESSING' | 'NEEDS_REVIEW' | 'COMPLETED' | 'DISCARDED' | 'FAILED';
@@ -35,7 +36,14 @@ export interface OcrConfig {
 }
 
 export class OcrError extends Error {
-  readonly code: FileProblem | 'NOT_FOUND' | 'NOT_REVIEWABLE' | 'NOT_RETRYABLE' | 'RETRY_LIMIT' | 'UNCONFIRMED_FIELDS';
+  readonly code:
+    | FileProblem
+    | 'NOT_FOUND'
+    | 'NOT_REVIEWABLE'
+    | 'NOT_RETRYABLE'
+    | 'RETRY_LIMIT'
+    | 'UNCONFIRMED_FIELDS'
+    | 'QUOTA_EXCEEDED';
   readonly fields: readonly string[];
 
   constructor(code: OcrError['code'], message: string, fields: readonly string[] = []) {
@@ -63,6 +71,11 @@ export async function uploadScan(
 ): Promise<{ jobId: string; uploadId: string }> {
   const check = checkUpload(input.bytes, cfg.limits);
   if (!check.ok) throw new OcrError(check.problem, `file rejected: ${check.problem.toLowerCase().replace(/_/g, ' ')}`);
+  // The plan's storage allowance (FR-SUB-3 AC2).
+  await withTenant(db, ctx, (trx) => assertQuotaIn(trx, ctx, 'STORAGE', input.bytes.length)).catch((err: unknown) => {
+    if (err instanceof QuotaError) throw new OcrError('QUOTA_EXCEEDED', err.message);
+    throw err;
+  });
   const key = `${ctx.businessId}/${randomUUID()}`;
   const sha256 = createHash('sha256').update(input.bytes).digest('hex');
   await cfg.storage.put(key, input.bytes);
@@ -102,6 +115,11 @@ export async function storeUpload(
 ): Promise<string> {
   const check = checkUpload(input.bytes, cfg.limits);
   if (!check.ok) throw new OcrError(check.problem, `file rejected: ${check.problem.toLowerCase().replace(/_/g, ' ')}`);
+  // The plan's storage allowance (FR-SUB-3 AC2).
+  await withTenant(db, ctx, (trx) => assertQuotaIn(trx, ctx, 'STORAGE', input.bytes.length)).catch((err: unknown) => {
+    if (err instanceof QuotaError) throw new OcrError('QUOTA_EXCEEDED', err.message);
+    throw err;
+  });
   const key = `${ctx.businessId}/${randomUUID()}`;
   const sha256 = createHash('sha256').update(input.bytes).digest('hex');
   await cfg.storage.put(key, input.bytes);

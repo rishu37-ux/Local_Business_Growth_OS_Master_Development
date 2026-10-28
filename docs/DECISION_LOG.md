@@ -422,3 +422,9 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - An approval-request proposal puts the run in AWAITING_APPROVAL; the run's user continues it after the decision (the decision is recorded as a step); cancelling withdraws a pending proposal. Runs are visible to their user and to holders of `audit.view`; reading stays possible in read-only mode.
 - Stored questions, arguments and results mask email addresses and digit runs of 10 or more ("[number]"); tools never return contact details.
 - The mock adapter scripts the model for tests; nothing here has run against a real model (Q4).
+
+### D-062 · 2026-10-28 · Accepted
+**Decision (job runner, plan quotas, monitoring, increment 8.4):**
+- One job runner per database (session advisory lock), a tick every `JOBS_INTERVAL_SECONDS` (default 60; 0 = off), business by business (ACTIVE only) as the system actor: due scheduled campaigns, queued messages (quiet hours apply), the daily reminder run (once per business day), assistant runs past their deadline, trial notices (7/3/1 days), quota notices. Steps are idempotent; only work done or failures are recorded (`job_runs`, migration 0028); notices are sent once (`job_notices`).
+- Plan quotas read `plans.limits` (`aiUnitsPerMonth`, `messagesPerMonth`, `storageMb`); an unset limit means none. AI: stop at 100 % of actual use (estimates are upper bounds) plus the owner's overage cap (`business_settings.ai_overage_cap_units`, re-auth, audited); messages: a dispatch beyond the allowance is BLOCKED `PLAN_QUOTA_EXCEEDED`; storage: uploads beyond the allowance refused. 80 % and 100 % notices once a month to holders of `business.settings.manage`. Per-integration limits (7.3) still apply in addition.
+- Monitoring: the owner sees job records, integration health (calls and errors in 24 h) and assistant runs; the platform admin sees counts only through a definer function (D-015).

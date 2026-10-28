@@ -1,13 +1,14 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 7 complete, CI green; Phase 8: 8.1–8.3 done)
+Last updated: 2026-10-28 (Phase 7 complete, CI green; Phase 8: 8.1–8.4 done)
 
 ## Phase 8 — Agents, approvals, monitoring, cost limits, analytics (in progress)
 
 Plan and acceptance criteria: `PHASE8_PLAN.md`. Mock AI adapter only until a provider account exists (Q4).
 
 1. ~~8.1 agent runtime~~, ~~8.2 tools and the five assistants~~, ~~8.3 approval of proposals~~ — done in the API (TR-0040, D-061).
-2. **Next:** 8.4 job runner, plan quotas, monitoring; 8.5 advanced analytics; 8.6 screens and the Phase 8 exit test.
+2. ~~8.4 job runner, plan quotas, monitoring~~ — done in the API (TR-0041, D-062). Plan limit values are a product decision (open).
+3. **Next:** 8.5 advanced analytics; 8.6 screens and the Phase 8 exit test.
 
 ## Phase 7 — API Hub, AI Creative Studio, selected official integrations (complete)
 

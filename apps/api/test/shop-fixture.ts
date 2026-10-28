@@ -32,6 +32,12 @@ export function resetFixture(): void {
   adminSession = undefined;
 }
 
+/** The platform admin created by the first `activeShop` since `resetFixture`. */
+export function fixtureAdmin(): Session {
+  if (!adminSession) throw new Error('call activeShop first');
+  return adminSession;
+}
+
 /**
  * stateCode defaults to Maharashtra (27). `gstin` makes the shop a REGULAR GST
  * registrant (its first two digits must match the state); otherwise UNREGISTERED.
