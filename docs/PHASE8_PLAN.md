@@ -36,9 +36,11 @@ Version 1.0 — 2026-10-28. Master prompt §10 (AI agent orchestration) and §De
 - AC1: low, slow and dead stock (definitions: below reorder level; no sale in 60 days; no sale in 180 days with stock on hand), sales trend by week, top products, repeat-customer rate, campaign results (messages, sent, delivered, read, blocked, failed per campaign) — each with its definition, exact values on a seeded dataset, CSV export.
 
 ## Increment 8.6 — Screens and Phase 8 exit test
+**Status: done (TR-0043, D-064).**
 - Screens: Assistants (start a run, see steps, facts vs suggestions, proposals, cancel), Approvals with expected effects, Usage and limits, Monitoring, the new analytics in Reports. axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
 
 ## Phase 8 exit
+**Status: passed locally in a real browser with mock adapters only (TR-0043); CI result recorded when known.** Note: in the browser the looping run stopped at the run budget (reached first); the tool-call limit is shown in TR-0040 #5.
 In a real browser, for a synthetic shop with mock adapters only: the owner asks the Inventory assistant about low stock and sees facts with their period and source; the assistant proposes a stock adjustment, which waits for approval with its expected effect and executes once after approval; a model-supplied wrong quantity is rejected by the tool; a forged business ID in a tool argument is rejected; a run that exceeds its tool-call limit stops as `LIMIT_REACHED`; a user cancels a run; the daily budget stops a further run; the job runner sends a due scheduled campaign and records the job; usage against the plan quota is shown with the 80 % alert; the run record contains no secret or full mobile number; another business sees none of it; CI is green.
 
 Not in Phase 8 (by design): real AI provider traffic (Q4); autonomous execution of consequential actions; paid-ad spend.

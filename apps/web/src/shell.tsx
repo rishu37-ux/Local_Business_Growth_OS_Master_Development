@@ -26,13 +26,17 @@ type IconName =
   | 'tag'
   | 'spark'
   | 'megaphone'
-  | 'plug';
+  | 'plug'
+  | 'chat'
+  | 'gauge';
 
 const ICON_PATHS: Readonly<Record<IconName, string>> = {
   tag: 'M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9-9-9Zm5-4.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z',
   spark: 'M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18m0-12-2.5 2.5m-7 7L6 18',
   megaphone: 'M3 10v4h3l7 4V6L6 10H3Zm13-1a4 4 0 0 1 0 6m-9 3 1.5 3',
   plug: 'M9 3v5m6-5v5M6 8h12v3a6 6 0 0 1-12 0V8Zm6 9v4',
+  chat: 'M4 5h16v11H9l-5 4V5Zm4 5h8m-8 3h5',
+  gauge: 'M4 16a8 8 0 1 1 16 0M12 16l4-5M4 20h16',
   bell: 'M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15L6 16Zm4 4a2 2 0 0 0 4 0',
   wallet: 'M4 7h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7Zm0 0 12-3v3m0 7h2',
   chart: 'M4 20V10m6 10V4m6 16v-7m4 7H2',
@@ -71,6 +75,7 @@ export function Icon(props: { name: IconName; className?: string }) {
 
 /** Screens of a business: path, label, permission needed, icon. */
 export const SCREENS: readonly (readonly [string, string, string, IconName])[] = [
+  ['assistants', 'Assistants', 'agents.use', 'chat'],
   ['pos', 'Point of sale', 'pos.sell', 'receipt'],
   ['invoices', 'Invoices', 'customers.view', 'file'],
   ['customers', 'Customers', 'customers.view', 'person'],
@@ -86,6 +91,7 @@ export const SCREENS: readonly (readonly [string, string, string, IconName])[] =
   ['studio', 'Creative Studio', 'marketing.draft', 'spark'],
   ['campaigns', 'Campaigns', 'marketing.draft', 'megaphone'],
   ['integrations', 'API Hub', 'integrations.view', 'plug'],
+  ['usage', 'Usage and monitoring', 'business.settings.view', 'gauge'],
   ['reports', 'Reports', 'reports.sales.view', 'chart'],
   ['members', 'Staff and invitations', 'users.view', 'users'],
 ];

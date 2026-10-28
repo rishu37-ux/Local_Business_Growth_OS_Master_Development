@@ -142,7 +142,36 @@ interface OperatingProfit {
   notes: string[];
   definitions: Record<string, Definition>;
 }
+interface Trend {
+  period: { from: string; to: string };
+  weeks: { weekStart: string; weekEnd: string; invoiceCount: number; netSalesPaise: number }[];
+  definitions: Record<string, Definition>;
+}
+interface Repeat {
+  buyers: number;
+  repeatBuyers: number;
+  repeatRateBp: number | null;
+  definitions: Record<string, Definition>;
+}
+interface CampaignResults {
+  rows: {
+    id: string;
+    name: string;
+    channel: string;
+    started: string;
+    messages: number;
+    sent: number;
+    delivered: number;
+    read: number;
+    blocked: number;
+    failed: number;
+  }[];
+  definitions: Record<string, Definition>;
+}
 interface ReportMap {
+  'sales-trend': Trend;
+  'repeat-customers': Repeat;
+  'campaign-results': CampaignResults;
   'operating-profit': OperatingProfit;
   'sales-summary': Summary;
   'sales-by-item': ByItem;
@@ -181,6 +210,9 @@ export function ReportsPage() {
   const tax = useReport(base, 'tax', query);
   const ageing = useReport(base, 'receivables', '', financial);
   const stock = useReport(base, 'stock-valuation', '', financial);
+  const trend = useReport(base, 'sales-trend', `weeks=8${date && valid ? `&date=${date}` : ''}`);
+  const repeat = useReport(base, 'repeat-customers', query);
+  const campaigns = useReport(base, 'campaign-results', query);
   const exportHref =
     (name: string, extra = '') =>
     (f: string) =>
@@ -437,6 +469,81 @@ export function ReportsPage() {
               </tr>
             ))}
           </Table>
+        </Section>
+      ) : null}
+      {trend.data ? (
+        <Section id="trend-heading" title="Weekly net sales">
+          <p className="mb-3 text-sm text-ink-600">{trend.data.report.definitions.salesTrend?.definition}</p>
+          {exportable ? (
+            <ExportLinks href={(f) => `${base}/sales-trend/export?weeks=8&format=${f}`} formats={['csv', 'xlsx']} />
+          ) : null}
+          <Table caption="Weekly net sales" headers={['Week', 'Invoices', 'Net sales']}>
+            {trend.data.report.weeks.map((w) => (
+              <tr key={w.weekStart}>
+                <td className={cell}>
+                  {w.weekStart} to {w.weekEnd}
+                </td>
+                <td className={cell}>{String(w.invoiceCount)}</td>
+                <td className={cell}>{formatPaise(w.netSalesPaise)}</td>
+              </tr>
+            ))}
+          </Table>
+        </Section>
+      ) : null}
+
+      {repeat.data ? (
+        <Section id="repeat-heading" title="Repeat customers">
+          <p className="mb-3 text-sm text-ink-600">{repeat.data.report.definitions.repeatCustomerRate?.definition}</p>
+          {exportable ? <ExportLinks href={exportHref('repeat-customers')} formats={['csv', 'xlsx']} /> : null}
+          <div className="grid gap-4 sm:grid-cols-3" data-testid="repeat-customers">
+            <Metric
+              label="Named customers who bought"
+              value={String(repeat.data.report.buyers)}
+              definition={undefined}
+            />
+            <Metric
+              label="Bought more than once"
+              value={String(repeat.data.report.repeatBuyers)}
+              definition={undefined}
+            />
+            <Metric
+              label="Repeat-customer rate"
+              value={
+                repeat.data.report.repeatRateBp === null
+                  ? '—'
+                  : `${(repeat.data.report.repeatRateBp / 100).toFixed(1)}%`
+              }
+              definition={undefined}
+            />
+          </div>
+        </Section>
+      ) : null}
+
+      {campaigns.data ? (
+        <Section id="campaign-results-heading" title="Campaign results">
+          <p className="mb-3 text-sm text-ink-600">{campaigns.data.report.definitions.campaignResults?.definition}</p>
+          {exportable ? <ExportLinks href={exportHref('campaign-results')} formats={['csv', 'xlsx']} /> : null}
+          {campaigns.data.report.rows.length === 0 ? (
+            <p className="text-sm text-ink-600">No campaign started in this period.</p>
+          ) : (
+            <Table
+              caption="Campaign results"
+              headers={['Campaign', 'Started', 'Messages', 'Sent', 'Delivered', 'Read', 'Blocked', 'Failed']}
+            >
+              {campaigns.data.report.rows.map((c) => (
+                <tr key={c.id}>
+                  <td className={cell}>{c.name}</td>
+                  <td className={cell}>{c.started}</td>
+                  <td className={cell}>{String(c.messages)}</td>
+                  <td className={cell}>{String(c.sent)}</td>
+                  <td className={cell}>{String(c.delivered)}</td>
+                  <td className={cell}>{String(c.read)}</td>
+                  <td className={cell}>{String(c.blocked)}</td>
+                  <td className={cell}>{String(c.failed)}</td>
+                </tr>
+              ))}
+            </Table>
+          )}
         </Section>
       ) : null}
     </Page>

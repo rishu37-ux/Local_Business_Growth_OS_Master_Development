@@ -14,6 +14,8 @@ interface Request {
   status: string;
   requestedByName: string | null;
   reason: string | null;
+  /** The expected effect, computed when the request was made (FR-AGT-4 AC2). */
+  effect: string | null;
   createdAt: string;
   expiresAt: string;
 }
@@ -82,6 +84,11 @@ export function ApprovalsPage() {
               <p className="mb-1">
                 Requested by {r.requestedByName ?? 'a member'} · Reason: {r.reason ?? '—'}
               </p>
+              {r.effect ? (
+                <p className="mb-1" data-testid="approval-effect">
+                  <strong>Expected effect:</strong> {r.effect}
+                </p>
+              ) : null}
               <p className="mb-2 text-sm text-ink-600">Expires {new Date(r.expiresAt).toLocaleString('en-IN')}</p>
               <Field
                 label={`Note for ${title} (needed to reject)`}

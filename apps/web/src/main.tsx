@@ -21,6 +21,8 @@ import { CampaignsPage } from './pages/campaigns.tsx';
 import { IntegrationsPage } from './pages/integrations.tsx';
 import { OffersPage } from './pages/offers.tsx';
 import { StudioPage } from './pages/studio.tsx';
+import { AssistantsPage } from './pages/assistants.tsx';
+import { UsagePage } from './pages/usage.tsx';
 import { RemindersPage } from './pages/reminders.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
 import { StockPage } from './pages/stock.tsx';
@@ -102,6 +104,8 @@ const router = createBrowserRouter([
           { path: 'studio', element: <Authed>{() => <StudioPage />}</Authed> },
           { path: 'campaigns', element: <Authed>{() => <CampaignsPage />}</Authed> },
           { path: 'integrations', element: <Authed>{() => <IntegrationsPage />}</Authed> },
+          { path: 'assistants', element: <Authed>{() => <AssistantsPage />}</Authed> },
+          { path: 'usage', element: <Authed>{() => <UsagePage />}</Authed> },
         ],
       },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },

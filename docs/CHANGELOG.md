@@ -14,6 +14,7 @@
 - Migration 0027 and `@lbgos/modules/agents`: agent runs and steps, five assistants and their tools, approval requests with expected effects, agent API routes; the mock AI adapter can play agent steps.
 - Migration 0028, `@lbgos/modules/jobs` and `@lbgos/modules/quotas`: job runner (`JOBS_INTERVAL_SECONDS`), plan quotas and notices, usage, overage cap and monitoring routes; plan limits editable by the platform admin.
 - Reports: weekly net sales, repeat-customer rate and campaign results with definitions and exports.
+- Web: Assistants and Usage and monitoring screens; Approvals show the expected effect; Reports show the new analytics. Tests: Phase 8 exit browser test.
 
 ## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
 

@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 7 complete, CI green; Phase 8: 8.1–8.5 done)
+Last updated: 2026-10-28 (Phase 7 complete, CI green; Phase 8 complete locally; Phase 9 next)
 
 ## Phase 8 — Agents, approvals, monitoring, cost limits, analytics (in progress)
 
@@ -9,7 +9,11 @@ Plan and acceptance criteria: `PHASE8_PLAN.md`. Mock AI adapter only until a pro
 1. ~~8.1 agent runtime~~, ~~8.2 tools and the five assistants~~, ~~8.3 approval of proposals~~ — done in the API (TR-0040, D-061).
 2. ~~8.4 job runner, plan quotas, monitoring~~ — done in the API (TR-0041, D-062). Plan limit values are a product decision (open).
 3. ~~8.5 advanced analytics~~ — done in the API (TR-0042, D-063).
-4. **Next:** 8.6 screens (Assistants, approvals with effects, usage, monitoring, new reports) and the Phase 8 exit test.
+4. ~~8.6 screens and the Phase 8 exit test~~ — done (TR-0043, D-064).
+
+**Phase 8 complete locally.** Open from Phase 8: real AI provider (Q4) — agent behaviour with a real model is unverified; plan limit values (product decision); reconciliation for receipts older than the webhook window.
+
+**Next: Phase 9** — security review (ASVS checklist, threat model status), tenant-isolation sweep, accessibility and responsive checks, backup and restore test; the pilot itself needs Q1/Q2.
 
 ## Phase 7 — API Hub, AI Creative Studio, selected official integrations (complete)
 

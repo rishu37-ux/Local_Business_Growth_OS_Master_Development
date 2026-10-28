@@ -931,3 +931,23 @@ Plan limits stay empty in the seed plans (a product decision not yet made); quot
 | 6 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 382; `pnpm secrets` clean | **Pass**, exit 0 |
 
 Low, slow and dead stock already exist (aged-stock and reorder reports, Phase 4, TR-0012); top products are the sales-by-item report ordered by net sales (Phase 5).
+
+## TR-0043 · 2026-10-28 · Phase 8 increment 8.6 — screens and the Phase 8 exit test (browser)
+
+**Environment:** as TR-0016 (Chromium via Playwright, real API, built web app, throwaway PostgreSQL), `phase8-exit.db.test.ts`. **Mock adapters only:** the mock AI adapter plays the model; a recording messaging adapter. No real provider contacted. Synthetic data.
+
+| # | Phase 8 exit criterion | Check (in the browser unless noted) | Result |
+|---|---|---|---|
+| 1 | Facts with period and source | Assistants → Inventory assistant: "Items at or below reorder level 1 — Stock levels (reorder level)" in "Facts (from your records)"; the suggestion only quotes that fact; Completed | **Pass** |
+| 2 | Proposal waits with its expected effect, executes once | The assistant proposes −1 cable: "Awaiting approval", effect "Available stock of Model P8-CB goes from 5.000 to 4.000."; stock unchanged; Approvals shows "Expected effect: …"; Approve → "Approved and carried out.", stock 4; continuing the run → Completed; stock still 4 | **Pass** |
+| 3 | Wrong quantity, forged business ID | The steps show "refused (VALUE_MISMATCH)" and "refused (FOREIGN_SCOPE)"; stock unchanged | **Pass** |
+| 4 | A limit stops a run as LIMIT_REACHED | An endlessly calling model → "Limit reached — Run budget of 4000 units reached." (the mock's cost grows with history, so the run budget is reached after 10 of 20 tool calls; the tool-call limit itself is shown in TR-0040 #5) | **Pass** (limit reached: run budget) |
+| 5 | Cancel; daily budget | A waiting run cancelled → "Cancelled by the user."; daily limit 1 unit → "Daily assistant budget of 1 units reached." | **Pass** |
+| 6 | Job runner sends a due scheduled campaign | (module) one tick after the scheduled time → the recording adapter received exactly the campaign text; Usage and monitoring shows "Scheduled campaigns — Done — 1"; Reports → Campaign results "Night sale" 1 message, 1 sent | **Pass** |
+| 7 | Usage against the plan with the 80 % alert | Plan allowance set so this month's AI use is 80–100 %: the AI row shows "… % used" as a warning | **Pass** |
+| 8 | No secret or full mobile in run records | A question with "+91 98765 43210" is shown and stored as "[number]"; no run or step contains the mobile or the integration key | **Pass** |
+| 9 | Cross-tenant | Another business: 404 for this shop's run and usage; its own run list empty | **Pass** |
+| 10 | NFR-1, NFR-17 | Assistants, Approvals, Usage and monitoring, Reports (with the new sections) at 1280/768/360 px: 0 serious/critical axe violations (12 audits), no horizontal overflow, no CSP violations or page errors | **Pass** |
+| 11 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 389 (all browser tests); `pnpm secrets` clean | **Pass**, exit 0 |
+
+Screenshots (Assistants, Usage and monitoring) were taken for review and are not stored in the repository.
