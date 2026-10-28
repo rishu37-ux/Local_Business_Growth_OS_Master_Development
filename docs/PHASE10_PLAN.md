@@ -42,5 +42,5 @@ These items are prepared, not claimed.
 - **AC4:** `COMMERCIAL_READINESS.md` — what must be true before paid launch (legal terms, privacy notice, GST registration of the platform, payment gateway, support, pen test, SLA wording). Each item has an owner and a status, and links to `PILOT_CHECKLIST.md`.
 
 ## Phase 10 exit
-**Status: passed locally (TR-0045); CI result recorded when known. Paid launch stays blocked (`COMMERCIAL_READINESS.md`).**
+**Status: passed (TR-0045; CI #62 green). Paid launch stays blocked (`COMMERCIAL_READINESS.md`).**
 10.1 and 10.2 pass their tests, including the cross-tenant and read-only tests. The guides and procedures are written against the real screens. Pricing and commercial readiness list what is open, with owners. CI is green. Paid launch stays blocked on the inputs listed in `COMMERCIAL_READINESS.md`.

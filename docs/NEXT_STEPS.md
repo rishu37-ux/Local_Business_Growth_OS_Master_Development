@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–9 complete, CI green — the pilot itself is blocked; Phase 10 complete locally; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–9 complete, CI green — the pilot itself is blocked; Phase 10 complete, CI #62 green; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -25,7 +25,7 @@ Developer work that can follow those inputs:
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
 
-## Phase 10 — Commercial readiness, onboarding guides, support procedures, pricing validation (complete locally)
+## Phase 10 — Commercial readiness, onboarding guides, support procedures, pricing validation (complete, CI #62 green)
 
 Plan and acceptance criteria: `PHASE10_PLAN.md`.
 

@@ -33,5 +33,5 @@ Version 1.0 — 2026-10-28. Master prompt §11 (security requirements, OWASP ASV
 - The pilot itself is **not** run in this phase without the user's shop and hosting.
 
 ## Phase 9 exit
-**Status: passed locally (TR-0044); CI result recorded when known. The pilot stays open (Q1–Q6).**
+**Status: passed (TR-0044; CI #61 green). The pilot stays open (Q1–Q6).**
 Isolation sweep, restore drill and accessibility sweep pass and are recorded; the ASVS review is written with every high finding fixed or explicitly owned; the pilot checklist lists what remains; CI is green. The pilot stays open until Q1/Q2/Q6 are answered.
