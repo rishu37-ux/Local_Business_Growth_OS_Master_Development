@@ -64,22 +64,22 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-RPT-4 | Reports | Export | 5–6 | Implemented + tested (CSV for every report, XLSX for sales, stock and tax summaries and more, PDF for sales summary, tax summary and customer statements; `reports.export` plus the report's permission; every export audited) | `modules/reports/export.ts`, `routes/reports.ts` | TR-0024 #8–9 |
 | FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
 | FR-EXP-1 | Expenses | Expenses (optional module) | 6 | Done (AC1–2) | migration 0020, `modules/expenses/`, `routes/expenses.ts` | TR-0029 #1–6, #8–11, TR-0032 #5 |
-| FR-AIC-1 | Creative | Generation | 7 | Specified | — | — |
-| FR-AIC-2 | Creative | Grounding | 7 | Specified | — | — |
-| FR-AIC-3 | Creative | Approval | 7 | Specified | — | — |
-| FR-AIC-4 | Creative | Variants and scheduling | 7 | Specified | — | — |
-| FR-AIC-5 | Creative | Cost and asset tracking | 7 | Specified | — | — |
+| FR-AIC-1 | Creative | Generation | 7 | Done in API (generation jobs with provider, model, units, cost; not configured without a tested integration); screens in 7.7 | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #2, #4, #8 |
+| FR-AIC-2 | Creative | Grounding | 7 | Done in API (structured prompts, deterministic post-check with approver acknowledgement, ended offers refused) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #1, #3–7 |
+| FR-AIC-3 | Creative | Approval | 7 | Done in API for content and bulk sends (AC1 exact-version approval, edit clears it; R3 for campaigns; AC2 safe policies for reminders, D-049). Social publishing and ad spend are not built (shown unavailable) | migrations 0024–0025, `modules/studio/`, `modules/campaigns/` | TR-0036 #5, #11; TR-0037 #1, #3, #9 |
+| FR-AIC-4 | Creative | Variants and scheduling | 7 | Done in API (AC1 formats 1:1, 4:5, 9:16, 16:9; AC2 schedule, unschedule, cancel until sent; AC3 per-platform length checks); screens in 7.7 | migrations 0024–0025, `modules/studio/`, `modules/campaigns/` | TR-0036 #6, #9; TR-0037 #2, #4–8 |
+| FR-AIC-5 | Creative | Cost and asset tracking | 7 | Done in API (usage per generation via the hub; assets private with prompt reference, inputs and approval status; quota) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #4, #9–10 |
 | FR-HUB-1 | API Hub | Adapters | 7 | Done in API (interfaces, a mock per category, custom REST test-only); provider adapters in 7.6 | `modules/integrations/` | TR-0035 #1, #3, #7 |
 | FR-HUB-2 | API Hub | Configuration fields | 7 | Done in API | migration 0023, `modules/integrations/` | TR-0035 #2, #9 |
 | FR-HUB-3 | API Hub | Secret handling | 7 | Done in API (AC1–4: write-only with 4-character hint, envelope encryption with KEK outside the DB, redaction tested, re-auth and audit); integration screens in 7.7 | migration 0022, `modules/secrets/`, `routes/secrets.ts` | TR-0034 #1–13 |
 | FR-HUB-4 | API Hub | Lifecycle and health | 7 | Done in API (test connection, status machine, health, rotate/revoke) | migration 0023, `routes/integrations.ts` | TR-0035 #4–6 |
 | FR-HUB-5 | API Hub | SSRF protection | 7 | Done (AC1–5: guarded client, lint rule, address checks, pinned connection, redirects) | `modules/outbound/`, `tooling/eslint/no-raw-http.js` | TR-0033 #1–7 |
 | FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | In progress (usage and cost per tenant recorded; platform-owned integrations modelled, not offered) | `integration_calls` | TR-0035 #8 |
-| FR-MSG-1 | Messaging | WhatsApp | 7 | In progress (AC3 send blocked without opt-in, AC4 provider-confirmed statuses only — adapter interface, no provider connected) | `modules/messaging/` | TR-0027 #3, #8–9 |
-| FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Specified | — | — |
+| FR-MSG-1 | Messaging | WhatsApp | 7 | Done in API against a local mock of the documented Cloud API (AC1 approved templates only, template sync; AC2 opt-in; AC3 send blocked without opt-in; AC4 provider-confirmed statuses via signed webhooks). Not connected to Meta (no account, Q4) | `modules/messaging/`, `modules/channels/`, `integrations/adapters.ts`, migration 0026 | TR-0027 #3, #8–9; TR-0038 #3–4, #6–7, #10 |
+| FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Done in API with a platform JSON contract (AC1 entity ID, headers, template IDs required, matching registered template only; AC2 promotional/transactional separated, consent and quiet hours via 6.2 — rules to be confirmed for current regulations). No gateway chosen (Q4) | `domain/channel-templates.ts`, `modules/channels/`, migration 0026 | TR-0038 #1–2, #5, #8 |
 | FR-MSG-3 | Messaging | Google Business Profile and Meta | 7 | Specified | — | — |
-| FR-MSG-4 | Messaging | Truthful status | 7 | Specified | — | — |
-| FR-MSG-5 | Messaging | Drafts, approval, retries, opt-out | 7 | Specified | — | — |
+| FR-MSG-4 | Messaging | Truthful status | 7 | In progress (AC1 statuses only from provider responses and verified webhooks; AC2 UI in 7.7) | `modules/messaging/`, `modules/channels/` | TR-0027; TR-0038 #6, #10, #12 |
+| FR-MSG-5 | Messaging | Drafts, approval, retries, opt-out | 7 | In progress (AC1 approval for bulk/marketing, TR-0037; AC2 up to 3 retries with backoff via the hub, one message per recipient; AC3 STOP keywords processed automatically — fixed list, configurable list deferred; AC4 email not built) | `modules/channels/`, `modules/campaigns/` | TR-0037; TR-0038 #11 |
 | FR-AGT-1 | Agents | Initial agents | 8 | Specified | — | — |
 | FR-AGT-2 | Agents | Deterministic core | 8 | Specified | — | — |
 | FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Specified | — | — |
@@ -108,7 +108,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | NFR-15 | Non-functional | Availability (pilot) | 3–9 | Specified | — | — |
 | NFR-16 | Non-functional | Browser support | 3–9 | In progress (Chromium automated; Firefox, Safari/WebKit and real devices not yet tested) | `apps/api/test/browser.db.test.ts` | TR-0010 #3 |
 | NFR-17 | Non-functional | Security headers | 3–9 | Implemented + tested (API) | `apps/api/src/app.ts` | TR-0006 #6 |
-| NFR-18 | Non-functional | Webhook security | 3–9 | Specified | — | — |
+| NFR-18 | Non-functional | Webhook security | 3–9 | Done for messaging webhooks (signature over the raw body, 5-minute window, idempotent per event) | `modules/channels/`, `routes/webhooks.ts`, migration 0026 | TR-0038 #9–10, #12 |
 | NFR-19 | Non-functional | Supply chain | 3–9 | Implemented + tested (CI audit + secret scan; lockfile) | `.github/workflows/ci.yml` | TR-0006 #1–4 |
 
 ## Security threats

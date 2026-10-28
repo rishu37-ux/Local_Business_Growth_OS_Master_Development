@@ -6,8 +6,10 @@
   "exports": {
     "./approvals": "./src/approvals/index.ts",
     "./audit": "./src/audit/index.ts",
+    "./campaigns": "./src/campaigns/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
+    "./channels": "./src/channels/index.ts",
     "./customers": "./src/customers/index.ts",
     "./expenses": "./src/expenses/index.ts",
     "./integrations": "./src/integrations/index.ts",
@@ -23,6 +25,7 @@
     "./reports": "./src/reports/index.ts",
     "./sales": "./src/sales/index.ts",
     "./secrets": "./src/secrets/index.ts",
+    "./studio": "./src/studio/index.ts",
     "./tenancy": "./src/tenancy/index.ts"
   },
   "scripts": {

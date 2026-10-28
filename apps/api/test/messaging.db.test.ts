@@ -318,7 +318,13 @@ describe('provider adapter (FR-MSG-1 AC4, test adapter only)', () => {
       providerMessageId: 'test-1',
     });
     expect(provider.sent).toEqual([
-      { messageId: m.id, channel: 'WHATSAPP', to: c.mobile, body: 'Your phone is ready for pickup.' },
+      {
+        messageId: m.id,
+        channel: 'WHATSAPP',
+        purpose: 'TRANSACTIONAL',
+        to: c.mobile,
+        body: 'Your phone is ready for pickup.',
+      },
     ]);
     expect(await dispatchMessage(h.appDb, ctx(), provider, m.id)).toEqual({ outcome: 'SKIPPED', status: 'SENT' });
     expect(await recordProviderStatus(h.appDb, ctx(), provider.name, 'test-1', 'DELIVERED')).toBe(true);

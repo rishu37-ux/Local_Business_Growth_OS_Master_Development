@@ -3,6 +3,7 @@ export { createMigrator, migrateToLatest, MIGRATIONS_DIR, SqlFileMigrationProvid
 export {
   createDb,
   isUuid,
+  SYSTEM_ACTOR,
   withoutTenant,
   withUser,
   withTenant,

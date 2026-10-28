@@ -16,7 +16,6 @@ import {
   listMessages,
   listSuppressions,
   MessagingError,
-  NOT_CONFIGURED,
   optOut,
   queueMessage,
   recordConsent,
@@ -27,6 +26,7 @@ import {
 } from '@lbgos/modules/messaging';
 import { MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
+import { messagingProviderFor } from '../hub.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
 const idParams = z.strictObject({ businessId: z.uuid(), id: z.uuid() });
@@ -57,7 +57,6 @@ const ERROR_STATUS = {
 } as const satisfies Record<MessagingError['code'], number>;
 
 export function registerMessagingRoutes(app: FastifyInstance, s: AppServices): void {
-  const provider = s.messaging ?? NOT_CONFIGURED;
   const ctxOf = (request: FastifyRequest) => ({
     businessId: (request.params as { businessId: string }).businessId,
     userId: request.principal?.userId ?? '',
@@ -180,7 +179,7 @@ export function registerMessagingRoutes(app: FastifyInstance, s: AppServices): v
       const q = request.query as { customerId?: string; status?: MessageStatus };
       return {
         messages: await listMessages(s.appDb, ctxOf(request), q),
-        provider: { configured: provider.configured },
+        provider: { configured: (await messagingProviderFor(s, request)).configured },
       };
     },
   );
@@ -214,7 +213,7 @@ export function registerMessagingRoutes(app: FastifyInstance, s: AppServices): v
       const ctx = ctxOf(request);
       const message = await createMessage(s.appDb, ctx, b, { queue: b.send });
       if (!b.send) return reply.status(201).send({ message });
-      const dispatch = await dispatchMessage(s.appDb, ctx, provider, message.id);
+      const dispatch = await dispatchMessage(s.appDb, ctx, await messagingProviderFor(s, request), message.id);
       return reply.status(201).send({ message: await getMessage(s.appDb, ctx, message.id), dispatch });
     }),
   );
@@ -285,7 +284,7 @@ export function registerMessagingRoutes(app: FastifyInstance, s: AppServices): v
       async (request) => {
         const ctx = ctxOf(request);
         await queueMessage(s.appDb, ctx, idOf(request));
-        const dispatch = await dispatchMessage(s.appDb, ctx, provider, idOf(request));
+        const dispatch = await dispatchMessage(s.appDb, ctx, await messagingProviderFor(s, request), idOf(request));
         return { message: await getMessage(s.appDb, ctx, idOf(request)), dispatch };
       },
     ),
@@ -303,6 +302,8 @@ export function registerMessagingRoutes(app: FastifyInstance, s: AppServices): v
   app.post(
     `${messages}/dispatch-due`,
     { config: { permission: 'marketing.send' }, schema: { params: businessParams } },
-    async (request) => ({ results: await dispatchDue(s.appDb, ctxOf(request), provider) }),
+    async (request) => ({
+      results: await dispatchDue(s.appDb, ctxOf(request), await messagingProviderFor(s, request)),
+    }),
   );
 }

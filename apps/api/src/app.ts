@@ -23,6 +23,9 @@ import { registerReportRoutes } from './routes/reports.ts';
 import { registerSalesRoutes } from './routes/sales.ts';
 import { registerScanRoutes } from './routes/scans.ts';
 import { registerSecretRoutes } from './routes/secrets.ts';
+import { registerStudioRoutes } from './routes/studio.ts';
+import { registerCampaignRoutes } from './routes/campaigns.ts';
+import { registerWebhookRoutes } from './routes/webhooks.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
 import type { AppServices } from './services.ts';
@@ -213,6 +216,9 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerPrivacyRoutes(app, services);
     registerSecretRoutes(app, services);
     registerIntegrationRoutes(app, services);
+    registerStudioRoutes(app, services);
+    registerCampaignRoutes(app, services);
+    registerWebhookRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

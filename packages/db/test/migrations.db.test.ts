@@ -49,6 +49,9 @@ describe('migrations', () => {
       '0021_privacy',
       '0022_secrets',
       '0023_integrations',
+      '0024_creative',
+      '0025_campaigns',
+      '0026_channels',
     ]);
   });
 });

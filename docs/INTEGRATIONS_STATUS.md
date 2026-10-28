@@ -3,7 +3,7 @@
 Status values: `planned` · `configured` · `tested` (against sandbox/mock) · `verified` (against real provider with confirmed response) · `failed` · `blocked`.
 **This file must never contain secrets, tokens, keys, passwords or account identifiers that grant access.**
 
-Last updated: 2026-10-28 (Phase 6, increment 6.2). No accounts or credentials have been provided; nothing is connected. Phase 2 chose the *approach* for some rows (shown in Notes); choosing an approach is not configuring an integration.
+Last updated: 2026-10-28 (Phase 7, increment 7.6). No accounts or credentials have been provided; nothing is connected. Phase 2 chose the *approach* for some rows (shown in Notes); choosing an approach is not configuring an integration.
 
 | Integration | Purpose | Status | Permissions / approvals required (to confirm against current provider docs) | Limitations / notes |
 |---|---|---|---|---|
@@ -12,8 +12,8 @@ Last updated: 2026-10-28 (Phase 6, increment 6.2). No accounts or credentials ha
 | OCR provider / engine | Product box & invoice text | planned (adapter interface + **mock** adapter tested) | API account or self-hosted engine (options to compare: a cloud OCR API, or self-hosted Tesseract) — Q4 | The mock adapter does **not** recognise text: it reads synthetic fixture text (PNG tEXt chunk / simple PDF strings). Accuracy of any real engine is unknown until tested with real, consented samples |
 | LLM provider(s) | Parsing, drafts, agents | planned | API account, usage budget | Model choice pending; outputs untrusted. An optional OCR structuring hook exists (strict schema, verbatim-in-document rule) and is tested only with test structurers |
 | Image / video generation provider | Creative studio | planned | API account, content policy compliance | Cost per asset to be measured |
-| WhatsApp Business Platform (Cloud API or BSP) | Templates, notifications | planned (provider adapter interface exists; default *not configured* — messages fail as `PROVIDER_NOT_CONFIGURED`; tested only with a recording test adapter) | Meta Business verification, WABA, approved templates, opt-in | Template approval by Meta; per-conversation pricing |
-| SMS gateway (India) | Transactional / promotional SMS | planned | TRAI DLT entity, header (sender ID) and template registration | DLT registration owned by the shop/platform entity |
+| WhatsApp Business Platform (Cloud API) | Templates, notifications | planned — adapter `whatsapp_cloud` built and **tested against a local mock** of the documented endpoints only (TR-0038); no account, nothing connected | Meta Business verification, WABA, phone number ID, system-user access token, app secret, webhook verify token, approved templates, opt-in | Template-only for business-initiated messages; Graph API version to be confirmed (v21.0 assumed in tests); webhook events older than 5 minutes are not applied (D-059); per-conversation pricing |
+| SMS gateway (India) | Transactional / promotional SMS | planned — DLT-aware adapter `sms_dlt_json` built on a **platform-defined JSON contract**, tested against a local mock only (TR-0038); no gateway chosen (Q4) | TRAI DLT entity, headers (sender IDs) and template registration; a gateway account | A real gateway needs that contract or its own adapter; DLT rules to be confirmed for current regulations |
 | Email provider | Verification, reset, receipts | planned | Verified sending domain (SPF/DKIM/DMARC) | — |
 | Google Business Profile API | Local SEO, posts, reviews | planned | API access approval from Google, verified profile, OAuth consent | Feature set limited to what the API supports |
 | Meta Graph API (Facebook / Instagram) | Posts, insights | planned | App review, business account, page/IG professional account, scopes | Publishing limits per API rules |

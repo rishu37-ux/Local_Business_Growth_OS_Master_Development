@@ -165,3 +165,28 @@ export {
   type Placeholder,
   type ReminderType,
 } from './reminders.ts';
+export {
+  ASPECTS,
+  displayDate,
+  factsFor,
+  groundingCheck,
+  PLATFORM_LIMITS,
+  type Aspect,
+  type FlagKind,
+  type GroundingFacts,
+  type GroundingFlag,
+  type Platform,
+} from './grounding.ts';
+export {
+  channelConfigProblem,
+  DLT_VAR_MAX,
+  matchTemplate,
+  templateBodyValid,
+  whatsappPurpose,
+  type ChannelTemplate,
+  type DltConfig,
+  type TemplateChannel,
+  type TemplateMatch,
+  type TemplatePurpose,
+  type WhatsAppConfig,
+} from './channel-templates.ts';
