@@ -37,6 +37,15 @@ export const METRICS = {
     label: 'Operating profit (estimate)',
     definition: 'Gross margin minus expenses. An estimate: it excludes anything not recorded in the system.',
   },
+  lowStock: {
+    label: 'Low stock',
+    definition:
+      'Active variants whose available quantity is at or below their reorder level (variants without a reorder level are not counted).',
+  },
+  remindersWaiting: {
+    label: 'Reminders waiting',
+    definition: 'Reminder messages drafted and waiting for review or approval; nothing has been sent for them.',
+  },
   stockValuation: {
     label: 'Stock valuation',
     definition: 'On-hand quantity × cost (serialized: actual unit cost; others: current weighted average cost).',

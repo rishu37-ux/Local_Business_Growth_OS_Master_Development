@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
   auditExport,
+  dashboard,
   exportReport,
   expensesReport,
   marginSummary,
@@ -25,6 +26,7 @@ import {
 } from '@lbgos/modules/reports';
 import { customerStatement, PaymentError } from '@lbgos/modules/sales';
 import { PdfBusyError } from '../pdf.ts';
+import { MEMBER } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
@@ -99,6 +101,13 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
         return operatingProfit(s.appDb, ctx, toPeriod(q));
     }
   };
+
+  // FR-LED-3 AC1: overview tiles from the report functions; each needs its report's permission.
+  app.get(
+    '/api/businesses/:businessId/dashboard',
+    { config: { permission: MEMBER }, schema: { params: businessParams } },
+    async (request) => ({ dashboard: await dashboard(s.appDb, ctxOf(request), (key) => has(request, key)) }),
+  );
 
   for (const [name, spec] of Object.entries(REPORTS) as [ReportName, (typeof REPORTS)[ReportName]][]) {
     const querystring =

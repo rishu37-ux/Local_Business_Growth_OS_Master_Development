@@ -675,3 +675,16 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 10 | — | Defect found while testing and fixed: reversing locked the expense row with `FOR UPDATE`, which the append-only table's grants (no UPDATE) refuse; reversals are now serialised with an advisory lock and the unique index | **Fixed** |
 | 11 | — | Negative control: expenses report ignores reversals → 2 tests fail. Restored | **Detected** |
 | 12 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 275 | **Pass**, exit 0 |
+
+## TR-0030 · 2026-10-28 · Phase 6 increment 6.5 — dashboard tiles
+
+**Environment:** as TR-0011 (`dashboard.db.test.ts`). Synthetic unregistered shop at the real clock (the dashboard is about today): a ₹2,000 sale of 2 cables (cost ₹100 each) to one customer with ₹500 paid in cash, ₹300 advance by UPI from another; cable reorder level 20 with 8 left, charger level 1 with 10; one payment-due reminder drafted. Billing, Accountant and Inventory staff.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-LED-3 AC1, FR-INV-7 AC1 | Owner: tiles net sales (today ₹2,000), cash received (₹800), receivables (₹1,500), customer advances (₹300), gross margin (₹1,800), low stock (1), reminders waiting (1), each with its §7 definition and source report; no sales tile labelled profit or cash | **Pass** |
+| 2 | AC2 | Tiles equal the report endpoints for day and month (sales summary, payments, margin), receivables and advances (ageing report) and the low-stock list | **Pass** |
+| 3 | Permissions | Billing sees low stock and reminders only; Inventory low stock only; Accountant all seven | **Pass** |
+| 4 | Access | Another business gets 404 on this shop's dashboard and zeros on its own; read-only (suspended) business still sees the dashboard | **Pass** |
+| 5 | — | Negative control: financial tiles shown without `reports.financial.view` → test 3 fails. Restored | **Detected** |
+| 6 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 279 | **Pass**, exit 0 |

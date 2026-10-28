@@ -8,6 +8,7 @@
 - Migration 0018 and `@lbgos/modules/messaging`: consent records and current state per channel, suppression list (opt-out, inbound STOP hook), messages with the WORKFLOWS §9 status machine enforced in the database, marketing approval, the send-time gate, quiet hours, provider adapter (default not configured) and communication history; messaging API routes; `gateDecision`, `nextAllowedTime` in `@lbgos/domain`.
 - Migration 0019 and `@lbgos/modules/reminders`: reminder settings per type (off by default; auto-send needs `marketing.approve`), validated templates, idempotent runs drafting birthday, warranty-expiry, service-due and payment-due messages, auto-send through the send-time gate; reminder API routes; template helpers in `@lbgos/domain`.
 - Migration 0020 and `@lbgos/modules/expenses`: optional expenses module (off by default), entries with receipts, full reversals as corrections; expenses report and operating-profit estimate (CSV/XLSX/PDF); `storeUpload`/`getUploadFile` in the OCR module for non-scan files.
+- Dashboard API (`GET /dashboard`): net sales, cash received, receivables, customer advances, gross margin, low stock and reminders waiting, each with its definition and permission; metric definitions for low stock and reminders waiting.
 
 ### Fixed
 - Message event order within one transaction (insertion sequence, migration 0019).

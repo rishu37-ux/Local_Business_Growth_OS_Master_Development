@@ -31,6 +31,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - AC3: expenses report and operating-profit estimate (gross margin − expenses, labelled an estimate) with exact values on a seeded dataset.
 
 ## Increment 6.5 — Dashboard (FR-LED-3 AC1, FR-INV-7 AC1)
+**Status: done in the API (TR-0030, D-051); overview screen in 6.7.**
 - AC1: overview tiles for today and this month: net sales, cash received, receivables, customer advances, gross margin (financial roles), low-stock count, reminders waiting; each with its §7 definition; nothing calls sales profit or cash.
 - AC2: figures equal the report module's values (same queries).
 
