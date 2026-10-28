@@ -50,6 +50,7 @@ describe('migrations', () => {
       '0022_secrets',
       '0023_integrations',
       '0024_creative',
+      '0025_campaigns',
     ]);
   });
 });

@@ -277,6 +277,9 @@ describe('tenant data export (FR-PRV-2)', () => {
       'customer_ledger_entries.csv',
       'expenses.csv',
       'messages.csv',
+      'offers.csv',
+      'creative_drafts.csv',
+      'campaigns.csv',
     ]);
     const lines = (name: string) => (files[name] ?? '').slice(1).trim().split('\r\n');
     expect(lines('customers.csv')[0]).toMatch(/^id,name,mobile_e164,email,dob/);
@@ -296,7 +299,7 @@ describe('tenant data export (FR-PRV-2)', () => {
       metadata: { files: number; rows: Record<string, number> };
     }>`select metadata from lbg.audit_events
       where business_id = ${shop.businessId} and action = 'business.export'`.execute(h.admin);
-    expect(audit.rows[0]?.metadata).toMatchObject({ files: 22, rows: { 'customers.csv': 2, 'invoices.csv': 1 } });
+    expect(audit.rows[0]?.metadata).toMatchObject({ files: 25, rows: { 'customers.csv': 2, 'invoices.csv': 1 } });
   });
 
   it('works in read-only mode but needs a recent sign-in; another business gets only its own rows', async () => {

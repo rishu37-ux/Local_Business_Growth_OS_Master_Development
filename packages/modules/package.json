@@ -6,6 +6,7 @@
   "exports": {
     "./approvals": "./src/approvals/index.ts",
     "./audit": "./src/audit/index.ts",
+    "./campaigns": "./src/campaigns/index.ts",
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
     "./customers": "./src/customers/index.ts",

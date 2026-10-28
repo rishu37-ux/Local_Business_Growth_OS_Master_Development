@@ -804,3 +804,23 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 13 | — | Defects found by these tests and fixed: an ambiguous `status` column when checking an offer (500); reading drafts was blocked in read-only mode | **Fixed** |
 | 14 | — | Negative control: approval ignores open flags → test 5 fails. Restored | **Detected** |
 | 15 | — | `pnpm check`: ESLint rules 26, domain 154, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 329; `pnpm secrets` clean | **Pass**, exit 0 |
+
+## TR-0037 · 2026-10-28 · Phase 7 increment 7.5 — campaigns, exact-version approval and scheduling
+
+**Environment:** as TR-0011 (`campaigns.db.test.ts`). A **recording test adapter** stands in for a messaging provider (it contacts nobody); the mock AI adapter writes the Studio caption. Synthetic shop; segment "VIP" of 5 customers: 3 with WhatsApp marketing consent, 1 without, 1 opted out; 1 customer outside the segment.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-AIC-3 AC1, WORKFLOWS §9 | A campaign starts as DRAFT; tags are matched without regard to case; the audience preview reports 5 members, 3 eligible, 1 without consent, 1 suppressed; approving before submission refused; a Manager cannot approve (403); approval with a hash other than the current one refused (`DRAFT_CHANGED`); approval stores the approver and the hash; renaming keeps the approval; changing the segment makes version 2 in DRAFT without approval; audit `campaign.create`, `campaign.approve` (selfApproved false: the creator was the Manager), `campaign.edit` (wasApproved true) | **Pass** |
+| 2 | FR-AIC-4 AC3 | An SMS text over 160 characters cannot be submitted (`TOO_LONG`) | **Pass** |
+| 3 | FR-AIC-3 AC1 | Text from the Studio: an unapproved caption is refused (`DRAFT_NOT_APPROVED`); an approved one is copied exactly; after the Studio text is edited, the campaign can no longer be approved | **Pass** |
+| 4 | FR-AIC-4 AC2 | Sending: a Manager cannot send (no `marketing.send`); the owner's send creates one QUEUED marketing message per eligible customer (3), origin CAMPAIGN, carrying the approver; the adapter receives exactly the approved text 3 times; result COMPLETED with audience 5, excluded 2, counts recipients 3 / sent 3 / blocked 0 / failed 0; a second send and an edit after sending are refused | **Pass** |
+| 5 | FR-CON-1 AC2 | Launched at 03:00 shop time: all 3 messages deferred by quiet hours, campaign RUNNING with 3 pending; one customer opts out; at 10:30 the job step dispatches: 2 sent, 1 BLOCKED (`SUPPRESSED`), campaign COMPLETED | **Pass** |
+| 6 | FR-MSG-4 | Provider rejects every message → PARTIALLY_FAILED, "2 of 2 failed"; with no provider configured nothing starts (`PROVIDER_NOT_CONFIGURED`, still APPROVED, no messages); a segment nobody can receive → `AUDIENCE_EMPTY` | **Pass** |
+| 7 | FR-AIC-4 AC2 | Scheduling: a past time refused; scheduled for +1 h; not started before it is due; an edit clears approval and schedule (version 2); re-approved, scheduled, unscheduled (back to APPROVED), scheduled again; started by the job step once due and COMPLETED; a scheduled campaign cancelled is never started; cancelling twice refused | **Pass** |
+| 8 | FR-AIC-4 AC2 | Cancelling a running campaign whose messages are deferred cancels all of them (2 cancelled, 0 sent) | **Pass** |
+| 9 | DB rules | A forged `content_sha256` is replaced by the database's own hash; changing the text in place → LB023; RUNNING with a mismatching approval → LB023; APPROVED → COMPLETED → LB002; delete → LB001; a campaign message for a campaign that is not running → LB023; a QUEUED marketing message outside a campaign → LB002 | **Pass** |
+| 10 | Access | Another business gets 404 (read and send); Billing cannot read campaigns (403); read-only mode lists campaigns but cannot submit (`TENANT_READ_ONLY`) | **Pass** |
+| 11 | — | Defects found and fixed: segment tags did not match customer tags typed in capitals (now case-insensitive); the first version of migration 0025 rebuilt the message guard from 0018 and dropped the 0021 redaction rule — caught by the privacy and Phase 6 exit tests, rebuilt from the 0021 definition. The tenant export now includes offers, Studio drafts and campaigns (25 files) | **Fixed** |
+| 12 | — | Negative control: approval ignores the reviewed hash → test 1 fails. Restored | **Detected** |
+| 13 | — | `pnpm check`: ESLint rules 26, domain 154, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 339; `pnpm secrets` clean | **Pass**, exit 0 |

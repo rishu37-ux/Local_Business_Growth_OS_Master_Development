@@ -37,6 +37,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC5: usage records per generation (tenant, user, provider, units, cost, status, error); generated assets stored privately with metadata (prompt reference, inputs, approval status); per-tenant quota with an 80 % alert and a hard stop at 100 %.
 
 ## Increment 7.5 — Approval of exact versions, variants, campaigns and scheduling (FR-AIC-3, -4, WORKFLOWS §9)
+**Status: done in the API (TR-0037, D-058); screens in 7.7.**
 - AC1: publishing, bulk marketing sends (more than one recipient) and ad spend need `marketing.approve` approval of the exact content version (content hash); editing after approval returns the item to draft.
 - AC2: campaign status machine (WORKFLOWS §9) DB-enforced; a campaign sends to a customer segment (tags, consent) through the 6.2 send-time gate, one message per recipient, and reports sent/blocked/failed counts truthfully.
 - AC3: output formats 1:1, 4:5, 9:16, 16:9 where the provider supports them; per-platform text length checks.

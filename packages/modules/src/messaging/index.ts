@@ -371,7 +371,7 @@ export interface Message {
   readonly customerId: string | null;
   readonly channel: MessageChannel;
   readonly purpose: MessagePurpose;
-  readonly origin: 'MANUAL' | 'REMINDER' | 'DOCUMENT';
+  readonly origin: 'MANUAL' | 'REMINDER' | 'DOCUMENT' | 'CAMPAIGN';
   readonly toAddress: string;
   readonly body: string;
   readonly status: MessageStatus;

@@ -126,6 +126,9 @@ export const EXPORT_TABLES = [
   'customer_ledger_entries',
   'expenses',
   'messages',
+  'offers',
+  'creative_drafts',
+  'campaigns',
 ] as const;
 
 /** Rows per table above which the export is refused (a background export is needed then). */
