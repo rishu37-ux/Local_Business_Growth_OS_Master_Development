@@ -739,6 +739,7 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 6 | FR-HUB-5 AC1 | Lint rule `lbgos/no-raw-http` (server packages and API source, outbound module exempt): 5 valid and 10 invalid cases (http/https/undici/axios/net imports, re-export, dynamic import, require, `fetch`, `globalThis.fetch`); the existing server code passes it | **Pass** |
 | 7 | — | Negative control: the 169.254.0.0/16 range removed → 8 tests fail. Restored | **Detected** |
 | 8 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 102, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 295 | **Pass**, exit 0 |
+| 9 | — | CI run #41 on `82b708a`: all tests passed, but the **secret scan failed** — the fake `user:pass@` URL in the credentials-in-URL test matched secretlint's basic-auth rule (false positive; not a real credential). Fixed by building that URL at runtime; `pnpm secrets` now clean locally and added to the pre-commit checks | **Failed → fixed** |
 
 ## TR-0034 · 2026-10-28 · Phase 7 increment 7.2 — secret store with envelope encryption
 
