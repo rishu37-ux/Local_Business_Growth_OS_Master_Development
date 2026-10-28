@@ -90,6 +90,58 @@ export async function uploadScan(
 }
 
 /**
+ * Stores a file that is not a scan (e.g. an expense receipt): the same file
+ * checks and private storage as scans, no OCR job. Returns the upload ID.
+ */
+export async function storeUpload(
+  db: Db,
+  cfg: Pick<OcrConfig, 'storage' | 'limits'>,
+  ctx: TenantContext,
+  input: { readonly bytes: Uint8Array; readonly originalName?: string | undefined; readonly purpose: string },
+  requestId?: string,
+): Promise<string> {
+  const check = checkUpload(input.bytes, cfg.limits);
+  if (!check.ok) throw new OcrError(check.problem, `file rejected: ${check.problem.toLowerCase().replace(/_/g, ' ')}`);
+  const key = `${ctx.businessId}/${randomUUID()}`;
+  const sha256 = createHash('sha256').update(input.bytes).digest('hex');
+  await cfg.storage.put(key, input.bytes);
+  return withTenant(db, ctx, async (trx) => {
+    const { rows } = await sql<{ id: string }>`
+      insert into lbg.uploads (business_id, storage_key, content_type, byte_size, sha256, original_name, width, height,
+                               page_count, uploaded_by)
+      values (${ctx.businessId}, ${key}, ${check.type}, ${input.bytes.length}, ${sha256}, ${cleanName(input.originalName)},
+              ${check.width ?? null}, ${check.height ?? null}, ${check.pages ?? null}, ${ctx.userId})
+      returning id`.execute(trx);
+    const id = rows[0]?.id ?? '';
+    await recordTenantEvent(trx, ctx, {
+      action: 'upload.create',
+      targetType: 'upload',
+      targetId: id,
+      metadata: { purpose: input.purpose, contentType: check.type, bytes: input.bytes.length },
+      ...(requestId ? { requestId } : {}),
+    });
+    return id;
+  });
+}
+
+/** The bytes of an upload of this business, or null. */
+export async function getUploadFile(
+  db: Db,
+  cfg: Pick<OcrConfig, 'storage'>,
+  ctx: TenantContext,
+  uploadId: string,
+): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const { rows } = await withTenant(db, ctx, (trx) =>
+    sql<{ storage_key: string; content_type: string }>`
+      select storage_key, content_type from lbg.uploads where business_id = ${ctx.businessId} and id = ${uploadId}`.execute(
+      trx,
+    ),
+  );
+  const u = rows[0];
+  return u ? { bytes: await cfg.storage.get(u.storage_key), contentType: u.content_type } : null;
+}
+
+/**
  * Claims and processes one queued job; returns null when the queue is empty.
  * ADR-08: the job carries business and requester, and the requester must
  * still hold ocr.scan in that business when the job runs.

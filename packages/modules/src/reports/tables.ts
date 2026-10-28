@@ -3,7 +3,9 @@
 import { METRICS, type DateRange, type MetricKey } from '@lbgos/domain';
 import type { ExportColumn, ExportTable } from './export.ts';
 import type {
+  expensesReport,
   marginSummary,
+  operatingProfit,
   paymentMethodSummary,
   receivablesAgeing,
   returnsReport,
@@ -16,7 +18,16 @@ import type {
 type Result<F extends (...a: never[]) => Promise<unknown>> = Awaited<ReturnType<F>>;
 
 export type ReportName =
-  'sales-summary' | 'sales-by-item' | 'margin' | 'receivables' | 'payments' | 'returns' | 'tax' | 'stock-valuation';
+  | 'sales-summary'
+  | 'sales-by-item'
+  | 'margin'
+  | 'receivables'
+  | 'payments'
+  | 'returns'
+  | 'tax'
+  | 'stock-valuation'
+  | 'expenses'
+  | 'operating-profit';
 
 /** Which formats each report offers (FR-RPT-4 AC1) and the permission needed to see it. */
 export const REPORTS: Readonly<
@@ -30,7 +41,24 @@ export const REPORTS: Readonly<
   returns: { formats: ['csv', 'xlsx'], permission: 'reports.sales.view' },
   tax: { formats: ['csv', 'xlsx', 'pdf'], permission: 'reports.sales.view' },
   'stock-valuation': { formats: ['csv', 'xlsx'], permission: 'reports.financial.view' },
+  expenses: { formats: ['csv', 'xlsx', 'pdf'], permission: 'reports.financial.view' },
+  'operating-profit': { formats: ['csv', 'xlsx', 'pdf'], permission: 'reports.financial.view' },
 };
+
+const CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  RENT: 'Rent',
+  SALARIES: 'Salaries',
+  ELECTRICITY: 'Electricity',
+  INTERNET_PHONE: 'Internet and phone',
+  TRANSPORT: 'Transport',
+  REPAIRS_MAINTENANCE: 'Repairs and maintenance',
+  MARKETING: 'Marketing',
+  SUPPLIES: 'Supplies',
+  BANK_CHARGES: 'Bank charges',
+  TAXES_FEES: 'Taxes and fees',
+  OTHER: 'Other',
+};
+const categoryLabel = (c: string) => CATEGORY_LABELS[c] ?? c;
 
 const col = (key: string, label: string, kind: ExportColumn['kind'] = 'text'): ExportColumn => ({ key, label, kind });
 const range = (p: DateRange) => (p.from === p.to ? p.from : `${p.from} to ${p.to}`);
@@ -44,6 +72,8 @@ export function reportTable(name: 'payments', r: Result<typeof paymentMethodSumm
 export function reportTable(name: 'returns', r: Result<typeof returnsReport>, shop: string): ExportTable;
 export function reportTable(name: 'tax', r: Result<typeof taxSummary>, shop: string): ExportTable;
 export function reportTable(name: 'stock-valuation', r: Result<typeof stockValuation>, shop: string): ExportTable;
+export function reportTable(name: 'expenses', r: Result<typeof expensesReport>, shop: string): ExportTable;
+export function reportTable(name: 'operating-profit', r: Result<typeof operatingProfit>, shop: string): ExportTable;
 export function reportTable(name: ReportName, r: unknown, shop: string): ExportTable;
 export function reportTable(name: ReportName, result: unknown, shop: string): ExportTable {
   switch (name) {
@@ -111,6 +141,43 @@ export function reportTable(name: ReportName, result: unknown, shop: string): Ex
           r.grossMarginBp === null
             ? 'No sales in the period.'
             : `Gross margin ${(r.grossMarginBp / 100).toFixed(2)}% of taxable value.`,
+          ...(r.linesWithoutCost > 0
+            ? [`${String(r.linesWithoutCost)} sold line(s) had no recorded cost and count as cost 0.`]
+            : []),
+        ],
+        definitions: defs(r.definitions),
+      };
+    }
+    case 'expenses': {
+      const r = result as Result<typeof expensesReport>;
+      return {
+        title: 'Expenses',
+        subtitle: `${range(r.period)} · ${shop}`,
+        columns: [col('category', 'Category'), col('count', 'Entries', 'int'), col('amountPaise', 'Amount', 'money')],
+        rows: r.byCategory.map((c) => ({ ...c, category: categoryLabel(c.category) })),
+        totals: { category: 'Total', count: r.byCategory.reduce((t, c) => t + c.count, 0), amountPaise: r.totalPaise },
+        notes: [
+          'Corrected entries are shown net of their reversals.',
+          ...(r.enabled ? [] : ['Expenses are not enabled for this shop.']),
+        ],
+        definitions: defs(r.definitions),
+      };
+    }
+    case 'operating-profit': {
+      const r = result as Result<typeof operatingProfit>;
+      return {
+        title: 'Operating profit (estimate)',
+        subtitle: `${range(r.period)} · ${shop}`,
+        columns: [col('metric', 'Metric'), col('amount', 'Amount', 'money')],
+        rows: [
+          { metric: METRICS.taxableValue.label, amount: r.taxableValuePaise },
+          { metric: METRICS.cogs.label, amount: r.cogsPaise },
+          { metric: METRICS.grossMargin.label, amount: r.grossMarginPaise },
+          { metric: METRICS.expenses.label, amount: r.expensesPaise },
+          { metric: METRICS.operatingProfit.label, amount: r.operatingProfitPaise },
+        ],
+        notes: [
+          ...r.notes,
           ...(r.linesWithoutCost > 0
             ? [`${String(r.linesWithoutCost)} sold line(s) had no recorded cost and count as cost 0.`]
             : []),

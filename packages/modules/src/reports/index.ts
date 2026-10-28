@@ -534,6 +534,63 @@ export async function stockValuation(db: Db, ctx: TenantContext) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Expenses and the operating-profit estimate (increment 6.4: FR-EXP-1, FR-RPT-1, D-050)
+// ---------------------------------------------------------------------------
+
+/** Expenses by category for the period; reversals net out against the original's date. */
+export async function expensesReport(db: Db, ctx: TenantContext, req: PeriodRequest) {
+  return withTenant(db, ctx, async (trx) => {
+    const cal = await calendarIn(trx, ctx);
+    const period = resolvePeriod(req, cal);
+    const { rows } = await sql<{ category: string; amount: string; n: number }>`
+      select category, sum(amount_paise) as amount,
+             count(*) filter (where reverses_expense_id is null
+                                and not exists (select 1 from lbg.expenses r where r.business_id = e.business_id
+                                                  and r.reverses_expense_id = e.id))::int as n
+        from lbg.expenses e
+       where business_id = ${ctx.businessId} and expense_date between ${period.from}::date and ${period.to}::date
+       group by category
+       order by sum(amount_paise) desc, category`.execute(trx);
+    const { rows: s } = await sql<{ enabled: boolean | null }>`
+      select expenses_enabled as enabled from lbg.business_settings where business_id = ${ctx.businessId}`.execute(trx);
+    const byCategory = rows
+      .map((r) => ({ category: r.category, amountPaise: Number(r.amount), count: r.n }))
+      .filter((r) => r.amountPaise !== 0);
+    return {
+      period,
+      enabled: s[0]?.enabled ?? false,
+      byCategory,
+      totalPaise: byCategory.reduce((t, r) => t + r.amountPaise, 0),
+      definitions: definitions(['expenses']),
+    };
+  });
+}
+
+/** Gross margin minus expenses — an estimate, labelled as such (FR-RPT-1, SRS §7). */
+export async function operatingProfit(db: Db, ctx: TenantContext, req: PeriodRequest) {
+  const margin = await marginSummary(db, ctx, req);
+  const expenses = await expensesReport(db, ctx, req);
+  return {
+    period: margin.period,
+    label: 'estimate' as const,
+    taxableValuePaise: margin.taxableValuePaise,
+    cogsPaise: margin.cogsPaise,
+    grossMarginPaise: margin.grossMarginPaise,
+    expensesPaise: expenses.totalPaise,
+    operatingProfitPaise: margin.grossMarginPaise - expenses.totalPaise,
+    expensesEnabled: expenses.enabled,
+    linesWithoutCost: margin.linesWithoutCost,
+    notes: [
+      'An estimate from what is recorded here: it leaves out anything not entered (for example owner drawings, depreciation, loan interest) and is not a tax computation.',
+      ...(expenses.enabled
+        ? []
+        : ['Expenses are switched off for this shop; only entries recorded while they were on are deducted.']),
+    ],
+    definitions: definitions(['taxableValue', 'cogs', 'grossMargin', 'expenses', 'operatingProfit']),
+  };
+}
+
 export {
   exportReport,
   toCsv,

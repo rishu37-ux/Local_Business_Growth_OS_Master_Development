@@ -9,6 +9,7 @@
     "./auth": "./src/auth/index.ts",
     "./catalogue": "./src/catalogue/index.ts",
     "./customers": "./src/customers/index.ts",
+    "./expenses": "./src/expenses/index.ts",
     "./inventory": "./src/inventory/index.ts",
     "./messaging": "./src/messaging/index.ts",
     "./notifications": "./src/notifications/index.ts",

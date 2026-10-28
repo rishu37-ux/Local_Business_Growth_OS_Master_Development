@@ -25,6 +25,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - AC3: reminders are created as drafts; auto-send per type is off by default, needs `marketing.approve` to enable, and still passes the consent/suppression gate and quiet hours. Running the job twice does not duplicate reminders.
 
 ## Increment 6.4 — Expenses (FR-EXP-1, FR-RPT-1)
+**Status: done in the API (TR-0029, D-050); screens in 6.7.**
 - AC1: module off by default; when enabled, `expenses.manage` records date, category, amount, payment method, notes and an optional attachment (existing upload checks and private storage).
 - AC2: corrections are reversal entries (append-only, reason, audited).
 - AC3: expenses report and operating-profit estimate (gross margin − expenses, labelled an estimate) with exact values on a seeded dataset.

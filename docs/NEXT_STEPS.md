@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 6: increments 6.1–6.3 done)
+Last updated: 2026-10-28 (Phase 6: increments 6.1–6.4 done)
 
 ## Phase 6 — CRM, analytics, consent and reminders (in progress)
 
@@ -9,8 +9,8 @@ Plan and acceptance criteria: `PHASE6_PLAN.md`.
 1. ~~6.1 customer profile and customer export~~ — done (TR-0026, D-047); screen fields follow in 6.7.
 2. ~~6.2 consent, suppression, messages with the send-time gate and provider adapter~~ — done (TR-0027, D-048); no provider connected.
 3. ~~6.3 reminders~~ — done (TR-0028, D-049); a daily scheduler waits for the job runner.
-4. **Next:** 6.4 expenses and the operating-profit estimate.
-5. 6.5 dashboard tiles with definitions.
+4. ~~6.4 expenses and the operating-profit estimate~~ — done (TR-0029, D-050).
+5. **Next:** 6.5 dashboard tiles with definitions.
 6. 6.6 erase personal data; tenant data export (ZIP of CSVs).
 7. 6.7 screens and the Phase 6 exit browser test.
 

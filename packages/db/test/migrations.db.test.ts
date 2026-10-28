@@ -45,6 +45,7 @@ describe('migrations', () => {
       '0017_crm_profile',
       '0018_messaging',
       '0019_reminders',
+      '0020_expenses',
     ]);
   });
 });

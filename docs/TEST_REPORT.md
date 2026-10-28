@@ -656,3 +656,22 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 11 | — | **Flaky existing tests fixed:** `inspections-reports` and `inventory` fixtures picked units by `created_at`, which is equal for units created together; the code-lookup test failed once in the full run. They now order by IMEI | **Fixed** (file passed 3/3 alone before the fix as well) |
 | 12 | — | Negative control: birthday drafted without consent → 3 tests fail. Restored | **Detected** |
 | 13 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 266 | **Pass**, exit 0 |
+
+## TR-0029 · 2026-10-28 · Phase 6 increment 6.4 — expenses and the operating-profit estimate
+
+**Environment:** as TR-0011 (`expenses.db.test.ts`). Synthetic unregistered shop; Manager, Accountant and Billing staff; October sales: 3 cables at ₹1,000 (cost ₹100 each), issued through the sales module on 10 Oct 2026.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-EXP-1 AC1 | Module off by default: recording and receipt upload answer `MODULE_DISABLED`; a Manager cannot switch it on (403); the owner can; audited | **Pass** |
+| 2 | FR-EXP-1 AC1 | Manager and Accountant cannot record (no `expenses.manage`); the owner records rent ₹10,000 by bank transfer with reference and notes; audit holds category, amount and whether a receipt is attached | **Pass** |
+| 3 | FR-EXP-1 AC1 | Refused: future date (`DATE_INVALID`), a 16-digit card number as reference, amount 0, unknown category | **Pass** |
+| 4 | FR-EXP-1 AC1 | Receipt: a non-image file refused; a PNG stored privately and attached; served with `default-src 'none'; sandbox`, bytes identical; the same upload cannot be attached twice; another business's upload cannot be attached; another business gets 404 for the file | **Pass** |
+| 5 | FR-EXP-1 AC2 | Reversal: reason under 10 characters 400; full reversal with the same date, category and method and negated amount; second reversal `ALREADY_REVERSED`; reversing a reversal `NOT_REVERSIBLE`; list shows `reversedBy`; audited. Direct SQL: update refused; a partial reversal refused (LB021) | **Pass** |
+| 6 | FR-EXP-1 AC2 | Two simultaneous reversals of one expense: exactly one succeeds (201 + 409) | **Pass** |
+| 7 | FR-RPT-1 (exit) | October expenses: rent ₹10,000, supplies ₹450 (the reversed electricity bill nets to zero), total ₹10,450. Operating profit (estimate): taxable ₹3,000, COGS ₹300, gross margin ₹2,700, expenses ₹10,450, estimate −₹7,750; labelled an estimate with definitions and notes. A further ₹123.45 expense changes it by exactly −₹123.45; September has no expenses; Billing 403; CSV export row `Operating profit (estimate),-7873.45` | **Pass** |
+| 8 | FR-EXP-1 | Switched off later: new entries refused; entries recorded earlier still count and the report says so | **Pass** |
+| 9 | Access | Other businesses: 404 on reverse and list, their own list empty; read-only business can list but not record or reverse (`TENANT_READ_ONLY`) | **Pass** |
+| 10 | — | Defect found while testing and fixed: reversing locked the expense row with `FOR UPDATE`, which the append-only table's grants (no UPDATE) refuse; reversals are now serialised with an advisory lock and the unique index | **Fixed** |
+| 11 | — | Negative control: expenses report ignores reversals → 2 tests fail. Restored | **Detected** |
+| 12 | — | `pnpm check`: domain 150, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 275 | **Pass**, exit 0 |

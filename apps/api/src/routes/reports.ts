@@ -4,7 +4,9 @@ import { z } from 'zod';
 import {
   auditExport,
   exportReport,
+  expensesReport,
   marginSummary,
+  operatingProfit,
   paymentMethodSummary,
   receivablesAgeing,
   REPORTS,
@@ -91,6 +93,10 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
         return taxSummary(s.appDb, ctx, toPeriod(q));
       case 'stock-valuation':
         return stockValuation(s.appDb, ctx);
+      case 'expenses':
+        return expensesReport(s.appDb, ctx, toPeriod(q));
+      case 'operating-profit':
+        return operatingProfit(s.appDb, ctx, toPeriod(q));
     }
   };
 

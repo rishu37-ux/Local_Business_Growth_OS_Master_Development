@@ -7,6 +7,7 @@
 - Migration 0017 and customer profile: alternate mobile, date of birth, tags, preferred contact channels; warranty months/provider recorded on sale lines; owned units and warranty items with end dates (`GET /customers/:id/owned-items`); customer CSV export of chosen fields (`GET /customers/export`, `customers.export`, audited); `addMonths`, `warrantyEnd`, `normalizeTags` in `@lbgos/domain`.
 - Migration 0018 and `@lbgos/modules/messaging`: consent records and current state per channel, suppression list (opt-out, inbound STOP hook), messages with the WORKFLOWS §9 status machine enforced in the database, marketing approval, the send-time gate, quiet hours, provider adapter (default not configured) and communication history; messaging API routes; `gateDecision`, `nextAllowedTime` in `@lbgos/domain`.
 - Migration 0019 and `@lbgos/modules/reminders`: reminder settings per type (off by default; auto-send needs `marketing.approve`), validated templates, idempotent runs drafting birthday, warranty-expiry, service-due and payment-due messages, auto-send through the send-time gate; reminder API routes; template helpers in `@lbgos/domain`.
+- Migration 0020 and `@lbgos/modules/expenses`: optional expenses module (off by default), entries with receipts, full reversals as corrections; expenses report and operating-profit estimate (CSV/XLSX/PDF); `storeUpload`/`getUploadFile` in the OCR module for non-scan files.
 
 ### Fixed
 - Message event order within one transaction (insertion sequence, migration 0019).
