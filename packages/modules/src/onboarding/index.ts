@@ -11,16 +11,21 @@ export {
   type InvitationSummary,
 } from './invitations.ts';
 export {
+  composeAddress,
   getSetup,
+  getShopDetails,
   markStaffStepDone,
   REQUIRED_STEPS,
   savePreferences,
   saveDetails,
+  saveShopAddress,
   saveTax,
   SETUP_STEPS,
   SetupError,
   type RegistrationType,
   type SetupState,
   type SetupStep,
+  type ShopAddress,
+  type ShopDetails,
 } from './setup.ts';
 export { createBusinessForOwner, listPlans, updatePlan, type NewBusinessInput, type Plan } from './platform.ts';

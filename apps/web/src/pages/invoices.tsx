@@ -7,6 +7,7 @@ import { Form } from 'react-aria-components';
 import { Link, useParams } from 'react-router';
 import { api, formatPaise, formatQty } from '../api.ts';
 import { useBusiness } from '../business.ts';
+import { ExportLinks } from '../exports.tsx';
 import {
   Alert,
   Badge,
@@ -84,6 +85,12 @@ export function InvoicesPage() {
       eyebrow="Sales"
       title="Invoices"
       description="Issued invoices, bills of supply, credit and debit notes, newest first."
+      actions={
+        <div className="flex flex-col gap-1">
+          <ExportLinks businessId={businessId} list="invoices" what="invoices" />
+          <ExportLinks businessId={businessId} list="payments" what="payments received" />
+        </div>
+      }
     >
       <Alert message={list.error ? errorText(list.error) : null} />
       <section aria-labelledby="list-heading">
@@ -169,7 +176,6 @@ function PrintSettings({ businessId }: { businessId: string }) {
             method: 'PUT',
             body: {
               printSize: f.printSize,
-              address: f.address || null,
               phone: f.phone || null,
               email: f.email || null,
               terms: f.terms || null,
@@ -196,7 +202,10 @@ function PrintSettings({ businessId }: { businessId: string }) {
             ['58MM', '58 mm roll'],
           ]}
         />
-        <TextArea label="Shop address" name="address" value={f.address} onChange={set('address')} rows={2} />
+        <p className="mb-3 text-sm">
+          <span className="font-medium">Shop address:</span> {s?.address ?? 'not set yet'}{' '}
+          <span className="text-ink-600">(edit it in Shop details on the overview page)</span>
+        </p>
         <div className="grid gap-x-3 sm:grid-cols-2">
           <Field label="Shop phone" name="shopPhone" value={f.phone} onChange={set('phone')} isRequired={false} />
           <Field

@@ -130,7 +130,7 @@ export { METRICS, type MetricKey } from './metrics.ts';
 export { CONTACT_CHANNELS, normalizeMobile, normalizeTags, placeOfSupply, type ContactChannel } from './customers.ts';
 export { discountWithinLimit } from './discount-limits.ts';
 export { amountInWords } from './amount-words.ts';
-export { GST_STATES, stateLabel } from './gst-states.ts';
+export { GST_STATES, INDIAN_STATES, isIndianStateCode, stateLabel } from './gst-states.ts';
 export {
   addDays,
   addMonths,

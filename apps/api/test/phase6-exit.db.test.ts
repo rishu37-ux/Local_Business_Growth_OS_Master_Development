@@ -368,6 +368,7 @@ describe('Phase 6 exit (browser)', () => {
     // The profile reloads at once (the erase section goes away with the data it held).
     await p.getByRole('heading', { name: 'Erased customer', level: 1 }).waitFor();
     await p.getByText('This customer’s personal data was erased.').waitFor();
+    // Checked at once: no section may show the old details while it refetches.
     expect(await p.locator('main').innerText()).not.toContain('chitra.synthetic@example.test');
     const print = await p.request.get(`${ORIGIN}/api/businesses/${shop.businessId}/invoices/${chitraInvoice}/print`);
     expect(await print.text()).toContain('Chitra Iyer (synthetic)');

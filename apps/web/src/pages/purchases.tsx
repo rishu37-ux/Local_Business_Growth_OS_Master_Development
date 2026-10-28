@@ -8,6 +8,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { api, formatPaise, formatQty, rupeesToPaise } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, errorText, Field, NativeSelect, Page, Table, TextArea } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 import { useSuppliers } from './suppliers.tsx';
 
 export interface LineForm {
@@ -273,7 +274,7 @@ export function PurchasesPage() {
       }>(`/api/businesses/${businessId}/purchases`),
   });
   return (
-    <Page title="Purchases">
+    <Page title="Purchases" actions={<ExportLinks businessId={businessId} list="purchases" what="purchases" />}>
       {business.can('purchases.create') ? (
         <p className="mb-4">
           <Link className="link" to={`/b/${businessId}/purchases/new`}>

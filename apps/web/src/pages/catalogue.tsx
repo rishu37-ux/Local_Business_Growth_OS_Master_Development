@@ -8,6 +8,7 @@ import { api, formatPaise, rupeesToPaise, uploadFile } from '../api.ts';
 import { TakePhoto } from '../camera.tsx';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, Checkbox, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 
 interface ProductSummary {
   id: string;
@@ -196,7 +197,7 @@ export function CataloguePage() {
   };
 
   return (
-    <Page title="Catalogue">
+    <Page title="Catalogue" actions={<ExportLinks businessId={businessId} list="products" what="the catalogue" />}>
       <p className="mb-4">
         <Link className="link" to={`/b/${businessId}/tax-rates`}>
           Tax rates

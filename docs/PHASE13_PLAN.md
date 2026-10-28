@@ -40,7 +40,7 @@ It extends FR-CHN-2 (channel orders) and touches FR-PRV-1/FR-PRV-2 (personal dat
 
 ## Status
 
-All three increments and the exit are done (TR-0048).
+All three increments and the exit are done (TR-0048). CI #68 green.
 
 ## Increment 13.1 — Contract, storage, API
 - **AC1:** a feed order with every section is stored and returned by the order API with all fields.

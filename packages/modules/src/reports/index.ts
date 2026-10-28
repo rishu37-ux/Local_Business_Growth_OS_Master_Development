@@ -604,6 +604,7 @@ export {
 } from './export.ts';
 export { REPORTS, reportTable, type ReportName } from './tables.ts';
 export { dashboard, type Dashboard, type Tile } from './dashboard.ts';
+export { LIST_EXPORTS, listExport, ListExportError, MAX_LIST_ROWS, type ListName, type ListOptions } from './lists.ts';
 
 /** Shop name for report headings. */
 export async function shopName(db: Db, ctx: TenantContext): Promise<string> {

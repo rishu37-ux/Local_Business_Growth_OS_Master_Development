@@ -6,19 +6,34 @@ import {
   acceptInvitation,
   createInvitation,
   getSetup,
+  getShopDetails,
   InvitationError,
   listInvitations,
   markStaffStepDone,
   revokeInvitation,
   savePreferences,
   saveDetails,
+  saveShopAddress,
   saveTax,
   SetupError,
+  type ShopAddress,
 } from '@lbgos/modules/onboarding';
 import { AUTHENTICATED } from '../auth-plugin.ts';
 import type { AppServices } from '../services.ts';
 
 const businessParams = z.strictObject({ businessId: z.uuid() });
+const line = (max: number) => z.string().trim().min(1).max(max);
+const optionalLine = (max: number) => z.string().trim().max(max).nullable().optional();
+/** The shop's address (D-073); the PIN code and state are checked by the module. */
+const shopAddress = z.strictObject({
+  line1: line(120),
+  line2: optionalLine(120),
+  landmark: optionalLine(120),
+  city: line(80),
+  district: line(80),
+  stateCode: z.string().regex(/^[0-9]{2}$/),
+  pincode: z.string().trim().max(10),
+});
 
 function sendOnboardingError(err: unknown, request: FastifyRequest, reply: FastifyReply) {
   const send = (status: number, code: string, message: string) =>
@@ -70,6 +85,7 @@ export function registerOnboardingRoutes(app: FastifyInstance, s: AppServices): 
           displayName: z.string().trim().min(2).max(120),
           timezone: z.string().min(1).max(64),
           fyStartMonth: z.number().int().min(1).max(12),
+          address: shopAddress.optional(),
         }),
       },
     },
@@ -77,10 +93,27 @@ export function registerOnboardingRoutes(app: FastifyInstance, s: AppServices): 
       await saveDetails(
         s.appDb,
         ctxOf(request),
-        request.body as { displayName: string; timezone: string; fyStartMonth: number },
+        request.body as { displayName: string; timezone: string; fyStartMonth: number; address?: ShopAddress },
       );
       return reply.status(204).send();
     }),
+  );
+
+  app.get(
+    '/api/businesses/:businessId/shop-details',
+    { config: { permission: 'business.settings.view' }, schema: { params: businessParams } },
+    async (request) => ({ shop: await getShopDetails(s.appDb, ctxOf(request)) }),
+  );
+
+  app.put(
+    '/api/businesses/:businessId/shop-details/address',
+    {
+      config: { permission: 'business.settings.manage' },
+      schema: { params: businessParams, body: shopAddress },
+    },
+    guarded(async (request) => ({
+      shop: await saveShopAddress(s.appDb, ctxOf(request), request.body as ShopAddress, request.id),
+    })),
   );
 
   app.put(

@@ -528,3 +528,29 @@ Defaults chosen without blocking the user:
   - The data export now includes the channel tables. This closes the Phase 11 gap where these tables were missing from the export.
 - **Billing.** The customer created from an order gets the buyer's name, mobile, email, address (billing, else delivery) and GSTIN.
 - **Not claimed.** What Amazon and Flipkart actually share is up to them. Amazon restricts buyer address and phone (restricted data with special approval; none for orders it ships itself). Missing details show as "Not given by the platform".
+
+### D-073 · 2026-10-28 · Accepted
+**Decision (states, shop address, list exports; Phase 14):**
+- **States.**
+  - All 28 states and 8 union territories, with their GST codes, are offered on registration, setup and suppliers (`INDIAN_STATES` in `@lbgos/domain`, mirrored in the web app and checked by a test).
+  - The API refuses other codes, including "97 Other Territory".
+  - The 9-state pilot list from Phase 3 is gone.
+- **Address.**
+  - The shop's address is stored as fields: line 1, line 2, landmark, city or town, district, PIN code (migration 0034). The state is the business's GST state.
+  - It is taken in setup step 1 and edited later in Shop details on the overview.
+  - The printed one-line address is composed from the fields, e.g. "…, Hajipur, Dist. Vaishali, Bihar – 844101"; the district is left out when it is the city. So invoices and the website are unchanged.
+  - Print settings no longer edit the address, and no longer clear it when saved.
+- **State changes.** The state can change only while the shop is being set up; a trigger enforces it in the database (`LB024`). A saved GSTIN must belong to the new state. After going live it needs support, because it changes the place of supply.
+- **Exports.** `GET /exports/:list?format=csv|xlsx[&from&to]` for:
+  - catalogue, stock levels, phones by IMEI;
+  - suppliers, purchases;
+  - invoices, payments, expenses;
+  - online orders.
+
+  The links are on each screen.
+- **Export rules.**
+  - Each export needs `reports.export` plus the screen's permission.
+  - Cost needs `catalogue.cost.view`. Online buyers are masked without `customers.view` (as D-072).
+  - The formula guard and the XLSX writer are those of D-045.
+  - Every export is audited without contents; at most 50,000 rows.
+- **Not done.** No district master list: the district is typed.

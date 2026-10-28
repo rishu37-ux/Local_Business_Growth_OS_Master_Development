@@ -1,7 +1,7 @@
 // Applicant and business-owner endpoints for the lifecycle (BR-T1…T4, FR-ONB-1, FR-ONB-3, FR-AUD-1).
 import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
-import { permittedInMode } from '@lbgos/domain';
+import { isIndianStateCode, permittedInMode } from '@lbgos/domain';
 import { z } from 'zod';
 import { withTenant } from '@lbgos/db';
 import {
@@ -18,7 +18,8 @@ import type { AppServices } from '../services.ts';
 const application = z.strictObject({
   legalName: z.string().trim().min(2).max(200),
   category: z.string().regex(/^[A-Z_]{3,40}$/),
-  stateCode: z.string().regex(/^[0-9]{2}$/),
+  // Every state and union territory (D-073).
+  stateCode: z.string().refine(isIndianStateCode, 'Choose a state or union territory of India.'),
 });
 const businessParams = z.strictObject({ businessId: z.uuid() });
 

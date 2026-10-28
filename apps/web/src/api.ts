@@ -58,17 +58,45 @@ export async function fetchMe(): Promise<Me | null> {
   }
 }
 
-// GST state codes for the pilot regions (subset; the full list arrives with tax setup in Phase 5).
+// All 28 states and 8 union territories with their GST state codes, sorted by
+// name (D-073; the same list as INDIAN_STATES in @lbgos/domain, checked by a test).
 export const STATES: readonly (readonly [string, string])[] = [
+  ['35', 'Andaman and Nicobar Islands'],
+  ['37', 'Andhra Pradesh'],
+  ['12', 'Arunachal Pradesh'],
+  ['18', 'Assam'],
+  ['10', 'Bihar'],
+  ['04', 'Chandigarh'],
+  ['22', 'Chhattisgarh'],
+  ['26', 'Dadra and Nagar Haveli and Daman and Diu'],
   ['07', 'Delhi'],
-  ['09', 'Uttar Pradesh'],
-  ['19', 'West Bengal'],
+  ['30', 'Goa'],
   ['24', 'Gujarat'],
-  ['27', 'Maharashtra'],
+  ['06', 'Haryana'],
+  ['02', 'Himachal Pradesh'],
+  ['01', 'Jammu and Kashmir'],
+  ['20', 'Jharkhand'],
   ['29', 'Karnataka'],
   ['32', 'Kerala'],
+  ['38', 'Ladakh'],
+  ['31', 'Lakshadweep'],
+  ['23', 'Madhya Pradesh'],
+  ['27', 'Maharashtra'],
+  ['14', 'Manipur'],
+  ['17', 'Meghalaya'],
+  ['15', 'Mizoram'],
+  ['13', 'Nagaland'],
+  ['21', 'Odisha'],
+  ['34', 'Puducherry'],
+  ['03', 'Punjab'],
+  ['08', 'Rajasthan'],
+  ['11', 'Sikkim'],
   ['33', 'Tamil Nadu'],
   ['36', 'Telangana'],
+  ['16', 'Tripura'],
+  ['09', 'Uttar Pradesh'],
+  ['05', 'Uttarakhand'],
+  ['19', 'West Bengal'],
 ];
 
 /** "1,500.50" or "1500.5" (rupees) → paise; null if not a valid amount. */

@@ -7,6 +7,9 @@ import {
   dashboard,
   exportReport,
   expensesReport,
+  LIST_EXPORTS,
+  listExport,
+  ListExportError,
   marginSummary,
   operatingProfit,
   paymentMethodSummary,
@@ -24,6 +27,7 @@ import {
   taxSummary,
   toReportHtml,
   type ExportTable,
+  type ListName,
   type PeriodRequest,
   type ReportName,
 } from '@lbgos/modules/reports';
@@ -214,6 +218,58 @@ export function registerReportRoutes(app: FastifyInstance, s: AppServices): void
       );
       return sendFile(request, reply, table, q.format, `${name}-${period ? `${period.from}-${period.to}` : 'now'}`);
     }),
+  );
+
+  // List exports of the dashboard's sections (Phase 14, D-073): reports.export plus the section's own permission.
+  app.get(
+    '/api/businesses/:businessId/exports/:list',
+    {
+      config: { permission: 'reports.export' },
+      schema: {
+        params: z.strictObject({
+          businessId: z.uuid(),
+          list: z.enum(Object.keys(LIST_EXPORTS) as [ListName, ...ListName[]]),
+        }),
+        querystring: z.strictObject({
+          format: z.enum(['csv', 'xlsx']),
+          from: z.iso.date().optional(),
+          to: z.iso.date().optional(),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const name = (request.params as { list: ListName }).list;
+      const q = request.query as { format: 'csv' | 'xlsx'; from?: string; to?: string };
+      const spec = LIST_EXPORTS[name];
+      if (!spec.anyOf.some((p) => has(request, p)))
+        return fail(request, reply, 403, 'FORBIDDEN', 'You do not have access to this resource.');
+      if ((q.from === undefined) !== (q.to === undefined) || (q.from && q.to && q.from > q.to))
+        return fail(request, reply, 400, 'INVALID_PERIOD', 'Give both from and to, with from not after to.');
+      const ctx = ctxOf(request);
+      let table: ExportTable;
+      try {
+        table = await listExport(s.appDb, ctx, name, {
+          from: spec.dated ? q.from : undefined,
+          to: spec.dated ? q.to : undefined,
+          canSeeCost: has(request, 'catalogue.cost.view'),
+          canSeeBuyer: has(request, 'customers.view'),
+        });
+      } catch (err) {
+        if (err instanceof ListExportError) return fail(request, reply, 413, err.code, err.message);
+        throw err;
+      }
+      await auditExport(
+        s.appDb,
+        ctx,
+        {
+          report: `list:${name}`,
+          format: q.format,
+          ...(spec.dated && q.from && q.to ? { from: q.from, to: q.to } : {}),
+        },
+        request.id,
+      );
+      return sendFile(request, reply, table, q.format, `${name}${q.from && q.to ? `-${q.from}-${q.to}` : ''}`);
+    },
   );
 
   // Customer statement export (FR-LED-1 AC3, FR-RPT-4 AC1: PDF for ledger statements).

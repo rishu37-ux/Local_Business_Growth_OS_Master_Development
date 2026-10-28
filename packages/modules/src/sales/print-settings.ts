@@ -68,7 +68,9 @@ export async function savePrintSettings(
               values (${ctx.businessId}, ${input.printSize}, ${text(input.address)}, ${phone}, ${text(input.email)},
                       ${text(input.terms)})
               on conflict (business_id) do update set print_size = excluded.print_size,
-                business_address = excluded.business_address, business_phone = excluded.business_phone,
+                -- Omitted: kept (the address is edited in Shop details since D-073).
+                business_address = ${input.address === undefined ? sql`lbg.business_settings.business_address` : sql`excluded.business_address`},
+                business_phone = excluded.business_phone,
                 business_email = excluded.business_email, invoice_terms = excluded.invoice_terms,
                 updated_at = now()`.execute(trx);
     await recordTenantEvent(trx, ctx, {

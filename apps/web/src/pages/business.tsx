@@ -6,6 +6,15 @@ import { Form } from 'react-aria-components';
 import { Link, useParams } from 'react-router';
 import { api, ApiError, formatPaise, type Me } from '../api.ts';
 import { Alert, Badge, Button, errorText, Field, humanize, NativeSelect, Page, statusTone } from '../ui.tsx';
+import {
+  AddressFields,
+  addressBody,
+  addressOf,
+  emptyAddress,
+  ShopDetailsSection,
+  useShopDetails,
+  type AddressForm,
+} from './shop-details.tsx';
 
 interface BusinessView {
   business: { legal_name: string; display_name: string | null; status: string };
@@ -169,6 +178,9 @@ export function BusinessPage({ me }: { me: Me }) {
     >
       {view.data.access.mode === 'SETUP' ? <SetupWizard businessId={businessId} me={me} /> : null}
       {view.data.access.mode === 'SETUP' ? null : <DashboardTiles businessId={businessId} />}
+      {view.data.access.mode !== 'SETUP' && permissions.has('business.settings.view') ? (
+        <ShopDetailsSection businessId={businessId} canManage={permissions.has('business.settings.manage')} />
+      ) : null}
       {tasks.length > 0 ? (
         <section aria-labelledby="tasks-heading">
           <h2 id="tasks-heading" className="section-title">
@@ -232,6 +244,10 @@ function SetupWizard({ businessId, me }: { businessId: string; me: Me }) {
     queryFn: () => api<Setup>(`/api/businesses/${businessId}/setup`),
   });
   const [displayName, setDisplayName] = useState('');
+  const shop = useShopDetails(businessId);
+  const [address, setAddress] = useState<AddressForm | null>(null);
+  const shopData = shop.data?.shop;
+  const addr = address ?? (shopData ? addressOf(shopData) : emptyAddress(null));
   const [registrationType, setRegistrationType] = useState('UNREGISTERED');
   const [gstin, setGstin] = useState('');
   const [prefix, setPrefix] = useState('');
@@ -266,13 +282,19 @@ function SetupWizard({ businessId, me }: { businessId: string; me: Me }) {
             () =>
               api(`/api/businesses/${businessId}/setup/details`, {
                 method: 'PUT',
-                body: { displayName, timezone: 'Asia/Kolkata', fyStartMonth: 4 },
+                body: { displayName, timezone: 'Asia/Kolkata', fyStartMonth: 4, address: addressBody(addr) },
               }),
             'Details saved.',
           );
         }}
       >
         <Field label="Shop name shown to customers" name="displayName" value={displayName} onChange={setDisplayName} />
+        {/* Shown once the saved state (from the application) is known, so typing never starts from an empty state. */}
+        {shopData ? (
+          <AddressFields value={addr} onChange={setAddress} stateEditable />
+        ) : (
+          <p className="mb-3 text-sm text-ink-600">Loading the address…</p>
+        )}
         <Button type="submit">Save details</Button>
       </Form>
 

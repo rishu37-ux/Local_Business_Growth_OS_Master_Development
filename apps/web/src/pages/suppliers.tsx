@@ -7,6 +7,7 @@ import { useParams } from 'react-router';
 import { api, STATES } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 
 export interface SupplierRow {
   id: string;
@@ -58,7 +59,7 @@ export function SuppliersPage() {
   };
 
   return (
-    <Page title="Suppliers">
+    <Page title="Suppliers" actions={<ExportLinks businessId={businessId} list="suppliers" what="suppliers" />}>
       <Alert message={suppliers.error ? errorText(suppliers.error) : null} />
       <Table caption="Suppliers" headers={['Name', 'GSTIN', 'State', 'Mobile']}>
         {(suppliers.data?.suppliers ?? []).map((s) => (

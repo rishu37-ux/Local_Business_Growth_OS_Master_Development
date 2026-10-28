@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] — Phases 7–13 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels; camera and OCR)
+## [Unreleased] — Phases 7–14 (API Hub, AI Creative Studio, integrations; agents; security review; commercial readiness; branding and online channels; camera and OCR)
 
 ### Added
 - Phase 7 plan (`docs/PHASE7_PLAN.md`).
@@ -41,6 +41,12 @@
   - Website form: optional email and delivery address.
   - Web: an order page; the order list has filters and buyer, delivery and payment columns.
   - Tests: `order-details.db.test.ts` and the Phase 13 exit browser test.
+- Phase 14 (D-073):
+  - All 36 states and union territories (`INDIAN_STATES`); other codes are refused.
+  - Migration 0034 adds the shop's address fields and a trigger that allows a state change only during setup.
+  - Setup step 1 and the new Shop details section take the full address; the printed address is composed from it. New routes `GET /shop-details` and `PUT /shop-details/address`.
+  - `GET /exports/:list` (CSV/XLSX) for nine lists, with "Export: CSV · Excel" links on their screens.
+  - Tests: `shop-address-exports.db.test.ts` and the Phase 14 exit browser test.
   - Screens: Branding and website, and Online selling. POS opens a billed online order.
   - Phase 11 exit browser test.
 - Docs: `PHASE11_PLAN.md`, SRS FR-CHN-1…3.

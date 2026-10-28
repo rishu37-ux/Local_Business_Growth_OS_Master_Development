@@ -387,8 +387,9 @@ export function CustomerPage() {
         </section>
       ) : null}
       <OwnedItems base={base} businessId={businessId} customerId={customerId} />
-      {c ? <ConsentSection base={base} businessId={businessId} customer={c} can={business.can} /> : null}
-      {c ? <Communications base={base} businessId={businessId} customer={c} can={business.can} /> : null}
+      {/* After erasure these sections are not shown at all: their cached data may still hold the old addresses until refetched. */}
+      {c && !c.erased ? <ConsentSection base={base} businessId={businessId} customer={c} can={business.can} /> : null}
+      {c && !c.erased ? <Communications base={base} businessId={businessId} customer={c} can={business.can} /> : null}
       {c && !c.erased && business.data?.access.roles.includes('Owner') ? (
         <EraseSection base={base} customer={c} />
       ) : null}

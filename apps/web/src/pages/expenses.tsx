@@ -8,6 +8,7 @@ import { Link, useParams } from 'react-router';
 import { api, formatPaise, rupeesToPaise, uploadFile } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Badge, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 
 interface Expense {
   id: string;
@@ -99,6 +100,15 @@ export function ExpensesPage() {
       eyebrow="Accounts"
       title="Expenses"
       description="Shop expenses such as rent, salaries and bills. A mistake is corrected by reversing the entry."
+      actions={
+        <ExportLinks
+          businessId={businessId}
+          list="expenses"
+          what="this month's expenses"
+          from={range.from}
+          to={range.to}
+        />
+      }
     >
       <Alert message={notice?.text ?? null} tone={notice?.tone ?? 'error'} />
       {settings.data ? (

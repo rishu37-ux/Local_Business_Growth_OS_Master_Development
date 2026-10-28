@@ -170,6 +170,12 @@ describe('Phase 3 exit: register → approve → MFA → setup → live → invi
     await owner.getByRole('heading', { name: 'Set up your shop' }).waitFor();
     await auditAllWidths(owner, 'setup wizard');
     await owner.getByLabel('Shop name shown to customers').fill('Exit Mobiles');
+    // The shop's address (Phase 14, D-073); the state comes from the application.
+    await owner.getByLabel('Address line 1 (shop number, building, street)').fill('12 Test Market');
+    await owner.getByLabel('City or town').fill('Lucknow');
+    await owner.getByLabel('District').fill('Lucknow');
+    expect(await owner.getByLabel('State or union territory', { exact: true }).inputValue()).toBe('09');
+    await owner.getByLabel('PIN code (6 digits)').fill('226001');
     await owner.getByRole('button', { name: 'Save details' }).click();
     await owner.getByText('Details saved.').waitFor();
     await owner.getByLabel('Invoice number prefix (up to 6 characters)').fill('EX');

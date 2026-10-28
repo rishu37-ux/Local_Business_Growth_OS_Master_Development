@@ -1,5 +1,6 @@
 // Suppliers and purchases (increment 4.2: FR-INV-3, FR-INV-5, FR-INV-8).
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { isIndianStateCode } from '@lbgos/domain';
 import { z } from 'zod';
 import {
   createPurchaseDraft,
@@ -35,11 +36,7 @@ const supplierFields = {
     .optional(),
   email: z.email().max(200).nullable().optional(),
   address: optionalText(500),
-  stateCode: z
-    .string()
-    .regex(/^[0-9]{2}$/)
-    .nullable()
-    .optional(),
+  stateCode: z.string().refine(isIndianStateCode, 'Choose a state or union territory of India.').nullable().optional(),
   paymentTerms: optionalText(200),
   notes: optionalText(2000),
   status: z.enum(['ACTIVE', 'ARCHIVED']).optional(),

@@ -9,6 +9,7 @@ import { api, ApiError, formatPaise, formatQty } from '../api.ts';
 import { PhotoLookup } from '../camera.tsx';
 import { useBusiness } from '../business.ts';
 import { Alert, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 import { useVariantOptions } from './purchases.tsx';
 
 interface StockRow {
@@ -156,7 +157,15 @@ export function StockPage() {
   };
 
   return (
-    <Page title="Stock">
+    <Page
+      title="Stock"
+      actions={
+        <div className="flex flex-col gap-1">
+          <ExportLinks businessId={businessId} list="stock" what="stock levels" />
+          <ExportLinks businessId={businessId} list="imeis" what="phones by IMEI" />
+        </div>
+      }
+    >
       <ScanField label="Find by code" onCode={(c) => void lookup(c)} />
       <details className="mb-4">
         <summary className="cursor-pointer text-sm font-medium text-brand-700">Find by photo (IMEI or barcode)</summary>

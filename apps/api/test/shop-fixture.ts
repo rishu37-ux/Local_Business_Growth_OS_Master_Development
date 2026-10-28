@@ -52,6 +52,25 @@ export function fixtureAdmin(): Session {
  * stateCode defaults to Maharashtra (27). `gstin` makes the shop a REGULAR GST
  * registrant (its first two digits must match the state); otherwise UNREGISTERED.
  */
+/** A shop approved by the platform and still being set up: the owner has MFA, no setup step is saved. */
+export async function setupShop(h: Harness, prefix: string, stateCode = '27'): Promise<Shop> {
+  const admin = await platformAdmin(h, prefix);
+  const o = await newUser(h, `${prefix}-owner@example.test`, SHOP_PW);
+  const created = await post(
+    h,
+    '/api/applications',
+    { legalName: `${prefix} Mobiles (synthetic)`, category: 'MOBILE_ELECTRONICS', stateCode },
+    o.cookies,
+  );
+  if (created.statusCode !== 201) throw new Error(`apply failed: ${created.statusCode} ${created.body}`);
+  const businessId = created.json<{ businessId: string }>().businessId;
+  const approved = await post(h, `/api/platform/businesses/${businessId}/approve`, {}, admin);
+  if (approved.statusCode >= 300) throw new Error(`approve failed: ${approved.statusCode} ${approved.body}`);
+  const mfa = await enrolMfa(h, o.cookies, SHOP_PW);
+  const base = `/api/businesses/${businessId}`;
+  return { businessId, owner: mfa.session, ownerId: o.id, ownerEmail: o.email, ownerSecret: mfa.secret, base };
+}
+
 export async function activeShop(
   h: Harness,
   prefix: string,

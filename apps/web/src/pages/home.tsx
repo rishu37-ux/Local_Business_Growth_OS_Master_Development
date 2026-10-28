@@ -24,7 +24,7 @@ export function HomePage({ me }: { me: Me }) {
     queryFn: () => api<{ notifications: { id: string; title: string; body: string }[] }>('/api/notifications'),
   });
   const [legalName, setLegalName] = useState('');
-  const [stateCode, setStateCode] = useState(STATES[0]?.[0] ?? '');
+  const [stateCode, setStateCode] = useState('');
   const [message, setMessage] = useState<{ text: string; tone: 'error' | 'success' } | null>(null);
 
   const apply = async () => {
@@ -85,8 +85,16 @@ export function HomePage({ me }: { me: Me }) {
           }}
         >
           <Field label="Legal business name" name="legalName" value={legalName} onChange={setLegalName} />
-          <NativeSelect label="State" name="stateCode" value={stateCode} onChange={setStateCode} options={STATES} />
-          <Button type="submit">Submit application</Button>
+          <NativeSelect
+            label="State or union territory of the shop"
+            name="stateCode"
+            value={stateCode}
+            onChange={setStateCode}
+            options={[['', 'Choose a state'], ...STATES]}
+          />
+          <Button type="submit" isDisabled={stateCode === ''}>
+            Submit application
+          </Button>
         </Form>
       </section>
 

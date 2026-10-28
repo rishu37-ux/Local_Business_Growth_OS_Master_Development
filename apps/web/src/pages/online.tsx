@@ -9,6 +9,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { api, formatPaise, rupeesToPaise } from '../api.ts';
 import { useBusiness } from '../business.ts';
 import { Alert, Badge, Button, cell, errorText, Field, NativeSelect, Page, Table } from '../ui.tsx';
+import { ExportLinks } from '../exports.tsx';
 import { FULFILLED_BY, ORDER_STATE, PAYMENT_METHOD, PAYMENT_STATUS, when, type Order } from './online-order.tsx';
 import { useVariantOptions } from './purchases.tsx';
 
@@ -98,6 +99,7 @@ export function OnlineSellingPage() {
       eyebrow="Sales"
       title="Online selling"
       description="Offer your stock on your website and on marketplaces. Each order keeps its stock until you bill it in Point of sale or cancel it; marketplaces get the new quantity automatically."
+      actions={<ExportLinks businessId={businessId} list="online-orders" what="online orders" />}
     >
       <Alert message={notice?.text ?? null} tone={notice?.tone ?? 'error'} />
       <section aria-labelledby="channels-heading">
