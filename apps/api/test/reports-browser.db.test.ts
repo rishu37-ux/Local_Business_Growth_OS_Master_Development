@@ -117,6 +117,8 @@ describe('reports screen', () => {
     await page.getByRole('heading', { name: 'Sales and accounts' }).waitFor();
     await page.getByRole('heading', { name: 'Gross margin' }).waitFor();
     await page.getByRole('cell', { name: 'Model RB-CB' }).first().waitFor();
+    // Each section loads on its own; wait for the last one read below (CI #50 read the page before it).
+    await page.getByText(/not a GST return/).waitFor();
     const text = await page.locator('main').innerText();
     // Net sales ₹1,500 this month, with the SRS §7 definition beside it.
     expect(text).toContain('Net sales');
