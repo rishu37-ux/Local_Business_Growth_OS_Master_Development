@@ -1,17 +1,26 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-27 (Phase 5, after increment 5.5)
+Last updated: 2026-10-28 (Phase 6 complete; Phase 7: 7.1–7.3 done)
 
-## Phase 5 — POS, invoices, payments, customer ledger, core reports (next)
+## Phase 7 — API Hub, AI Creative Studio, selected official integrations (in progress)
 
-1. ~~CI green on the Phase 4 exit (#21)~~ · ~~`PHASE5_PLAN.md`~~ · ~~5.1 engines (P-01, allocation, formats)~~ (done, TR-0017).
-2. ~~5.2 / P-02 numbering service, customers, re-authentication~~ (done, TR-0018).
-3. ~~5.3 / P-03 API, P-04 drafts (carts), discount limits and approvals, atomic issue, IMEI race~~ (done, TR-0019, D-040).
-4. ~~5.4 / P-05 later payments, advance, refunds, reversal, statement, payment status~~ (done, TR-0020, D-041).
-5. ~~5.5 cancellation, credit/debit notes, returns into inspection~~ (done, TR-0021, D-042).
-6. 5.6 print/PDF (A4, A5, 80 mm, 58 mm; seller address/phone settings needed for the printed header).
-7. 5.7 reports and exports; 5.8 POS screens (search ≤ 300 ms p95, ≤ 6 interactions) and the Phase 5 exit browser test.
-8. CI: #22 (5.1), #23 (5.2), #25 (5.4, includes 5.3) green; #24 (5.3) was cancelled when #25 started. Check CI for the 5.5 push.
+Plan and acceptance criteria: `PHASE7_PLAN.md`. Mock adapters only until provider accounts exist (Q4).
+
+1. ~~7.1 guarded outbound HTTP client and no-raw-HTTP lint rule~~ — done (TR-0033, D-054).
+2. ~~7.2 secret store with envelope encryption~~ — done (TR-0034, D-055); new DB role `lbgos_secrets`.
+3. ~~7.3 integration records, status machine, test connection, health, usage; adapters with mocks~~ — done (TR-0035, D-056).
+4. **Next:** 7.4 offers and the AI Creative Studio (grounded prompts, deterministic post-check, usage and quota).
+5. 7.5 approval of exact versions, campaigns to segments through the send-time gate, scheduling.
+6. 7.6 WhatsApp Cloud API and SMS DLT adapters against documented APIs (mocked), signed webhooks.
+7. 7.7 screens and the Phase 7 exit browser test.
+
+## Phase 6 (complete)
+
+All increments 6.1–6.7 done; exit recorded in `PHASE6_PLAN.md` (CI #40 green). Open: legal review of retention and erasure (NFR-12); a daily scheduler for reminders and queued messages (job runner); no messaging provider connected.
+
+## Phase 5 (complete)
+
+All increments 5.1–5.8 done; exit recorded in `PHASE5_PLAN.md` (CI #32 green). Open before the pilot: manual print tests on real devices and an 80 mm thermal printer (FR-PRN-1 AC4); search timing on the reference environment; screens for debit notes and payment reversal.
 
 ## Phase 4 (complete)
 

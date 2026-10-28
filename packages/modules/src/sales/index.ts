@@ -61,3 +61,13 @@ export {
   type IssuedNote,
   type Settlement,
 } from './returns.ts';
+export { money, renderDocumentHtml, type PrintOptions } from './print.ts';
+export {
+  getPrintSettings,
+  PAPER_SIZES,
+  PrintSettingsError,
+  savePrintSettings,
+  type PaperSize,
+  type PrintSettings,
+} from './print-settings.ts';
+export { posSearch, type PosItem, type PosSearchResult, type PosUnit } from './search.ts';

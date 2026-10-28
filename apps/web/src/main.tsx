@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { StrictMode, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, Link, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
-import { api, fetchMe, type Me } from './api.ts';
+import { createBrowserRouter, Navigate, Outlet, RouterProvider, useLocation } from 'react-router';
+import { fetchMe, type Me } from './api.ts';
 import { MfaPage, SignInPage, SignUpPage } from './pages/auth.tsx';
 import { ApprovalsPage } from './pages/approvals.tsx';
 import { BusinessPage } from './pages/business.tsx';
@@ -12,9 +12,16 @@ import { InvitePage } from './pages/invite.tsx';
 import { MembersPage } from './pages/members.tsx';
 import { PlatformPage } from './pages/platform.tsx';
 import { PurchaseEditorPage, PurchasesPage } from './pages/purchases.tsx';
+import { ReportsPage } from './pages/reports.tsx';
+import { PosPage } from './pages/pos.tsx';
+import { InvoiceDetailPage, InvoicesPage } from './pages/invoices.tsx';
+import { CustomerPage, CustomersPage } from './pages/customers.tsx';
+import { ExpensesPage } from './pages/expenses.tsx';
+import { RemindersPage } from './pages/reminders.tsx';
 import { ScanReviewPage, ScansPage } from './pages/scans.tsx';
 import { StockPage } from './pages/stock.tsx';
 import { SuppliersPage } from './pages/suppliers.tsx';
+import { BusinessShell, TopBar } from './shell.tsx';
 import './styles.css';
 
 function useMe() {
@@ -23,39 +30,25 @@ function useMe() {
 
 function Layout() {
   const me = useMe();
-  const queryClient = useQueryClient();
-  const signOut = async () => {
-    await api('/api/auth/sign-out', { method: 'POST', body: {} });
-    await queryClient.invalidateQueries();
-  };
   return (
-    <>
-      <a href="#content" className="sr-only focus:not-sr-only">
+    <div className="flex min-h-screen flex-col">
+      <a
+        href="#content"
+        className="sr-only z-50 rounded-lg bg-white px-3 py-2 shadow focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
         Skip to content
       </a>
-      <header className="border-b border-slate-300 bg-white">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-3">
-          <Link to="/" className="text-lg font-semibold">
-            Local Business Growth OS
-          </Link>
-          {me.data ? (
-            <nav aria-label="Account" className="flex items-center gap-3">
-              {me.data.platformAdmin ? (
-                <Link className="text-blue-800 underline" to="/platform">
-                  Review
-                </Link>
-              ) : null}
-              <button type="button" className="text-blue-800 underline" onClick={() => void signOut()}>
-                Sign out
-              </button>
-            </nav>
-          ) : null}
-        </div>
-      </header>
-      <div id="content">
+      <TopBar me={me.data} />
+      <div id="content" className="flex-1">
         <Outlet />
       </div>
-    </>
+      <footer className="border-t border-ink-200 bg-white">
+        <div className="mx-auto flex max-w-[90rem] flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-ink-500 sm:px-6">
+          <span>Local Business Growth OS</span>
+          <span>Records are kept per shop; amounts are in Indian rupees.</span>
+        </div>
+      </footer>
+    </div>
   );
 }
 
@@ -63,7 +56,7 @@ function Layout() {
 function Authed({ children }: { children: (me: Me) => ReactNode }) {
   const me = useMe();
   const location = useLocation();
-  if (me.isPending) return <p className="p-4">Loading…</p>;
+  if (me.isPending) return <p className="p-6 text-sm text-ink-600">Loading…</p>;
   if (!me.data)
     return <Navigate to={`/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   return <>{children(me.data)}</>;
@@ -77,18 +70,32 @@ const router = createBrowserRouter([
       { path: '/sign-up', element: <SignUpPage /> },
       { path: '/', element: <Authed>{(me) => <HomePage me={me} />}</Authed> },
       { path: '/mfa', element: <Authed>{() => <MfaPage />}</Authed> },
-      { path: '/b/:businessId', element: <Authed>{(me) => <BusinessPage me={me} />}</Authed> },
-      { path: '/b/:businessId/members', element: <Authed>{() => <MembersPage />}</Authed> },
-      { path: '/b/:businessId/catalogue', element: <Authed>{() => <CataloguePage />}</Authed> },
-      { path: '/b/:businessId/catalogue/:productId', element: <Authed>{() => <ProductPage />}</Authed> },
-      { path: '/b/:businessId/tax-rates', element: <Authed>{() => <TaxRatesPage />}</Authed> },
-      { path: '/b/:businessId/suppliers', element: <Authed>{() => <SuppliersPage />}</Authed> },
-      { path: '/b/:businessId/purchases', element: <Authed>{() => <PurchasesPage />}</Authed> },
-      { path: '/b/:businessId/purchases/:purchaseId', element: <Authed>{() => <PurchaseEditorPage />}</Authed> },
-      { path: '/b/:businessId/stock', element: <Authed>{() => <StockPage />}</Authed> },
-      { path: '/b/:businessId/scans', element: <Authed>{() => <ScansPage />}</Authed> },
-      { path: '/b/:businessId/scans/:scanId', element: <Authed>{() => <ScanReviewPage />}</Authed> },
-      { path: '/b/:businessId/approvals', element: <Authed>{() => <ApprovalsPage />}</Authed> },
+      {
+        path: '/b/:businessId',
+        element: <BusinessShell />,
+        children: [
+          { index: true, element: <Authed>{(me) => <BusinessPage me={me} />}</Authed> },
+          { path: 'members', element: <Authed>{() => <MembersPage />}</Authed> },
+          { path: 'catalogue', element: <Authed>{() => <CataloguePage />}</Authed> },
+          { path: 'catalogue/:productId', element: <Authed>{() => <ProductPage />}</Authed> },
+          { path: 'tax-rates', element: <Authed>{() => <TaxRatesPage />}</Authed> },
+          { path: 'suppliers', element: <Authed>{() => <SuppliersPage />}</Authed> },
+          { path: 'purchases', element: <Authed>{() => <PurchasesPage />}</Authed> },
+          { path: 'purchases/:purchaseId', element: <Authed>{() => <PurchaseEditorPage />}</Authed> },
+          { path: 'stock', element: <Authed>{() => <StockPage />}</Authed> },
+          { path: 'scans', element: <Authed>{() => <ScansPage />}</Authed> },
+          { path: 'scans/:scanId', element: <Authed>{() => <ScanReviewPage />}</Authed> },
+          { path: 'approvals', element: <Authed>{() => <ApprovalsPage />}</Authed> },
+          { path: 'reports', element: <Authed>{() => <ReportsPage />}</Authed> },
+          { path: 'pos', element: <Authed>{() => <PosPage />}</Authed> },
+          { path: 'invoices', element: <Authed>{() => <InvoicesPage />}</Authed> },
+          { path: 'invoices/:invoiceId', element: <Authed>{() => <InvoiceDetailPage />}</Authed> },
+          { path: 'customers', element: <Authed>{() => <CustomersPage />}</Authed> },
+          { path: 'customers/:customerId', element: <Authed>{() => <CustomerPage />}</Authed> },
+          { path: 'reminders', element: <Authed>{() => <RemindersPage />}</Authed> },
+          { path: 'expenses', element: <Authed>{() => <ExpensesPage />}</Authed> },
+        ],
+      },
       { path: '/invite', element: <Authed>{() => <InvitePage />}</Authed> },
       { path: '/platform', element: <Authed>{() => <PlatformPage />}</Authed> },
     ],

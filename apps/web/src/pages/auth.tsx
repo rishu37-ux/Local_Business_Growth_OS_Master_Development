@@ -50,7 +50,7 @@ export function SignInPage() {
   };
 
   return (
-    <Page title="Sign in">
+    <Page narrow title="Sign in" description="Welcome back. Sign in to manage your shop.">
       <Alert message={error} />
       <Form
         onSubmit={(e) => {
@@ -86,7 +86,7 @@ export function SignInPage() {
       </Form>
       <p className="mt-4">
         New here?{' '}
-        <Link className="text-blue-800 underline" to="/sign-up">
+        <Link className="link" to="/sign-up">
           Create an account
         </Link>
       </p>
@@ -112,7 +112,7 @@ export function SignUpPage() {
   };
 
   return (
-    <Page title="Create an account">
+    <Page narrow title="Create an account" description="Register your shop in a few minutes.">
       <Alert message={error} />
       {sent ? (
         <Alert tone="success" message="Check your email for a verification link, then sign in." />
@@ -139,7 +139,7 @@ export function SignUpPage() {
       )}
       <p className="mt-4">
         Already registered?{' '}
-        <Link className="text-blue-800 underline" to="/sign-in">
+        <Link className="link" to="/sign-in">
           Sign in
         </Link>
       </p>
@@ -184,7 +184,7 @@ export function MfaPage() {
   };
 
   return (
-    <Page title="Set up two-step verification">
+    <Page narrow title="Set up two-step verification" description="Protects your shop even if your password leaks.">
       <Alert message={error} />
       {!setup ? (
         <Form

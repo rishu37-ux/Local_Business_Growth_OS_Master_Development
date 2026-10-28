@@ -1,6 +1,30 @@
 # Changelog
 
-## [Unreleased] — Phase 5 (in progress)
+## [Unreleased] — Phase 7 (API Hub, AI Creative Studio, integrations)
+
+### Added
+- Phase 7 plan (`docs/PHASE7_PLAN.md`).
+- `@lbgos/modules/outbound`: the guarded outbound HTTP client (SSRF protection) and ESLint rule `lbgos/no-raw-http`.
+- Migration 0022, database role `lbgos_secrets` and `@lbgos/modules/secrets`: envelope-encrypted integration secrets (write-only API, rotation, revocation, KEK rotation); config `SECRETS_KEK`, `DATABASE_URL_SECRETS`.
+- Migration 0023 and `@lbgos/modules/integrations`: integration records with the WORKFLOWS §10 status machine, test connection, health, usage and quota per tenant, retry policy, mock adapters for every category and a custom REST adapter; hub API routes.
+
+## [0.6.0] — 2026-10-28 — Phase 6 (CRM, consent, reminders, expenses, analytics)
+
+### Added
+- Phase 6 plan (`docs/PHASE6_PLAN.md`).
+- Migration 0017 and customer profile: alternate mobile, date of birth, tags, preferred contact channels; warranty months/provider recorded on sale lines; owned units and warranty items with end dates (`GET /customers/:id/owned-items`); customer CSV export of chosen fields (`GET /customers/export`, `customers.export`, audited); `addMonths`, `warrantyEnd`, `normalizeTags` in `@lbgos/domain`.
+- Migration 0018 and `@lbgos/modules/messaging`: consent records and current state per channel, suppression list (opt-out, inbound STOP hook), messages with the WORKFLOWS §9 status machine enforced in the database, marketing approval, the send-time gate, quiet hours, provider adapter (default not configured) and communication history; messaging API routes; `gateDecision`, `nextAllowedTime` in `@lbgos/domain`.
+- Migration 0019 and `@lbgos/modules/reminders`: reminder settings per type (off by default; auto-send needs `marketing.approve`), validated templates, idempotent runs drafting birthday, warranty-expiry, service-due and payment-due messages, auto-send through the send-time gate; reminder API routes; template helpers in `@lbgos/domain`.
+- Migration 0020 and `@lbgos/modules/expenses`: optional expenses module (off by default), entries with receipts, full reversals as corrections; expenses report and operating-profit estimate (CSV/XLSX/PDF); `storeUpload`/`getUploadFile` in the OCR module for non-scan files.
+- Dashboard API (`GET /dashboard`): net sales, cash received, receivables, customer advances, gross margin, low stock and reminders waiting, each with its definition and permission; metric definitions for low stock and reminders waiting.
+- Migration 0021 and `@lbgos/modules/privacy`: erase a customer's personal data (owner, reason, recent sign-in) and the owner's full data export as a ZIP of CSVs.
+- Screens: overview tiles and full data download; customer profile details, owned phones, consent and opt-out, messages, erasure; customer export; Reminders; Expenses; operating profit in Reports. Phase 6 exit browser test.
+
+### Fixed
+- Message event order within one transaction (insertion sequence, migration 0019).
+- Flaky test fixtures that picked units by an equal `created_at`.
+
+## [0.5.0] — 2026-10-28 — Phase 5 (POS, invoices, payments, ledger, reports)
 
 ### Added
 - Phase 5 plan (`docs/PHASE5_PLAN.md`).
@@ -9,8 +33,16 @@
 - Migration 0013 and `@lbgos/modules/sales` selling: draft sales (held carts), pricing from current tax rates and place of supply, discount limits with approval requests (`sales.discount`, approver's own limit checked), minimum-price override, atomic issue (number, line snapshots with COGS, SALE movements, units SOLD, payments, allocations, advance use, customer ledger, audit), invoice list/detail; sales API routes; `discountWithinLimit` in `@lbgos/domain`.
 - Migration 0014 and payments in `@lbgos/modules/sales`: later payments (selected invoices or oldest first), applying advance, advance refunds (`payment_refunds`), payment reversals, customer account (balance, receivable, advance, open invoices) and statement with opening/closing balance; payment status on invoices; payment API routes.
 - Migration 0015 and returns in `@lbgos/modules/sales`: invoice cancellation within the window (goods back to stock or into inspection; payments to advance or refunded), credit notes (partial/full, from line snapshots, returns into inspection, release or refund of paid money), debit notes; invoice credited amount and status; API routes.
+- Migration 0016 and printing: shop address/phone/email/terms settings copied into issued documents; print templates for A4, A5, 80 mm and 58 mm (amount in words, tax summary by HSN, payments, terms); PDF download rendered by headless Chromium; `amountInWords` and GST state names in `@lbgos/domain`.
+- `@lbgos/modules/reports` and Reports screen: sales summary with previous period, sales by brand/model/variant, margin, receivables ageing, cash received by method, returns, tax summary, stock valuation, all with metric definitions; CSV/XLSX/PDF exports (audited); customer statement export; report periods in `@lbgos/domain`.
+- POS screen (scan IMEI/barcode, cart priced by the server, customer by mobile, line and invoice discounts, split payments, held sales, receipt with print/PDF), Invoices and Customers screens; counter search API; Phase 5 exit browser test.
+
+### Fixed
+- Wide tables no longer make small screens scroll sideways when they contain screen-reader-only text.
+- Ledger entries and refunds written by cancellations, credit and debit notes now carry the document time.
 
 ### Changed
+- Portal redesign (D-043): design tokens, app shell with business side menu, dashboard-style overview, card sections, status badges, refined forms and tables, centred sign-in pages.
 - Approvals: executors may add an approver check (`ApprovalAction.authorize`); the action map is shared (`apps/api/src/approval-actions.ts`); any member may withdraw their own request and list it (`/approvals/mine`).
 
 ### Fixed

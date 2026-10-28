@@ -95,7 +95,7 @@ export function ScansPage() {
 
   return (
     <Page title="Scans">
-      <p className="mb-3 text-sm text-slate-700">
+      <p className="mb-3 text-sm text-ink-600">
         Photos (JPEG, PNG, WebP) or PDFs up to 10 MB. Files are checked for type and size; no malware scanner is
         configured. This build reads text with a test adapter only — no OCR service is connected yet.
       </p>
@@ -130,7 +130,7 @@ export function ScansPage() {
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null);
             }}
-            className="w-full max-w-full rounded border border-slate-400 bg-white px-3 py-2"
+            className="w-full max-w-full rounded border border-ink-300 bg-white px-3 py-2"
           />
         </div>
         <Button type="submit">Upload</Button>
@@ -139,7 +139,7 @@ export function ScansPage() {
         {(scans.data?.scans ?? []).map((s) => (
           <tr key={s.id}>
             <td className={cell}>
-              <Link className="text-blue-800 underline" to={`/b/${businessId}/scans/${s.id}`}>
+              <Link className="link" to={`/b/${businessId}/scans/${s.id}`}>
                 {TYPE_LABEL[s.scanType]}
               </Link>
             </td>
@@ -202,7 +202,7 @@ function FieldRows(props: {
           <td className={cell}>{props.label(f.key)}</td>
           <td className={`${cell} break-all`}>{f.value ?? <em>not found</em>}</td>
           <td className={cell}>{f.value === null ? '—' : f.level}</td>
-          <td className={`${cell} break-all text-slate-700`}>{f.source ?? '—'}</td>
+          <td className={`${cell} break-all text-ink-600`}>{f.source ?? '—'}</td>
           <td className={cell}>
             {f.problems.map((p) => PROBLEM[p] ?? p).join('; ') || '—'}
             {f.needsConfirmation ? (
@@ -321,11 +321,11 @@ export function ScanReviewPage() {
         <img
           src={fileUrl}
           alt={`Uploaded ${TYPE_LABEL[s.scanType].toLowerCase()}`}
-          className="mb-4 max-h-80 rounded border border-slate-300"
+          className="mb-4 max-h-80 rounded border border-ink-200"
         />
       ) : (
         <p className="mb-4">
-          <a className="text-blue-800 underline" href={fileUrl}>
+          <a className="link" href={fileUrl}>
             Download the uploaded PDF
           </a>
         </p>
@@ -344,7 +344,7 @@ export function ScanReviewPage() {
           {s.existingImeis.length > 0 ? (
             <Alert message={`Already in stock records: ${s.existingImeis.map((x) => x.imei).join(', ')}`} />
           ) : null}
-          <h2 className="mb-2 text-xl font-semibold">What was read</h2>
+          <h2 className="section-title">What was read</h2>
           <Table
             caption="Fields read from the document"
             headers={['Field', 'Value', 'Confidence', 'Seen in the document as', 'Checks']}
@@ -373,10 +373,10 @@ export function ScanReviewPage() {
       ) : null}
       {s.status === 'NEEDS_REVIEW' && form ? (
         <section aria-labelledby="create">
-          <h2 id="create" className="mb-2 text-xl font-semibold">
+          <h2 id="create" className="section-title">
             Create a draft purchase
           </h2>
-          <p className="mb-3 text-sm text-slate-700">
+          <p className="mb-3 text-sm text-ink-600">
             Check and correct the values below. Nothing is added to stock until the draft is posted.
           </p>
           <Form
@@ -404,7 +404,7 @@ export function ScanReviewPage() {
       ) : null}
       {s.createdPurchaseId ? (
         <p>
-          <Link className="text-blue-800 underline" to={`/b/${businessId}/purchases/${s.createdPurchaseId}`}>
+          <Link className="link" to={`/b/${businessId}/purchases/${s.createdPurchaseId}`}>
             Open the draft purchase
           </Link>
         </p>

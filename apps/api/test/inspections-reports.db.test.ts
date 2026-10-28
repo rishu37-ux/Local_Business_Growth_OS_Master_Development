@@ -107,8 +107,11 @@ beforeAll(async () => {
   units = (
     await sql<{
       id: string;
-    }>`select id from lbg.serialized_units where purchase_id = ${purchaseId} order by created_at`.execute(h.admin)
-  ).rows.map((r) => r.id);
+    }>`select u.id from lbg.serialized_units u
+          join lbg.serialized_unit_imeis i on i.business_id = u.business_id and i.unit_id = u.id and i.slot = 1
+         where u.purchase_id = ${purchaseId} order by i.imei`.execute(h.admin)
+  ).rows // created together: same created_at
+    .map((r) => r.id);
   await simulateUnitReturn(units[0] ?? '');
   await simulateUnitReturn(units[1] ?? '');
   await movement(cableId, 'SALE', -3, 'AVAILABLE', null);

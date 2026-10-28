@@ -46,17 +46,25 @@ Tax and invoice rules here implement D-012, D-013 and D-016 as written. They rem
 - AC3 FR-TAX-4: no e-invoice, IRN/QR or digital-signature claims; no text saying every GST invoice needs a digital signature (test on templates).
 - AC4 FR-PRN-1 AC4 (manual printer and cross-browser tests) is **recorded as not done** unless actually performed; it needs real devices.
 
+**Status (5.6):** done — TR-0023, D-044. AC4 (manual tests on real browsers, phones and a thermal printer) **not done**. Print buttons in the web app come with the POS screens (5.8).
+
 ## Increment 5.7 — Reports and exports (P-08, P-09, FR-RPT-1…4)
 - AC1 FR-RPT-1 (Phase 5 subset): sales summary (day/week/month/year with previous period), sales by brand/model/variant, margin (`reports.financial.view`), receivables ageing (0–30/31–60/61–90/90+), payment-method summary (cash received), returns, tax summary (labelled "not a filing"), stock valuation; **exact values on a seeded dataset**.
 - AC2 FR-RPT-2 / FR-LED-3: every metric carries its §7 definition; nothing labels sales as profit or cash.
 - AC3 FR-RPT-3: business timezone and FY start: sales at 23:30 and 00:30 IST and on 31 March / 1 April land in the right day and FY; week start configurable (default Monday).
 - AC4 FR-RPT-4: CSV for tabular reports; PDF for sales summary, tax summary and ledger statements; XLSX for sales, stock and tax summaries; export needs `reports.export` and is audited.
 
+**Status (5.7):** done — TR-0024, D-045; a Reports screen was added to the portal. Not done: historical receivables as of a past date; expenses and campaign reports (later phases).
+
 ## Increment 5.8 — POS and sales web screens, Phase 5 exit test
 - AC1 FR-POS-1 AC1, AC3: POS screen: search/scan by name, model, SKU, barcode or IMEI; unit choice for serialized items; customer by mobile; discounts; split payment; issue and print. A single-item sale with a known customer in ≤ 6 interactions (counted in the browser test). The 300 ms p95 search target over 10,000 variants is measured on the dev container and reported as such (not the reference environment).
 - AC2 Screens: invoices list/detail with print/PDF, customer profile with ledger and statement, payments, credit notes, reports; axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
 
+**Status (5.8):** done — TR-0025, D-046.
+
 ## Phase 5 exit
+**Status: Phase 5 complete.** All browser steps pass (TR-0025 #1–8); cross-tenant tests pass in every Phase 5 suite; CI run #32 on `2cb0c4d` green (TR-0025 #12). Not done in Phase 5: manual printer/device tests (FR-PRN-1 AC4), search timing on the reference environment, screens for debit notes and payment reversal.
+
 In a real browser, a synthetic shop sells a phone (chosen by IMEI) and an accessory to a new customer at POS with a discount within the cashier's limit, part-paid by UPI and cash; the invoice is issued with the next consecutive number and prints in A4 and 80 mm and as a PDF; the customer's balance shows the amount due; a later payment clears it; a credit note returns the phone into inspection; the sales, tax and receivables reports equal the expected values for the seeded data; cross-tenant tests pass; CI is green.
 
 Not in Phase 5 (by design): payment-gateway collection (SRS §15), e-invoice/e-way bill (FR-TAX-4), messaging invoices by WhatsApp/SMS (Phase 6–7), full CRM consent and reminders (Phase 6), expenses (Phase 6), stock reservation for held carts.

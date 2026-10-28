@@ -27,5 +27,12 @@ export default tseslint.config(
     plugins: { lbgos },
     rules: { 'lbgos/module-boundaries': ['error', { repoRoot }] },
   },
+  {
+    // FR-HUB-5 AC1: server code reaches the network only through the guarded client.
+    files: ['packages/*/src/**/*.ts', 'apps/api/src/**/*.ts'],
+    ignores: ['packages/modules/src/outbound/**'],
+    plugins: { lbgos },
+    rules: { 'lbgos/no-raw-http': 'error' },
+  },
   prettier,
 );

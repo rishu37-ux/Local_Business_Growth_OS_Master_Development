@@ -88,8 +88,11 @@ beforeAll(async () => {
   unitIds = (
     await sql<{
       id: string;
-    }>`select id from lbg.serialized_units where purchase_id = ${id} order by created_at`.execute(h.admin)
-  ).rows.map((r) => r.id);
+    }>`select u.id from lbg.serialized_units u
+          join lbg.serialized_unit_imeis i on i.business_id = u.business_id and i.unit_id = u.id and i.slot = 1
+         where u.purchase_id = ${id} order by i.imei`.execute(h.admin)
+  ).rows // created together: same created_at
+    .map((r) => r.id);
 }, 180_000);
 afterAll(async () => {
   await h.close();

@@ -31,3 +31,26 @@ export function placeOfSupply(
   const fromGstin = customer?.gstin ? customer.gstin.slice(0, 2) : null;
   return fromGstin ?? customer?.stateCode ?? businessState;
 }
+
+/** Channels a customer may prefer (FR-CRM-1 AC1); a preference, not consent (FR-CON-1). */
+export const CONTACT_CHANNELS = ['WHATSAPP', 'SMS', 'EMAIL', 'CALL'] as const;
+export type ContactChannel = (typeof CONTACT_CHANNELS)[number];
+
+/**
+ * Tags (FR-CRM-1 AC1): trimmed, inner spaces collapsed, duplicates removed
+ * ignoring case (first spelling kept). Returns null when there are more than
+ * 10, or one is empty, longer than 30 characters, or contains a comma or semicolon.
+ */
+export function normalizeTags(tags: readonly string[]): string[] | null {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of tags) {
+    const t = raw.trim().replace(/\s+/g, ' ');
+    if (t === '' || t.length > 30 || /[,;]/.test(t)) return null;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out.length > 10 ? null : out;
+}

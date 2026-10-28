@@ -41,6 +41,14 @@ describe('migrations', () => {
       '0013_sales',
       '0014_payments_ledger',
       '0015_credit_notes',
+      '0016_print_settings',
+      '0017_crm_profile',
+      '0018_messaging',
+      '0019_reminders',
+      '0020_expenses',
+      '0021_privacy',
+      '0022_secrets',
+      '0023_integrations',
     ]);
   });
 });

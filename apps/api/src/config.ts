@@ -20,6 +20,7 @@ const schema = z
     DATABASE_URL_APP: postgresUrl,
     DATABASE_URL_PLATFORM: postgresUrl,
     DATABASE_URL_AUTH: postgresUrl,
+    DATABASE_URL_SECRETS: postgresUrl,
     SESSION_SECRET: z.string().min(32, 'must be at least 32 characters').optional(),
     // Public origin of the app (cookies, auth links, CSRF origin check).
     PUBLIC_BASE_URL: z.url({ protocol: /^https?$/ }).default('http://localhost:3000'),
@@ -30,6 +31,15 @@ const schema = z
     // OCR worker limits (FR-OCR-6 AC3).
     OCR_TIMEOUT_MS: z.coerce.number().int().min(1000).max(600_000).default(30_000),
     OCR_MAX_MEMORY_MB: z.coerce.number().int().min(32).max(4096).default(256),
+    // Key-encryption keys for integration secrets (ADR-13): "version:base64(32 bytes)", comma-separated,
+    // the first is current. Unset: the secret store reports "not configured".
+    SECRETS_KEK: z
+      .string()
+      .regex(
+        /^([a-z0-9_-]{1,20}:[A-Za-z0-9+/=]{43,44})(,[a-z0-9_-]{1,20}:[A-Za-z0-9+/=]{43,44})*$/,
+        'must be version:base64key[,…]',
+      )
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

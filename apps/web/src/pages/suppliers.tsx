@@ -72,7 +72,7 @@ export function SuppliersPage() {
       </Table>
       {business.can('suppliers.manage') ? (
         <section aria-labelledby="add-supplier">
-          <h2 id="add-supplier" className="mb-2 text-xl font-semibold">
+          <h2 id="add-supplier" className="section-title">
             Add a supplier
           </h2>
           <Alert message={message?.text ?? null} tone={message?.tone ?? 'error'} />

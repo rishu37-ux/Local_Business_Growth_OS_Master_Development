@@ -44,7 +44,7 @@ function ApplicationCard({ application: a }: { application: Application }) {
     }
   };
   return (
-    <li className="rounded border border-slate-300 bg-white p-3">
+    <li className="card-inset">
       <h2 className="text-lg font-semibold">{a.legalName}</h2>
       <p className="mb-2 text-sm">
         {a.status.replaceAll('_', ' ').toLowerCase()} · state {a.stateCode ?? '—'} ·{' '}

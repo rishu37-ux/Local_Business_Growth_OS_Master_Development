@@ -77,12 +77,12 @@ export function ApprovalsPage() {
         {list.map((r) => {
           const title = `${KIND[r.payload.kind ?? ''] ?? r.actionType}: ${variantName(r.payload.variantId)}${r.payload.quantity ? `, quantity ${r.payload.quantity}` : ''}`;
           return (
-            <li key={r.id} className="mb-4 rounded border border-slate-300 bg-white p-3">
+            <li key={r.id} className="mb-4 card-inset">
               <h2 className="mb-1 font-semibold">{title}</h2>
               <p className="mb-1">
                 Requested by {r.requestedByName ?? 'a member'} · Reason: {r.reason ?? '—'}
               </p>
-              <p className="mb-2 text-sm text-slate-700">Expires {new Date(r.expiresAt).toLocaleString('en-IN')}</p>
+              <p className="mb-2 text-sm text-ink-600">Expires {new Date(r.expiresAt).toLocaleString('en-IN')}</p>
               <Field
                 label={`Note for ${title} (needed to reject)`}
                 name={`note-${r.id}`}

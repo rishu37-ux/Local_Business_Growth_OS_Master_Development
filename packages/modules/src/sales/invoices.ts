@@ -25,6 +25,8 @@ export interface InvoiceSummary {
 }
 
 export interface InvoiceDetail extends InvoiceSummary {
+  /** Number of the invoice a credit/debit note corrects. */
+  readonly originalInvoiceNumber: string | null;
   readonly financialYear: string;
   readonly placeOfSupply: string;
   readonly partySnapshot: unknown;
@@ -148,11 +150,14 @@ export async function getInvoice(
           discount_approved_by: string | null;
           issued_at: Date | null;
           issued_by: string | null;
+          original_number: string | null;
         }
       >`
         select s.*, i.financial_year, i.place_of_supply_state, i.party_snapshot, i.gross_paise, i.discount_paise,
                i.taxable_paise, i.cgst_paise, i.sgst_paise, i.igst_paise, i.cess_paise, i.round_off_paise,
-               i.discount_approved_by, i.issued_at, i.issued_by
+               i.discount_approved_by, i.issued_at, i.issued_by,
+               (select o.invoice_number from lbg.invoices o
+                 where o.business_id = i.business_id and o.id = i.original_invoice_id) as original_number
           from (${SUMMARY} where i.business_id = ${ctx.businessId} and i.id = ${id}
                   and i.status in ('ISSUED', 'CANCELLED')) s
           join lbg.invoices i on i.business_id = ${ctx.businessId} and i.id = s.id`.execute(trx)
@@ -196,6 +201,7 @@ export async function getInvoice(
         group by p.id, p.method, p.reference, p.received_at order by p.received_at, p.id`.execute(trx);
     return {
       ...toSummary(head),
+      originalInvoiceNumber: head.original_number,
       financialYear: head.financial_year,
       placeOfSupply: head.place_of_supply_state,
       partySnapshot: head.party_snapshot,

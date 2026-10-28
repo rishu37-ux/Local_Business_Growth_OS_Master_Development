@@ -7,6 +7,10 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
+import type { MessageProvider } from '@lbgos/modules/messaging';
+import type { OutboundOptions } from '@lbgos/modules/outbound';
+import { parseKeyring, type Keyring } from '@lbgos/modules/secrets';
+import { chromiumPdfRenderer } from '../src/pdf.ts';
 import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
 import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
 import { AUTHENTICATED } from '../src/auth-plugin.ts';
@@ -27,6 +31,9 @@ export interface Harness {
   readonly authDb: Db;
   /** Tenant role pool (RLS applies), for probing database-level rules. */
   readonly appDb: Db;
+  /** Secrets role pool (reads sealed material). */
+  readonly secretsDb: Db;
+  readonly keyring: Keyring | null;
   readonly admin: Db;
   readonly storage: MemoryStorage;
   readonly ocr: OcrConfig;
@@ -48,11 +55,26 @@ export function freshIp(): string {
 }
 
 export async function startHarness(
-  options: { secureCookies?: boolean; baseURL?: string; webRoot?: string } = {},
+  options: {
+    secureCookies?: boolean;
+    baseURL?: string;
+    webRoot?: string;
+    messaging?: MessageProvider;
+    /** Key-encryption keys for the secret store; default: a fixed synthetic test key. `null`: not configured. */
+    keyring?: Keyring | null;
+    /** API Hub: DNS/transport injection for outbound calls. */
+    outbound?: Pick<OutboundOptions, 'resolver' | 'transport'>;
+    /** Offer mock adapters (default true; false behaves like production). */
+    allowMocks?: boolean;
+  } = {},
 ): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
   const appDb = createDb('lbgos_app', { max: 3 });
   const platformDb = createDb('lbgos_platform', { max: 2 });
+  const secretsDb = createDb('lbgos_secrets', { max: 2 });
+  // A fixed synthetic test key (never used outside tests).
+  const keyring =
+    options.keyring === undefined ? parseKeyring(`t1:${Buffer.alloc(32, 7).toString('base64')}`) : options.keyring;
   // Owner role (BYPASSRLS): seeding and inspection only — never an application role.
   const admin: Db = new Kysely({
     dialect: new PostgresDialect({ pool: new pg.Pool({ user: 'lbgos_owner', max: 2 }) }),
@@ -75,10 +97,27 @@ export async function startHarness(
     isolation: { adapterUrl: DEFAULT_ADAPTER_URL, structurerUrl: null, timeoutMs: 15_000, maxMemoryMb: 128 },
     staleSeconds: 600,
   };
+  // Real Chromium, started on the first PDF request only.
+  const pdf = chromiumPdfRenderer();
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr },
+    services: {
+      appDb,
+      platformDb,
+      auth,
+      mailer: mail,
+      baseURL,
+      ocr,
+      pdf,
+      ...(options.messaging ? { messaging: options.messaging } : {}),
+      ...(keyring ? { secrets: { db: secretsDb, keyring } } : {}),
+      integrations: {
+        allowMocks: options.allowMocks ?? true,
+        retryBaseMs: 1,
+        ...(options.outbound ? { outbound: options.outbound } : {}),
+      },
+    },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });
@@ -95,6 +134,8 @@ export async function startHarness(
     logs,
     authDb,
     appDb,
+    secretsDb,
+    keyring,
     admin,
     storage,
     ocr,
@@ -106,7 +147,8 @@ export async function startHarness(
     },
     async close() {
       await app.close();
-      await Promise.all([authDb, appDb, platformDb, admin].map((db) => db.destroy()));
+      await pdf.close();
+      await Promise.all([authDb, appDb, platformDb, secretsDb, admin].map((db) => db.destroy()));
     },
   };
 }

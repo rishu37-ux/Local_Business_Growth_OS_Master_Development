@@ -9,13 +9,20 @@ import { isBusinessPermission, isPlatformPermission } from '@lbgos/domain';
 import { AUTHENTICATED, MEMBER, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
 import { registerCatalogueRoutes } from './routes/catalogue.ts';
+import { registerExpenseRoutes } from './routes/expenses.ts';
+import { registerIntegrationRoutes } from './routes/integrations.ts';
 import { registerInventoryRoutes } from './routes/inventory.ts';
 import { registerMemberRoutes } from './routes/members.ts';
+import { registerMessagingRoutes } from './routes/messaging.ts';
 import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPaymentRoutes } from './routes/payments.ts';
+import { registerPrivacyRoutes } from './routes/privacy.ts';
 import { registerPurchasingRoutes } from './routes/purchasing.ts';
+import { registerReminderRoutes } from './routes/reminders.ts';
+import { registerReportRoutes } from './routes/reports.ts';
 import { registerSalesRoutes } from './routes/sales.ts';
 import { registerScanRoutes } from './routes/scans.ts';
+import { registerSecretRoutes } from './routes/secrets.ts';
 import { registerPlatformRoutes } from './routes/platform.ts';
 import { registerTenancyRoutes } from './routes/tenancy.ts';
 import type { AppServices } from './services.ts';
@@ -199,6 +206,13 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerScanRoutes(app, services);
     registerSalesRoutes(app, services);
     registerPaymentRoutes(app, services);
+    registerReportRoutes(app, services);
+    registerMessagingRoutes(app, services);
+    registerReminderRoutes(app, services);
+    registerExpenseRoutes(app, services);
+    registerPrivacyRoutes(app, services);
+    registerSecretRoutes(app, services);
+    registerIntegrationRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

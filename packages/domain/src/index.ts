@@ -125,5 +125,43 @@ export {
   type FormatProblem,
 } from './numbering.ts';
 export { METRICS, type MetricKey } from './metrics.ts';
-export { normalizeMobile, placeOfSupply } from './customers.ts';
+export { CONTACT_CHANNELS, normalizeMobile, normalizeTags, placeOfSupply, type ContactChannel } from './customers.ts';
 export { discountWithinLimit } from './discount-limits.ts';
+export { amountInWords } from './amount-words.ts';
+export { GST_STATES, stateLabel } from './gst-states.ts';
+export {
+  addDays,
+  addMonths,
+  ageingBucket,
+  customPeriod,
+  daysBetween,
+  periodRange,
+  type DateRange,
+  type Period,
+  type PeriodKind,
+  warrantyEnd,
+} from './periods.ts';
+export {
+  gateDecision,
+  localMinute,
+  MESSAGE_CHANNELS,
+  MESSAGE_PURPOSES,
+  nextAllowedTime,
+  type BlockReason,
+  type GateFacts,
+  type MessageChannel,
+  type MessagePurpose,
+} from './messaging.ts';
+export {
+  DEFAULT_DAYS,
+  DEFAULT_TEMPLATES,
+  PLACEHOLDERS,
+  REMINDER_PURPOSE,
+  REMINDER_TYPES,
+  renderTemplate,
+  templatePlaceholders,
+  templateProblems,
+  TYPE_PLACEHOLDERS,
+  type Placeholder,
+  type ReminderType,
+} from './reminders.ts';

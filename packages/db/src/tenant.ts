@@ -19,7 +19,7 @@ export type Db = Kysely<any>;
 export type Trx = Transaction<any>;
 
 /** The database roles the application connects as (bootstrap.sql). */
-export type AppRole = 'lbgos_app' | 'lbgos_platform' | 'lbgos_auth';
+export type AppRole = 'lbgos_app' | 'lbgos_platform' | 'lbgos_auth' | 'lbgos_secrets';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

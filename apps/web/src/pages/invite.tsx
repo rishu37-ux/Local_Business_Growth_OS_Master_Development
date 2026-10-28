@@ -26,7 +26,7 @@ export function InvitePage() {
   };
 
   return (
-    <Page title="Join a business">
+    <Page narrow title="Join a business">
       <Alert message={error} />
       <p className="mb-3">You have been invited to join a business on Local Business Growth OS.</p>
       <Button onPress={() => void accept()}>Accept invitation</Button>
