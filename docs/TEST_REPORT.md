@@ -762,3 +762,23 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 13 | — | Negative control: `select` on the whole table granted to the tenant role → test 6 fails. Restored | **Detected** |
 | 14 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 305 | **Pass**, exit 0 |
 | 15 | — | CI run #43 on `c1fa6d8` (7.1 + 7.2 + the secret-scan fix): all jobs incl. secret scan | **Pass** (success) |
+
+## TR-0035 · 2026-10-28 · Phase 7 increment 7.3 — API & Integrations Hub
+
+**Environment:** as TR-0011 (`integrations.db.test.ts`). Mock adapters and an injected DNS resolver and transport only — **no real provider was contacted**. Synthetic keys only.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-HUB-1 AC1–2 | Providers: a mock adapter for each of the 9 categories (messaging, SMS, email, LLM, image/video, OCR, storage, payments, social) and `custom_rest`; Manager can view, Billing 403 | **Pass** |
+| 2 | FR-HUB-2, FR-HUB-3 | Create with a credential: Manager 403; owner 201 `CONFIGURED` with defaults (timeout 15 s, 3 retries) and only a secret ID; without a credential `PLANNED`; no value in the response | **Pass** |
+| 3 | FR-HUB-1 AC3, FR-HUB-5 | Refused: unknown provider, unsupported category, missing base URL; endpoints `169.254.169.254`, a name resolving to 10.0.0.5, `0x7f.1` (`BLOCKED_ADDRESS`), port 8443 (`PORT_NOT_ALLOWED`) unless allowed, `http` (400) | **Pass** |
+| 4 | FR-HUB-4 AC1, AC3 | Test connection → `TESTED` with latency; a configuration change → `CONFIGURED` ("test again"); a failing test → `FAILED` with code `MOCK_FAILURE`; after a fix → `TESTED`. Health: 3 calls, 1 error, error rate 1/3, last error code, recent calls. Audit: create, test, update, view (configuration viewing audited) | **Pass** |
+| 5 | FR-HUB-4 AC2 | Disable (testing refused), enable (`CONFIGURED`), rotate the credential (new secret, old revoked, retest needed), revoke (`REVOKED`, credential destroyed, no further change or enable) | **Pass** |
+| 6 | WORKFLOWS §10 | Database refuses PLANNED → TESTED/VERIFIED/FAILED, inserting as VERIFIED, deleting, and any change after REVOKED | **Pass** |
+| 7 | FR-HUB-1 AC3 | `custom_rest` through the guarded client: API key header, bearer, OAuth2 client credentials (token POST with scope, then bearer GET); every request to the checked public address with the right host; HTTP 503 → `HTTP_503`; a redirect to 10.0.0.1 → `BLOCKED_ADDRESS` | **Pass** |
+| 8 | FR-SUB-3 AC1–2, FR-HUB-6 | Calls record units and cost per tenant (5 calls, ₹10.00); 80 % warns, the 6th call is refused `QUOTA_EXCEEDED` | **Pass** |
+| 9 | FR-HUB-2 | Retry policy: a provider failing twice then succeeding takes 3 attempts with 3 retries allowed; failing 3 times with 1 retry allowed stops after 2 attempts | **Pass** |
+| 10 | — | No tested integration → `NOT_CONFIGURED`; no credential in responses, captured logs or audit metadata | **Pass** |
+| 11 | Access | Stale session: create, endpoint change, credential change and revoke `REAUTH_REQUIRED` (testing not); other business 404 and empty list; read-only lists but cannot test or create (`TENANT_READ_ONLY`); with mocks off (production) only `custom_rest` is offered | **Pass** |
+| 12 | — | Negative control: the quota stop removed → test 8 fails. Restored | **Detected** |
+| 13 | — | `pnpm check`: ESLint rules 26, domain 150, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 318; `pnpm secrets` clean | **Pass**, exit 0 |

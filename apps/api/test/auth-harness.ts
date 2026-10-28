@@ -8,6 +8,7 @@ import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
 import type { MessageProvider } from '@lbgos/modules/messaging';
+import type { OutboundOptions } from '@lbgos/modules/outbound';
 import { parseKeyring, type Keyring } from '@lbgos/modules/secrets';
 import { chromiumPdfRenderer } from '../src/pdf.ts';
 import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
@@ -61,6 +62,10 @@ export async function startHarness(
     messaging?: MessageProvider;
     /** Key-encryption keys for the secret store; default: a fixed synthetic test key. `null`: not configured. */
     keyring?: Keyring | null;
+    /** API Hub: DNS/transport injection for outbound calls. */
+    outbound?: Pick<OutboundOptions, 'resolver' | 'transport'>;
+    /** Offer mock adapters (default true; false behaves like production). */
+    allowMocks?: boolean;
   } = {},
 ): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
@@ -107,6 +112,11 @@ export async function startHarness(
       pdf,
       ...(options.messaging ? { messaging: options.messaging } : {}),
       ...(keyring ? { secrets: { db: secretsDb, keyring } } : {}),
+      integrations: {
+        allowMocks: options.allowMocks ?? true,
+        retryBaseMs: 1,
+        ...(options.outbound ? { outbound: options.outbound } : {}),
+      },
     },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),

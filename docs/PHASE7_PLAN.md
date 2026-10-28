@@ -21,6 +21,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC5: changing a secret requires `integrations.manage` and a sign-in within 10 minutes; viewing the configuration and changing secrets are audited.
 
 ## Increment 7.3 — Integration records, lifecycle and health (FR-HUB-1, -2, -4, -6, WORKFLOWS §10)
+**Status: done in the API (TR-0035, D-056); messaging gate switch-over to a configured provider comes with 7.6; screens in 7.7.**
 - AC1: integration record: category (messaging, SMS, email, LLM, image/video, OCR, storage, payments, social), provider, auth method, base URL (through the guarded client's checks), scopes, model/service ID, owner (tenant or platform), usage limits, timeout, retry policy (max 3, exponential backoff), status.
 - AC2: status machine `PLANNED → CONFIGURED → TESTED → VERIFIED`, `→ FAILED → CONFIGURED`, `→ DISABLED`, `DISABLED → CONFIGURED`, `→ REVOKED` (DB-enforced); `TESTED` only after a successful test connection, `VERIFIED` only after a real operation confirmed by the provider.
 - AC3: "Test connection" performs a harmless provider-specific call through the adapter and records result and latency; enable/disable, rotate (new secret, then old revoked) and revoke are audited.

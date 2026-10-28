@@ -48,6 +48,7 @@ describe('migrations', () => {
       '0020_expenses',
       '0021_privacy',
       '0022_secrets',
+      '0023_integrations',
     ]);
   });
 });

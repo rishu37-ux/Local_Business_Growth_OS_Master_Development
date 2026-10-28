@@ -10,6 +10,7 @@ import { AUTHENTICATED, MEMBER, registerAuth } from './auth-plugin.ts';
 import type { Config } from './config.ts';
 import { registerCatalogueRoutes } from './routes/catalogue.ts';
 import { registerExpenseRoutes } from './routes/expenses.ts';
+import { registerIntegrationRoutes } from './routes/integrations.ts';
 import { registerInventoryRoutes } from './routes/inventory.ts';
 import { registerMemberRoutes } from './routes/members.ts';
 import { registerMessagingRoutes } from './routes/messaging.ts';
@@ -211,6 +212,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerExpenseRoutes(app, services);
     registerPrivacyRoutes(app, services);
     registerSecretRoutes(app, services);
+    registerIntegrationRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

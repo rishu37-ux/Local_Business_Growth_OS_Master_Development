@@ -69,12 +69,12 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-AIC-3 | Creative | Approval | 7 | Specified | — | — |
 | FR-AIC-4 | Creative | Variants and scheduling | 7 | Specified | — | — |
 | FR-AIC-5 | Creative | Cost and asset tracking | 7 | Specified | — | — |
-| FR-HUB-1 | API Hub | Adapters | 7 | Specified | — | — |
-| FR-HUB-2 | API Hub | Configuration fields | 7 | Specified | — | — |
+| FR-HUB-1 | API Hub | Adapters | 7 | Done in API (interfaces, a mock per category, custom REST test-only); provider adapters in 7.6 | `modules/integrations/` | TR-0035 #1, #3, #7 |
+| FR-HUB-2 | API Hub | Configuration fields | 7 | Done in API | migration 0023, `modules/integrations/` | TR-0035 #2, #9 |
 | FR-HUB-3 | API Hub | Secret handling | 7 | Done in API (AC1–4: write-only with 4-character hint, envelope encryption with KEK outside the DB, redaction tested, re-auth and audit); integration screens in 7.7 | migration 0022, `modules/secrets/`, `routes/secrets.ts` | TR-0034 #1–13 |
-| FR-HUB-4 | API Hub | Lifecycle and health | 7 | Specified | — | — |
+| FR-HUB-4 | API Hub | Lifecycle and health | 7 | Done in API (test connection, status machine, health, rotate/revoke) | migration 0023, `routes/integrations.ts` | TR-0035 #4–6 |
 | FR-HUB-5 | API Hub | SSRF protection | 7 | Done (AC1–5: guarded client, lint rule, address checks, pinned connection, redirects) | `modules/outbound/`, `tooling/eslint/no-raw-http.js` | TR-0033 #1–7 |
-| FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | Specified | — | — |
+| FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | In progress (usage and cost per tenant recorded; platform-owned integrations modelled, not offered) | `integration_calls` | TR-0035 #8 |
 | FR-MSG-1 | Messaging | WhatsApp | 7 | In progress (AC3 send blocked without opt-in, AC4 provider-confirmed statuses only — adapter interface, no provider connected) | `modules/messaging/` | TR-0027 #3, #8–9 |
 | FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Specified | — | — |
 | FR-MSG-3 | Messaging | Google Business Profile and Meta | 7 | Specified | — | — |
@@ -88,7 +88,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
 | FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | In progress (plans, TRIALING on approval, status gate; billing invoices/notifications later) | migration 0006, `tenancy/platform.ts` | TR-0008 #2, TR-0009 #3 |
 | FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Implemented + tested (AC1 audited price edits; AC2 seed plans flagged pilot) | `onboarding/platform.ts`, `routes/platform.ts` | TR-0009 #9 |
-| FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | Specified | — | — |
+| FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | In progress (AC1 usage per tenant for provider calls; AC2 per-integration monthly quota with 80 % warning and hard stop; plan quotas in Phase 10; AC3 no ad spend exists) | `modules/integrations/` | TR-0035 #8 |
 | FR-AUD-1 | Audit | Audit log | 3 | In progress (append-only store + lifecycle/member/auth events; more actions as modules arrive) | `packages/modules/src/audit/` | TR-0005, TR-0007 #16, TR-0008 #12 |
 | FR-MEM-1 | Continuity | Project memory | 0 | Implemented + tested (in CI) | `scripts/check-docs.sh` | TR-0001, TR-0002, TR-0006 #2 |
 | NFR-1 | Non-functional | Responsive, accessible UI | 3–9 | In progress (axe 0 serious/critical on 16 screens × 360/768/1280 px, no overflow; keyboard-only/screen-reader checks pending) | `apps/web` | TR-0010 #4, #6; TR-0016 #7 |

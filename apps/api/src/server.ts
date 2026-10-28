@@ -79,6 +79,8 @@ const app = buildApp({
     ocr,
     pdf,
     ...(secrets ? { secrets } : {}),
+    // Mock adapters never in production (the check stays correct once production starts are allowed).
+    integrations: { allowMocks: (config.NODE_ENV as string) !== 'production' },
   },
   readiness: {
     database: async () => {
