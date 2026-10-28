@@ -190,6 +190,11 @@ export function mockAdapter(): ProviderAdapter {
     generateText: (call, req) => {
       const failed = failFor(call);
       if (failed) return Promise.resolve(failed);
+      const agent = mockAgentStep(call.modelId, req.input);
+      if (agent !== null) {
+        const units = Math.min(req.maxUnits, Math.ceil((req.input.length + agent.length) / 4));
+        return Promise.resolve({ ok: true, value: { text: agent }, units, costPaise: units });
+      }
       let data: {
         products?: { name?: string; price?: string }[];
         offer?: { title?: string; discount?: string; validTo?: string } | null;
@@ -220,6 +225,52 @@ export function mockAdapter(): ProviderAdapter {
       });
     },
   };
+}
+
+/**
+ * The mock "model" for agent runs (protocol 1, D-061): it replies with one
+ * JSON step. Tests script it through the question: each `[[call tool {json}]]`
+ * is called in turn, then it answers with a suggestion quoting the first fact
+ * value. Without directives it calls the agent's first tool once. Model IDs:
+ * `mock-agent-loop` calls the first tool forever (limits), `mock-agent-bad`
+ * replies with plain text (invalid output), `mock-agent-invent` answers with a
+ * figure that is in no tool result.
+ */
+function mockAgentStep(modelId: string | null, input: string): string | null {
+  let data: {
+    agentProtocol?: number;
+    question?: string;
+    tools?: { name?: string }[];
+    history?: { tool?: string; facts?: { value?: string }[] }[];
+  };
+  try {
+    data = JSON.parse(input) as typeof data;
+  } catch {
+    return null;
+  }
+  if (data.agentProtocol !== 1) return null;
+  const tools = (data.tools ?? []).map((t) => t.name ?? '');
+  const history = data.history ?? [];
+  if (modelId === 'mock-agent-bad') return 'I think the stock is fine.';
+  if (modelId === 'mock-agent-loop') return JSON.stringify({ tool: tools[0] ?? '', arguments: {} });
+  const directives = [...(data.question ?? '').matchAll(/\[\[call ([a-z_]+) (\{.*?\})\]\]/g)].map((m) => ({
+    tool: m[1] ?? '',
+    args: m[2] ?? '{}',
+  }));
+  const next = directives[history.length];
+  if (next) {
+    let args: unknown;
+    try {
+      args = JSON.parse(next.args);
+    } catch {
+      args = {};
+    }
+    return JSON.stringify({ tool: next.tool, arguments: args });
+  }
+  if (directives.length === 0 && history.length === 0) return JSON.stringify({ tool: tools[0] ?? '', arguments: {} });
+  const first = history.flatMap((h) => h.facts ?? [])[0]?.value ?? 'no figures';
+  const extra = modelId === 'mock-agent-invent' ? ' Sales will reach ₹99,999 next week.' : '';
+  return JSON.stringify({ final: { suggestions: `Based on your records: ${first}.${extra}` } });
 }
 
 // ---------------------------------------------------------------------------

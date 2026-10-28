@@ -871,3 +871,28 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 13 | — | CI #50 (7.6, push) failed in `reports-browser`: the page text was read before the Tax summary request had finished ("not a GST return" missing); the same commit passed in CI #51. Root cause: the test waited for other sections only. Fixed by waiting for the tax note before reading; `reports-browser` then passed 3 of 3 runs locally | **Fixed** |
 
 Screenshots (API Hub, Studio, Campaigns) were taken for review and are not stored in the repository.
+
+CI for Phase 7: #49 (7.5) green; #50 (7.6, push) red in `reports-browser` (fixed, #13 above) while #51 on the same commit was green; #53 (7.7) and #54 (the fix) green. **Phase 7 complete with CI green.**
+
+## TR-0040 · 2026-10-28 · Phase 8 increments 8.1–8.3 — agent runtime, tools, five assistants, approval of proposals
+
+**Environment:** as TR-0011 (`agents.db.test.ts`). The **mock AI adapter** plays the model: its replies are scripted by `[[call tool {json}]]` in the question, and model IDs `mock-agent-loop`, `mock-agent-bad`, `mock-agent-invent` produce endless tool calls, invalid output and an invented figure. No real model was called; agent behaviour with a real model is unverified. Synthetic shop: a non-serialized cable with 5 available and reorder level 10.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-AGT-5 | Without a tested AI integration a run is FAILED "No tested AI integration." | **Pass** |
+| 2 | FR-AGT-1, FR-RPT-5 | Finance assistant: MODEL → TOOL `sales_summary` → MODEL; answer facts carry value, source "Sales summary report" and the period; the suggestion quotes only a fact; no flags; usage 1 tool call, 2 model calls, units > 0; 2 hub calls `agent.step` recorded | **Pass** |
+| 3 | FR-AGT-5 AC1 | The same idempotency key returns the same run without running again | **Pass** |
+| 4 | FR-AGT-3 AC1–2 | Billing (no `reports.sales.view`) → tool step FORBIDDEN, no facts; a `businessId` argument naming another business → FOREIGN_SCOPE; a period outside the schema → INVALID_ARGUMENTS; a tool of another assistant → UNKNOWN_TOOL | **Pass** |
+| 5 | FR-AGT-5 AC1 | LIMIT_REACHED with the limit named: "Tool call limit of 3 reached." (3 tool calls), "Time limit of 120 s reached." (clock advanced), "Run budget of 5 units reached.", "Daily assistant budget of 1 units reached." (no model call made) | **Pass** |
+| 6 | FR-AGT-3 AC4 (plan 8.1 AC4) | Plain-text model output is not executed: retried up to 3 times, then FAILED after 4 invalid answers | **Pass** |
+| 7 | FR-RPT-5 AC2 | A figure in the suggestion that is in no tool result is flagged (PRICE ₹99,999) | **Pass** |
+| 8 | FR-AGT-2 AC2 | A proposed adjustment whose expected quantity differs from the recomputation (5 − 1 ≠ 10) → VALUE_MISMATCH; no approval request created | **Pass** |
+| 9 | FR-AGT-4 AC1–2 | A correct proposal: run AWAITING_APPROVAL with the effect "Available stock of Model AGT-CB goes from 5.000 to 4.000."; the approval request shows the same effect; stock unchanged and continuing does nothing while pending; owner approves → EXECUTED, stock 4; continuing records the decision and completes; continuing again changes nothing; stock moved once | **Pass** |
+| 10 | FR-AGT-5 AC2 | Another user cannot cancel (404); the run's user cancels a waiting run → CANCELLED and its approval request CANCELLED; cancelling again → INVALID_STATE | **Pass** |
+| 11 | FR-AGT-6 AC2 | A question with a mobile number and an email is stored masked ("[number]", "[email]"); no run or step contains the mobile, the email or the integration key; no audit metadata or log contains the key | **Pass** |
+| 12 | Access | Another business 404; a user without `audit.view` cannot see another user's run (404, not listed); the owner (audit.view) can; the catalogue lists the 5 assistants and marks tools the user may not use; suspended business: the owner reads runs but cannot start one (`TENANT_READ_ONLY`) | **Pass** |
+| 13 | DB rules | A finished run cannot change (LB003); runs are not deleted (LB001); steps are append-only (LB001); a run cannot be inserted as COMPLETED (LB002) | **Pass** |
+| 14 | — | Defects found by these tests and fixed: the number mask also masked dates in stored facts (now only runs of 10 or more digits); reading runs was blocked in read-only mode (now any member with `agents.use` or `audit.view`) | **Fixed** |
+| 15 | — | Negative control: the tool permission check disabled → test 4 fails. Restored | **Detected** |
+| 16 | — | `pnpm check`: ESLint rules 26, domain 160, API unit 108, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 370; `pnpm secrets` clean | **Pass**, exit 0 |

@@ -62,7 +62,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-RPT-2 | Reports | Definitions shown | 5 | Implemented + tested for the Phase 5 reports (every report returns its metric definitions; the Reports screen shows each next to its figure; exports include them) | `packages/domain/src/metrics.ts`, `modules/reports/`, `pages/reports.tsx` | TR-0017 #8; TR-0024 #4, #10 |
 | FR-RPT-3 | Reports | Timezone and financial periods | 5–6 | Implemented + tested (sales at 23:30 and 00:15/00:30 IST, 31 March / 1 April FY split, payments by business date, week start configurable, default Monday) | `packages/domain/src/periods.ts`, `modules/reports/` | TR-0024 #1–3, #6 |
 | FR-RPT-4 | Reports | Export | 5–6 | Implemented + tested (CSV for every report, XLSX for sales, stock and tax summaries and more, PDF for sales summary, tax summary and customer statements; `reports.export` plus the report's permission; every export audited) | `modules/reports/export.ts`, `routes/reports.ts` | TR-0024 #8–9 |
-| FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Specified | — | — |
+| FR-RPT-5 | Reports | AI analysis labelling | 5–6 | Done in API for assistant answers (facts with period and source from tools, suggestions separate and post-checked); screen in 8.6 | `modules/agents/` | TR-0040 #2, #7 |
 | FR-EXP-1 | Expenses | Expenses (optional module) | 6 | Done (AC1–2) | migration 0020, `modules/expenses/`, `routes/expenses.ts` | TR-0029 #1–6, #8–11, TR-0032 #5 |
 | FR-AIC-1 | Creative | Generation | 7 | Done in API (generation jobs with provider, model, units, cost; not configured without a tested integration) and Creative Studio screen | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #2, #4, #8; TR-0039 |
 | FR-AIC-2 | Creative | Grounding | 7 | Done in API (structured prompts, deterministic post-check with approver acknowledgement, ended offers refused) | migration 0024, `modules/studio/`, `domain/grounding.ts` | TR-0036 #1, #3–7; TR-0039 |
@@ -80,12 +80,12 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-MSG-3 | Messaging | Google Business Profile and Meta | 7 | Specified | — | — |
 | FR-MSG-4 | Messaging | Truthful status | 7 | Done (AC1 statuses only from provider responses and verified webhooks; AC2 screens show provider-accepted as "sent" and delivery only from receipts) | `modules/messaging/`, `modules/channels/` | TR-0027; TR-0038 #6, #10, #12; TR-0039 |
 | FR-MSG-5 | Messaging | Drafts, approval, retries, opt-out | 7 | In progress (AC1 approval for bulk/marketing, TR-0037; AC2 up to 3 retries with backoff via the hub, one message per recipient; AC3 STOP keywords processed automatically — fixed list, configurable list deferred; AC4 email not built) | `modules/channels/`, `modules/campaigns/` | TR-0037; TR-0038 #11 |
-| FR-AGT-1 | Agents | Initial agents | 8 | Specified | — | — |
-| FR-AGT-2 | Agents | Deterministic core | 8 | Specified | — | — |
-| FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Specified | — | — |
-| FR-AGT-4 | Agents | Human approval | 8 | In progress (generic approval requests with payload hash, expiry, R3 and idempotent execution exist for stock adjustments; agent actions in Phase 8) | `modules/approvals/` | TR-0013 #6–11 |
-| FR-AGT-5 | Agents | Reliability and budgets | 8 | Specified | — | — |
-| FR-AGT-6 | Agents | Agent audit | 8 | Specified | — | — |
+| FR-AGT-1 | Agents | Initial agents | 8 | Done in API (five assistants with purpose, tools and permissions; catalogue endpoint); screens in 8.6 | `modules/agents/` | TR-0040 #2, #12 |
+| FR-AGT-2 | Agents | Deterministic core | 8 | Done in API (tools compute every figure; model-supplied values recomputed and rejected on mismatch) | `modules/agents/tools.ts` | TR-0040 #8 |
+| FR-AGT-3 | Agents | Least privilege, tenant scope | 8 | Done in API (per-tool permission of the user; tenant from the session; business arguments refused) | `modules/agents/` | TR-0040 #4 |
+| FR-AGT-4 | Agents | Human approval | 8 | Done in API for agents (consequential tools create approval requests with the exact payload hash and a deterministic expected effect; execution once after approval; R3) | `modules/agents/`, `modules/approvals/`, migration 0027 | TR-0013 #6–11; TR-0040 #9 |
+| FR-AGT-5 | Agents | Reliability and budgets | 8 | Done in API (idempotency, timeout, tool-call, retry, run and daily budgets → LIMIT_REACHED; cancel) | migration 0027, `modules/agents/` | TR-0040 #1, #3, #5–6, #10 |
+| FR-AGT-6 | Agents | Agent audit | 8 | Done in API (run record with user, agent, steps, proposals, decisions, usage; masked question; redaction test) | migration 0027, `modules/agents/` | TR-0040 #11, #13 |
 | FR-SUB-1 | Commercial | Plans and subscription status | 3/8/10 | In progress (plans, TRIALING on approval, status gate; billing invoices/notifications later) | migration 0006, `tenancy/platform.ts` | TR-0008 #2, TR-0009 #3 |
 | FR-SUB-2 | Commercial | Admin-configurable pricing | 3/8/10 | Implemented + tested (AC1 audited price edits; AC2 seed plans flagged pilot) | `onboarding/platform.ts`, `routes/platform.ts` | TR-0009 #9 |
 | FR-SUB-3 | Commercial | Metering and quotas | 3/8/10 | In progress (AC1 usage per tenant for provider calls; AC2 per-integration monthly quota with 80 % warning and hard stop; plan quotas in Phase 10; AC3 no ad spend exists) | `modules/integrations/` | TR-0035 #8 |
