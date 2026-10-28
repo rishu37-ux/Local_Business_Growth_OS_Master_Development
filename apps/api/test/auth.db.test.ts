@@ -54,7 +54,7 @@ describe('FR-AUTH-1 sessions', () => {
   });
 
   it('AC1 production cookies carry Secure and the __Secure- prefix', async () => {
-    const prod = await startHarness({ secureCookies: true });
+    const prod = await startHarness({ secureCookies: true, keepRateLimits: true });
     try {
       const e = email('secure');
       await createVerifiedUser(prod, e, PW);

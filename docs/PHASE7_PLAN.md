@@ -51,9 +51,11 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 7; SRS FR
 - AC4: every screen that shows an integration shows its real status (FR-MSG-4); `INTEGRATIONS_STATUS.md` is updated only with evidence.
 
 ## Increment 7.7 — Screens and Phase 7 exit test
+**Status: done (TR-0039, D-060).**
 - Screens: API Hub (integrations list, add/configure, write-only secret entry, test connection, health, rotate/revoke), Offers, Creative Studio (generate with a mock provider in tests, review flags, approve exact version, assets), Campaigns (segment, preview counts, approve, schedule, results). axe 0 serious/critical at 360/768/1280 px, no overflow, no CSP violations.
 
 ## Phase 7 exit
+**Status: passed locally in a real browser with mock adapters only (TR-0039); CI result recorded in TEST_REPORT when known.** Deviation, recorded honestly: customers without consent or opted out are left out when a campaign starts (counted as "left out"), and each message is checked again by the send-time gate at dispatch (TR-0037 #5).
 In a real browser, for a synthetic shop and with mock adapters only: the owner adds an LLM integration with a secret (shown only as its last 4 characters afterwards, never in logs, audit or responses), tests the connection (status `tested`), and an attempt to point a custom integration at a private or metadata address is refused; an approved offer and two products produce a generated caption whose invented price is flagged and blocks approval until fixed; the approved version is used in a campaign to a tag segment where a customer without consent and an opted-out customer are blocked at send time and the counts are shown; editing the approved text returns it to draft; a scheduled campaign can be cancelled; usage and cost are recorded per tenant and the quota stop works; a signed mock webhook updates a delivery status while an unsigned or replayed one is rejected; cross-tenant tests pass; CI is green.
 
 Not in Phase 7 (by design): real provider traffic without accounts (Q4); paid-ad spend; agents (Phase 8).

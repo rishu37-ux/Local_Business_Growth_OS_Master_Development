@@ -61,7 +61,14 @@ async function signIn(page: Page, email: string, secret?: string) {
     await page.getByLabel('Six-digit code from your authenticator app').fill(totp(secret));
     await page.getByRole('button', { name: 'Verify code' }).click();
   }
-  await page.getByRole('heading', { name: /Welcome/ }).waitFor();
+  try {
+    await page.getByRole('heading', { name: /Welcome/ }).waitFor();
+  } catch (err) {
+    // Say what the page shows instead (e.g. a refused sign-in) rather than only a timeout.
+    throw new Error(`sign-in did not finish for ${email}: ${(await page.locator('main').innerText()).slice(0, 300)}`, {
+      cause: err,
+    });
+  }
 }
 
 beforeAll(async () => {

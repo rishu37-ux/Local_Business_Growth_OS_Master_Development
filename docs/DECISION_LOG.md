@@ -405,3 +405,11 @@ Format: ID · date · status (Proposed / Accepted / Superseded) · decision · r
 - **Opt-out:** inbound STOP, UNSUBSCRIBE, STOP ALL, OPT OUT (whole message, any case) → suppression and marketing consent withdrawn (6.2 hook). Configurable keywords are deferred (FR-MSG-5 AC3 partly).
 - **System actor:** webhook work runs with the all-zero UUID as user; the database records no user for it and the audit log marks it SYSTEM.
 - Routing: without an injected provider (tests), messages, reminders and campaigns use the business's tested WhatsApp / SMS integration through `callProvider` (quota, retries, usage).
+
+### D-060 · 2026-10-28 · Accepted
+**Decision (Phase 7 screens, increment 7.7):**
+- Four screens in the business menu: Offers, Creative Studio, Campaigns (permission `marketing.draft`) and API Hub (`integrations.view`); actions appear only for the permissions that allow them, and the API checks again.
+- API Hub shows each integration's real status with a plain explanation (WORKFLOWS §10), the credential only as `••••` + its last 4 characters, health, usage and cost this month, recent calls, and for WhatsApp/SMS the webhook address and templates. WhatsApp and SMS credentials are entered as separate fields and stored together as one sealed JSON credential.
+- Studio shows each post-check flag with what it means; an approver can accept a checked value; any text change is saved as a new version that needs approval again. Campaigns show the audience preview (in the group / would receive now / left out with reasons) and, after sending, results counted from the messages; "Sent" means accepted by the provider, never "delivered" (FR-MSG-4 AC2).
+- The side menu scrolls on its own when it is taller than the window.
+- Test infrastructure: each test harness clears Better Auth's rate-limit counters at start (shared test database); production behaviour is unchanged.

@@ -405,7 +405,7 @@ describe('secrets, access and production behaviour', () => {
   });
 
   it('with mock adapters off (production), the test adapter is not offered', async () => {
-    const prod = await startHarness({ allowMocks: false });
+    const prod = await startHarness({ allowMocks: false, keepRateLimits: true });
     try {
       resetFixture();
       const s = await activeShop(prod, 'hub-c');

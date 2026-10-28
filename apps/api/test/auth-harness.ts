@@ -60,6 +60,8 @@ export async function startHarness(
     baseURL?: string;
     webRoot?: string;
     messaging?: MessageProvider;
+    /** Keep the rate-limit counters already in the database (a second harness inside one test). */
+    keepRateLimits?: boolean;
     /** Key-encryption keys for the secret store; default: a fixed synthetic test key. `null`: not configured. */
     keyring?: Keyring | null;
     /** API Hub: DNS/transport injection for outbound calls. */
@@ -79,6 +81,10 @@ export async function startHarness(
   const admin: Db = new Kysely({
     dialect: new PostgresDialect({ pool: new pg.Pool({ user: 'lbgos_owner', max: 2 }) }),
   });
+  // Every test file shares one database and signs in from 127.0.0.1; Better Auth keeps its
+  // rate-limit counters in that database. Each harness starts with none, like a fresh server,
+  // so earlier files cannot use up this file's sign-in allowance (10 per minute).
+  if (options.keepRateLimits !== true) await sql`delete from auth."rateLimit"`.execute(admin);
   const emails = new CapturingEmailSender();
   const mail = new CapturingMailer();
   const baseURL = options.baseURL ?? ORIGIN;

@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phase 6 complete; Phase 7: 7.1–7.6 done)
+Last updated: 2026-10-28 (Phase 7 complete locally; Phase 8 next)
 
 ## Phase 7 — API Hub, AI Creative Studio, selected official integrations (in progress)
 
@@ -12,7 +12,11 @@ Plan and acceptance criteria: `PHASE7_PLAN.md`. Mock adapters only until provide
 4. ~~7.4 offers and the AI Creative Studio~~ — done (TR-0036, D-057).
 5. ~~7.5 campaigns, exact-version approval, scheduling~~ — done (TR-0037, D-058).
 6. ~~7.6 WhatsApp Cloud API and SMS DLT adapters, signed webhooks~~ — done against local mocks (TR-0038, D-059).
-7. **Next:** 7.7 screens and the Phase 7 exit browser test.
+7. ~~7.7 screens and the Phase 7 exit browser test~~ — done (TR-0039, D-060).
+
+**Phase 7 complete locally** (exit passed in the browser with mock adapters). Open from Phase 7: real providers (Q4: WhatsApp Cloud API account and templates, an SMS gateway with DLT registration, LLM/image providers); confirm the Graph API version; a reconciliation job for receipts older than the 5-minute window; configurable opt-out keywords; email channel; a job runner for scheduled campaigns and queued messages (Phase 8).
+
+**Next: Phase 8** — agents, approval workflows for agent actions, monitoring, cost limits, analytics (plan to be written as `PHASE8_PLAN.md` from the prompt).
 
 ## Phase 6 (complete)
 

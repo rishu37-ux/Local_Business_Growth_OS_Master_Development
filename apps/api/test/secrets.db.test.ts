@@ -186,7 +186,7 @@ describe('access', () => {
     await sql`update lbg.businesses set status = 'SUSPENDED' where id = ${shop.businessId}`.execute(h.admin);
     expect((await get(h, `${shop.base}/secrets`, shop.owner)).statusCode).toBe(200);
     expect(errorCode(await store({ purpose: 'api_key', label: 'RO', value: VALUE }))).toBe('TENANT_READ_ONLY');
-    const bare = await startHarness({ keyring: null });
+    const bare = await startHarness({ keyring: null, keepRateLimits: true });
     try {
       resetFixture();
       const s = await activeShop(bare, 'sec-c');
