@@ -1,6 +1,6 @@
 # Next Steps (ordered)
 
-Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete locally at the user's request; everything left needs the user's inputs)
+Last updated: 2026-10-28 (Phases 0–10 complete, CI green; Phase 11 — branding, shop website, online channels — complete at the user's request, CI #64 green; everything left needs the user's inputs)
 
 ## What is left — all of it needs the user
 
@@ -25,7 +25,7 @@ Developer work that can follow those inputs:
 - the reconciliation job for receipts older than the webhook window;
 - a plans screen for the platform admin.
 
-## Phase 11 — Branding, the shop's website, online channels (complete locally)
+## Phase 11 — Branding, the shop's website, online channels (complete, CI #64 green)
 
 Plan and acceptance criteria: `PHASE11_PLAN.md` (D-069, D-070).
 

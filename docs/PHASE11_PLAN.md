@@ -88,5 +88,5 @@ It also moves "custom domains/branded portals" (SRS §15) partly into scope. Acc
   6. axe reports 0 serious/critical issues at 360, 768 and 1280 px on the new screens and the website.
 
 ## Phase 11 exit
-**Status: passed locally (TR-0046); CI result recorded when known. Amazon and Flipkart are not connected (Q4).**
+**Status: passed (TR-0046; CI #64 green). Amazon and Flipkart are not connected (Q4).**
 All of the above passes, including cross-tenant, read-only-mode and permission tests, and the isolation sweep covers the new routes. CI is green. Amazon and Flipkart remain **not connected** until the user's seller accounts and API approvals exist (Q4).
