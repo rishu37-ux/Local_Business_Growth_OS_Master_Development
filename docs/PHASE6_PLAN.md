@@ -11,6 +11,7 @@ Version 1.0 — 2026-10-28. Master prompt §Development process, Phase 6; SRS FR
 - AC3 FR-CRM-2 AC2: customer export needs `customers.export`, includes only the fields chosen, CSV, audited (fields, count; no personal data in the audit).
 
 ## Increment 6.2 — Consent, suppression, communications (FR-CON-1)
+**Status: done in the API (TR-0027, D-048); screens in 6.7. No provider connected.**
 - AC1: consent records per customer, channel (WhatsApp, SMS, email) and purpose (transactional, marketing) with source, time and actor; append-only; the current state is the latest record.
 - AC2: default policy: transactional allowed (unless withdrawn or suppressed), marketing only with a GRANTED marketing consent for that channel.
 - AC3: opt-out (owner action or an inbound "STOP" handled by the adapter hook) adds the contact to the suppression list at once; **the send-time gate** blocks suppressed contacts and missing consent (`BLOCKED`, with the reason) even for messages created earlier.

@@ -141,3 +141,14 @@ export {
   type PeriodKind,
   warrantyEnd,
 } from './periods.ts';
+export {
+  gateDecision,
+  localMinute,
+  MESSAGE_CHANNELS,
+  MESSAGE_PURPOSES,
+  nextAllowedTime,
+  type BlockReason,
+  type GateFacts,
+  type MessageChannel,
+  type MessagePurpose,
+} from './messaging.ts';

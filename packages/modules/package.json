@@ -10,6 +10,7 @@
     "./catalogue": "./src/catalogue/index.ts",
     "./customers": "./src/customers/index.ts",
     "./inventory": "./src/inventory/index.ts",
+    "./messaging": "./src/messaging/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./ocr": "./src/ocr/index.ts",
     "./onboarding": "./src/onboarding/index.ts",

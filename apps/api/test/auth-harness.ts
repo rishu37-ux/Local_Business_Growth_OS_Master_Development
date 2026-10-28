@@ -7,6 +7,7 @@ import pg from 'pg';
 import { createDb, type Db } from '@lbgos/db';
 import { CapturingEmailSender, createAuthService } from '@lbgos/modules/auth';
 import { CapturingMailer } from '@lbgos/modules/notifications';
+import type { MessageProvider } from '@lbgos/modules/messaging';
 import { chromiumPdfRenderer } from '../src/pdf.ts';
 import { DEFAULT_ADAPTER_URL, MemoryStorage, processNextOcrJob, type OcrConfig } from '@lbgos/modules/ocr';
 import { DEFAULT_UPLOAD_LIMITS } from '@lbgos/domain';
@@ -49,7 +50,7 @@ export function freshIp(): string {
 }
 
 export async function startHarness(
-  options: { secureCookies?: boolean; baseURL?: string; webRoot?: string } = {},
+  options: { secureCookies?: boolean; baseURL?: string; webRoot?: string; messaging?: MessageProvider } = {},
 ): Promise<Harness> {
   const authDb = createDb('lbgos_auth', { max: 3 });
   const appDb = createDb('lbgos_app', { max: 3 });
@@ -81,7 +82,16 @@ export async function startHarness(
   const app = buildApp({
     config: loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'info', PUBLIC_BASE_URL: baseURL }),
     readiness: okReadiness,
-    services: { appDb, platformDb, auth, mailer: mail, baseURL, ocr, pdf },
+    services: {
+      appDb,
+      platformDb,
+      auth,
+      mailer: mail,
+      baseURL,
+      ocr,
+      pdf,
+      ...(options.messaging ? { messaging: options.messaging } : {}),
+    },
     logStream: logs,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
   });

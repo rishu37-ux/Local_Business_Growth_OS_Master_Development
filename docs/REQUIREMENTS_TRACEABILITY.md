@@ -56,7 +56,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-LED-1 | Ledger | Customer ledger | 5 | In progress (INVOICE, PAYMENT, REFUND, REVERSAL entries written and tested; AC2 balance = Σ entries = receivable − advance; AC3 append-only and statement with opening/closing balance for any date range (business timezone) tested — printing/export of statements in 5.6/5.7; CREDIT_NOTE/DEBIT_NOTE in 5.5; ADJUSTMENT not offered yet) | migrations 0001, 0014; `modules/sales/sale.ts`, `modules/sales/payments.ts` | TR-0002 T18–T18d; TR-0005; TR-0019 #10–11; TR-0020 #1–9 |
 | FR-LED-2 | Ledger | Deterministic allocation | 5 | Implemented + tested (pure module AC1–2; in the database: FIFO and selected invoices, advance, advance applied, refund, reversal; parallel payments never over-allocate; status derived) | `packages/domain/src/allocation.ts`, `modules/sales/payments.ts`, migration 0014 | TR-0017 #5–6; TR-0020 #1–7 |
 | FR-LED-3 | Ledger | Metric separation | 5 | In progress (reports API and screen label net/gross sales, returns, taxable value, tax, cash received, receivables, advances, COGS and gross margin separately with §7 definitions; tests check no sales figure is called profit or cash; dashboard in later phases) | `modules/reports/`, `apps/web/src/pages/reports.tsx` | TR-0024 #4, #10 |
-| FR-CON-1 | Consent | Consent and suppression | 6 | Specified | — | — |
+| FR-CON-1 | Consent | Consent and suppression | 6 | Done in API (AC1–4: consent records, suppression, send-time gate, communication history); screens in 6.7 | migration 0018, `modules/messaging/`, `routes/messaging.ts`, `domain/messaging.ts` | TR-0027 #1–7, #11–13 |
 | FR-REM-1 | Reminders | Reminders | 6 | Specified | — | — |
 | FR-RPT-1 | Reports | Report set | 5–6 | In progress (Phase 5 subset done with exact values on a seeded dataset: sales summary with previous period, sales by brand/model/variant, margin, receivables ageing, cash received by method, returns, tax summary, stock valuation; low/slow/dead stock in TR-0014; expenses, stock-movement report and campaign results later) | `modules/reports/` | TR-0024 #1–8 |
 | FR-RPT-2 | Reports | Definitions shown | 5 | Implemented + tested for the Phase 5 reports (every report returns its metric definitions; the Reports screen shows each next to its figure; exports include them) | `packages/domain/src/metrics.ts`, `modules/reports/`, `pages/reports.tsx` | TR-0017 #8; TR-0024 #4, #10 |
@@ -75,7 +75,7 @@ Last updated: 2026-10-27 (Phase 5, increment 5.2) · 100 requirements
 | FR-HUB-4 | API Hub | Lifecycle and health | 7 | Specified | — | — |
 | FR-HUB-5 | API Hub | SSRF protection | 7 | Specified | — | — |
 | FR-HUB-6 | API Hub | Ownership and cost attribution | 7 | Specified | — | — |
-| FR-MSG-1 | Messaging | WhatsApp | 7 | Specified | — | — |
+| FR-MSG-1 | Messaging | WhatsApp | 7 | In progress (AC3 send blocked without opt-in, AC4 provider-confirmed statuses only — adapter interface, no provider connected) | `modules/messaging/` | TR-0027 #3, #8–9 |
 | FR-MSG-2 | Messaging | Indian SMS DLT | 7 | Specified | — | — |
 | FR-MSG-3 | Messaging | Google Business Profile and Meta | 7 | Specified | — | — |
 | FR-MSG-4 | Messaging | Truthful status | 7 | Specified | — | — |

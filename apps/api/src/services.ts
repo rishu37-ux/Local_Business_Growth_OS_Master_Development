@@ -1,5 +1,6 @@
 import type { Db } from '@lbgos/db';
 import type { AuthService } from '@lbgos/modules/auth';
+import type { MessageProvider } from '@lbgos/modules/messaging';
 import type { Mailer } from '@lbgos/modules/notifications';
 import type { OcrConfig } from '@lbgos/modules/ocr';
 import type { PdfRenderer } from './pdf.ts';
@@ -16,4 +17,6 @@ export interface AppServices {
   readonly ocr?: OcrConfig;
   /** PDF rendering of printed documents; without it PDF downloads answer 503. */
   readonly pdf?: PdfRenderer;
+  /** Messaging provider adapter; without it messages fail as PROVIDER_NOT_CONFIGURED (none is connected yet). */
+  readonly messaging?: MessageProvider;
 }

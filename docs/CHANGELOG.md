@@ -5,6 +5,7 @@
 ### Added
 - Phase 6 plan (`docs/PHASE6_PLAN.md`).
 - Migration 0017 and customer profile: alternate mobile, date of birth, tags, preferred contact channels; warranty months/provider recorded on sale lines; owned units and warranty items with end dates (`GET /customers/:id/owned-items`); customer CSV export of chosen fields (`GET /customers/export`, `customers.export`, audited); `addMonths`, `warrantyEnd`, `normalizeTags` in `@lbgos/domain`.
+- Migration 0018 and `@lbgos/modules/messaging`: consent records and current state per channel, suppression list (opt-out, inbound STOP hook), messages with the WORKFLOWS §9 status machine enforced in the database, marketing approval, the send-time gate, quiet hours, provider adapter (default not configured) and communication history; messaging API routes; `gateDecision`, `nextAllowedTime` in `@lbgos/domain`.
 
 ## [0.5.0] — 2026-10-28 — Phase 5 (POS, invoices, payments, ledger, reports)
 

@@ -11,6 +11,7 @@ import type { Config } from './config.ts';
 import { registerCatalogueRoutes } from './routes/catalogue.ts';
 import { registerInventoryRoutes } from './routes/inventory.ts';
 import { registerMemberRoutes } from './routes/members.ts';
+import { registerMessagingRoutes } from './routes/messaging.ts';
 import { registerOnboardingRoutes } from './routes/onboarding.ts';
 import { registerPaymentRoutes } from './routes/payments.ts';
 import { registerPurchasingRoutes } from './routes/purchasing.ts';
@@ -201,6 +202,7 @@ export function buildApp(deps: AppDeps): FastifyInstance {
     registerSalesRoutes(app, services);
     registerPaymentRoutes(app, services);
     registerReportRoutes(app, services);
+    registerMessagingRoutes(app, services);
   }
 
   app.get('/healthz', { config: { public: true } }, () => ({ status: 'ok' }));

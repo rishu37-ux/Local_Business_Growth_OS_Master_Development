@@ -615,3 +615,24 @@ Seeded dataset (`reports.db.test.ts`, GST-registered shop, 18 % inclusive): A �
 | 6 | Domain | `addMonths` (month-end clamping as PostgreSQL), `warrantyEnd`, `normalizeTags`: 3 new unit tests | **Pass** (domain 143) |
 | 7 | — | Negative control: credit-note returns not subtracted from owned items → test 3 fails. Restored | **Detected** |
 | 8 | — | `pnpm check`: domain 143, API unit 37, DB 54 + schema checks (83 PASS notices, 0 FAIL), Better Auth schema matches migrations, API DB 247 | **Pass**, exit 0 |
+
+## TR-0027 · 2026-10-28 · Phase 6 increment 6.2 — consent, suppression, messages
+
+**Environment:** as TR-0011 (`messaging.db.test.ts`, `packages/domain` unit tests). Synthetic unregistered shop; Billing and Manager staff. **No messaging provider is connected**: the API runs with none configured; a recording test adapter (in the test file, it contacts nobody) stands in where a provider result is needed. The API tests open the quiet-hours window all day (asserted to apply to the shop's settings row) so they do not depend on the clock; quiet hours are tested with a fixed clock.
+
+| # | Requirement / AC | Check | Result |
+|---|---|---|---|
+| 1 | FR-CON-1 AC4 | New customer: WhatsApp and SMS transactional allowed, marketing not; email not allowed (no address) | **Pass** |
+| 2 | FR-CON-1 AC1 | Consent GRANTED then WITHDRAWN: latest decides, history newest first, source and actor stored; audit metadata channel/purpose/status only; consent rows cannot be updated (owner role); source shorter than 3 characters 400 | **Pass** |
+| 3 | WORKFLOWS §9, FR-MSG-1 AC3 | Marketing: Billing cannot draft (403); Manager drafts (address = customer's mobile), cannot send unapproved (`INVALID_STATE`), cannot approve or send (403); owner approves and sends → no provider → `FAILED` / `PROVIDER_NOT_CONFIGURED`; history DRAFT → PENDING_APPROVAL → APPROVED → QUEUED → FAILED; list reports `provider.configured: false` | **Pass** |
+| 4 | FR-CON-1 AC2 | Approved marketing to a customer without consent → `BLOCKED` / `NO_MARKETING_CONSENT` at send time | **Pass** |
+| 5 | FR-CON-1 AC2 (exit) | A message approved and a transactional message queued **before** the opt-out are both `BLOCKED` / `SUPPRESSED` at dispatch; the address is on the suppression list at once; SMS (another channel) stays allowed; a Manager cannot re-grant consent on the suppressed contact (`RELEASE_NEEDS_APPROVER`), the owner can, which lifts the suppression | **Pass** |
+| 6 | FR-CON-1 AC2 | Inbound STOP hook: suppresses and withdraws marketing consent; a repeat is a no-op; an unknown number is suppressed too (no customer) | **Pass** |
+| 7 | FR-MSG-1 AC3 | Transactional with `send: true` is queued and dispatched at once → `FAILED` / `PROVIDER_NOT_CONFIGURED` (events QUEUED, FAILED); marketing with `send: true` refused; no email address → `NO_ADDRESS` | **Pass** |
+| 8 | FR-MSG-1 AC4 (test adapter) | Accepted → `SENT` with the provider reference, the adapter received exactly the channel/address/text; re-dispatch skipped; receipts DELIVERED then READ, a late DELIVERED ignored, another provider's reference not matched; history QUEUED → SUBMITTED → SENT → DELIVERED → READ. Rejection and an exception → `FAILED` with the code / `PROVIDER_ERROR` | **Pass** |
+| 9 | WORKFLOWS §9 (DB) | Direct SQL: DRAFT → SENT and DRAFT → QUEUED refused (LB002); editing the text after approval refused (LB003); SUBMITTED → SENT without a provider reference refused (LB020); marketing cannot be inserted QUEUED, nothing can be inserted SENT; message events and suppressions cannot be changed or deleted | **Pass** |
+| 10 | FR-REM-1 AC3 | Quiet hours 09:00–21:00: marketing at 22:00 IST deferred to 09:00 IST next day; not due at 08:59, sent at 09:00 (test adapter); a transactional message at 22:00 goes at once | **Pass** |
+| 11 | Access | Other businesses: 404 on consents, message and send, empty lists; read-only (suspended) business can view consents and messages but recording consent, drafting, approving and editing answer `TENANT_READ_ONLY` | **Pass** |
+| 12 | Domain | `gateDecision` (precedence: erased, no address, suppressed, withdrawn, marketing consent) and `nextAllowedTime`/`localMinute`: 4 tests; `messaging.ts` added to the coverage gate (100 % lines, 96 % branches) | **Pass** (domain 147) |
+| 13 | — | Negative control: the dispatch gate ignores suppression → 2 tests fail (opt-out test and a later one). Restored | **Detected** |
+| 14 | — | `pnpm check`: domain 147, API unit 37, DB 54 + schema checks (83 PASS, 0 FAIL), Better Auth schema matches migrations, API DB 258 | **Pass**, exit 0 |
