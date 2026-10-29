@@ -1101,3 +1101,12 @@ Not tested: real Amazon/Flipkart feeds, or what they actually share (Q4); Firefo
 | 10 | — | `pnpm check`: <br>• ESLint rules 26, domain 160, API unit 108, DB 54 (migration list updated for 0034) <br>• API DB 482 (470 + 8 + 4) <br>The earlier full runs failed as described in #8; the final run passed. `pnpm secrets` and `scripts/check-docs.sh` ok. | **Pass**, exit 0 |
 
 Not tested: a real phone or printer; Firefox/WebKit; a district master list (not built).
+
+## TR-0050 · 2026-10-29 · Purchase post errors name the fixes; the portal on a phone through a tunnel
+
+**Environment:** as TR-0049. Synthetic data only.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Posting a purchase with blocking problems: the 422 message now lists what must be fixed, e.g. "This purchase cannot be posted yet. Must fix: Line 1: Not a valid IMEI … Line 2: Quantity is 2 but 1 IMEI/serial entries were given." At most 5 reasons are listed, then a count. `purchasing.db.test.ts` checks the exact message; `inventory-browser.db.test.ts` still finds the alert. | **Pass** (16/16, 7/7) |
+| 2 | `PORTAL_URL=https://demo-check.trycloudflare.com scripts/dev-local.sh`, with requests carrying that Host, `X-Forwarded-Proto: https` and `X-Forwarded-For` as a tunnel sends them: <br>• The sign-in page → 200. <br>• Sign-up with Origin = that address → 200, and the verification link printed uses that address. <br>• Sign-up with Origin `http://127.0.0.1:3000` → 403 `INVALID_ORIGIN`. <br>**Not tested:** a real cloudflared tunnel and a real phone (cloudflared is not available in the dev container). | **Pass** (simulated) |

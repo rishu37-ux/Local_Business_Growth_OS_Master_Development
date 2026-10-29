@@ -625,7 +625,17 @@ export async function postPurchase(
       const code = blocking.every((p) => p.code === 'DUPLICATE_SUPPLIER_INVOICE')
         ? 'DUPLICATE_SUPPLIER_INVOICE'
         : 'BLOCKING_PROBLEMS';
-      throw new PurchasingError(code, 'This purchase cannot be posted yet.', undefined, blocking);
+      // The reasons are in the message too, so the person sees what to fix where the error is shown.
+      const reasons = blocking
+        .slice(0, 5)
+        .map((p) => `${p.lineNo ? `Line ${String(p.lineNo)}: ` : ''}${p.message}`)
+        .join(' ');
+      throw new PurchasingError(
+        code,
+        `This purchase cannot be posted yet. Must fix: ${reasons}${blocking.length > 5 ? ` (and ${String(blocking.length - 5)} more)` : ''}`,
+        undefined,
+        blocking,
+      );
     }
     const isDuplicate = problems.some((p) => p.code === 'DUPLICATE_SUPPLIER_INVOICE');
     await persistAmounts(trx, ctx, loaded);

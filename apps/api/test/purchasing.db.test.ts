@@ -229,6 +229,12 @@ describe('drafts (FR-INV-8 AC2, FR-INV-3 AC2–4, FR-INV-5 AC1)', () => {
     const post1 = await post(h, `${shop.base}/purchases/${bad}/post`, {}, shop.owner);
     expect(post1.statusCode).toBe(422);
     expect(errorCode(post1)).toBe('BLOCKING_PROBLEMS');
+    // The message says what must be fixed (at most 5 reasons, then a count).
+    expect(post1.json<{ error: { message: string } }>().error.message).toBe(
+      'This purchase cannot be posted yet. Must fix: Line 1: Not a valid IMEI (15 digits with a correct check digit). ' +
+        'Line 1: This IMEI appears more than once in this purchase. Line 1: IMEI 1 and IMEI 2 must differ. ' +
+        'Line 1: This IMEI appears more than once in this purchase. Line 2: Quantity is 2 but 1 IMEI/serial entries were given.',
+    );
     expect(await movementsOf(bad)).toBe(0);
     expect((await post(h, `${shop.base}/purchases/${bad}/discard`, {}, shop.owner)).statusCode).toBe(204);
     expect((await post(h, `${shop.base}/purchases/${bad}/post`, {}, shop.owner)).statusCode).toBe(409);

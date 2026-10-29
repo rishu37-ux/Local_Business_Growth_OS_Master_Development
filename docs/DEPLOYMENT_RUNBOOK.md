@@ -25,6 +25,19 @@ pnpm -F @lbgos/web build        # SPA → apps/web/dist (served by the API at /)
 
 **Quickest local look at the portal:** `scripts/dev-local.sh`, then open http://127.0.0.1:3000. It starts a throwaway PostgreSQL (deleted on Ctrl+C), migrates, builds the web app and starts the API; dev emails are printed to the terminal, and it prints the `psql` command to grant a platform admin. Requires PostgreSQL 16+ server binaries locally. For real OCR of camera photos, install Tesseract first (`sudo apt install -y tesseract-ocr`); the script then sets `OCR_ENGINE=tesseract` (D-071), otherwise it uses the mock reader, which cannot read real photos.
 
+**On a phone (testing only):**
+1. In a second terminal, run `cloudflared tunnel --url http://127.0.0.1:3000`. It prints an `https://<name>.trycloudflare.com` address.
+2. Start the portal with that address: `PORTAL_URL=https://<name>.trycloudflare.com scripts/dev-local.sh`.
+3. Open the address on the phone.
+
+How it works:
+- The CSRF check accepts only that origin.
+- Cookies are `Secure`.
+- One proxy hop is trusted for client addresses.
+- The live camera works because the page is https.
+
+While both run, the portal is reachable from the internet, so use test data only and stop both afterwards. The script refuses any `PORTAL_URL` other than `http://127.0.0.1:3000` or an https address.
+
 Running the API locally against a persistent database:
 1. Bootstrap once as a superuser: `psql -f packages/db/bootstrap/bootstrap.sql`. In real environments, set role passwords from the secret store. Environments bootstrapped before migration 0022 must first run `create role lbgos_secrets login nobypassrls;` (D-055).
 2. Migrate: `LBGOS_MIGRATION_DATABASE_URL=postgres://lbgos_owner:...@host/db node packages/db/src/migrate-cli.ts`.
